@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "BitUtil.h"
 
+/// Specialized implementation for 32-bit tokens
 template<bool UseAVX256>
 class BitUtil<uint32_t, UseAVX256>
 {

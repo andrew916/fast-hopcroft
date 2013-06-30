@@ -1,5 +1,7 @@
+// June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #pragma once
 
+/// static class to provide optimal but generic bit-specific operations
 template<class T, bool UseAVX256>
 class BitUtil
 {

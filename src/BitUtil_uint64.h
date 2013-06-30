@@ -1,3 +1,4 @@
+// June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #pragma once
 
 #include <cstdint>

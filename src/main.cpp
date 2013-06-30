@@ -1,3 +1,4 @@
+// June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #include "Dfa.h"
 #include "BitSet.h"
 #include "Dfa.h"
