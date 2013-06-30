@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iostream>
 
+/// Hopcroft's DFA Minimization Algorithm.
 template<class TState, class TSymbol, class TToken = uint64_t>
 class MinimizationHopcroft
 {	
@@ -15,13 +16,16 @@ public:
 	typedef BitSet<TState, TToken> TSet;
 	typedef std::list<TSet> TPartition;
 
+	/// Controls the debugging info output
 	bool ShowConfiguration;
 
 	MinimizationHopcroft()
 		:ShowConfiguration(true)
-	{	
+	{
 	}
 
+	/// Extract one member of partition.
+	/// O(1)
 	TSet ExtractOne(TPartition& partition)
 	{
 		auto r = partition.front();
@@ -29,6 +33,7 @@ public:
 		return r;
 	}
 
+	/// Util to get a printable string representing the Set
 	std::string SetToString(const TSet& set)
 	{
 		int cnt = 0;
@@ -44,6 +49,7 @@ public:
 		return str;
 	}
 
+	/// Util to get a printable string representing the partition
 	std::string PartitionToString(const TPartition& p)
 	{
 		std::string str;
@@ -58,6 +64,8 @@ public:
 		return str;
 	}
 
+	/// Split operation, Refine B' using the Splitter (B, a) resulting B1 and B2.
+	/// <math>(B1, B2) = B' \ (B,a)</math>
 	void Split(const TDfa& dfa, TSet& Bc, TSet& B, TSymbol a, TSet& B1, TSet& B2, int* countB1, int* countB2)
 	{
 		*countB1 = 0;
@@ -83,6 +91,7 @@ public:
 		});
 	}
 
+	/// Entry point to minimize any DFA
 	void Minimize(TDfa& dfa) 
 	{
 		// P = { F, ~F }
