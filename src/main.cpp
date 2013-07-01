@@ -7,33 +7,56 @@
 
 int main(int argc, char** argv)
 {	
-	Dfa<uint32_t, uint32_t> dfa(2, 4);
-
-	//   /  2  \
-	// 0 -> 1 -> 3
-	dfa.SetInitial(0);
-	dfa.SetFinal(3);
-
-	dfa.SetTransition(0, 0, 1);
-	dfa.SetTransition(0, 1, 0);
-
-	dfa.SetTransition(1, 0, 3);
-	dfa.SetTransition(1, 1, 1);
-
-	dfa.SetTransition(2, 0, 3);
-	dfa.SetTransition(2, 1, 2);
-
-	dfa.SetTransition(3, 0, 3);
-	dfa.SetTransition(3, 1, 3);
-		
 	MinimizationHopcroft<uint32_t, uint32_t> mini;
-	mini.Minimize(dfa);
+	{
+		Dfa<uint32_t, uint32_t> dfa(2, 4);
 
-	Dfa<uint32_t, uint32_t> dfa2(2, 5);
+		//   / 2 \
+		// 0 - 1 - 3
+		dfa.SetInitial(0);
+		dfa.SetFinal(3);
 
-	dfa.SetInitial(0);
-	dfa.SetFinal(3);
-	dfa.SetFinal(4);
+		dfa.SetTransition(0, 0, 1);
+		dfa.SetTransition(0, 1, 0);
 
+		dfa.SetTransition(1, 0, 3);
+		dfa.SetTransition(1, 1, 1);
+
+		dfa.SetTransition(2, 0, 3);
+		dfa.SetTransition(2, 1, 2);
+
+		dfa.SetTransition(3, 0, 3);
+		dfa.SetTransition(3, 1, 3);
+
+
+		mini.Minimize(dfa);
+	}
+	{
+		//    / 1 - 3
+		//  0
+		//    \ 2 - 4
+		Dfa<uint32_t, uint32_t> dfa2(2, 5);
+
+		dfa2.SetInitial(0);
+		dfa2.SetFinal(3);
+		dfa2.SetFinal(4);
+
+		dfa2.SetTransition(0, 0, 1);
+		dfa2.SetTransition(0, 1, 2);
+
+		dfa2.SetTransition(1, 0, 3);
+		dfa2.SetTransition(1, 1, 1);
+
+		dfa2.SetTransition(2, 0, 4);
+		dfa2.SetTransition(2, 1, 2);
+
+		dfa2.SetTransition(3, 0, 3);
+		dfa2.SetTransition(3, 1, 3);
+
+		dfa2.SetTransition(4, 0, 4);
+		dfa2.SetTransition(4, 1, 4);
+
+		mini.Minimize(dfa2);
+	}
 	return 0;
 }

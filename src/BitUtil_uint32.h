@@ -1,7 +1,8 @@
 #pragma once
 
 #include <boost/static_assert.hpp>
-#include <cstdint>
+#include <stdint.h>
+#include <assert.h>
 #include <memory.h>
 #include "BitUtil.h"
 

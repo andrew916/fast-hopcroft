@@ -1,7 +1,8 @@
 // June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
+#include <assert.h>
 #include <list>
 #include <string>
 #include <algorithm>

@@ -1,8 +1,9 @@
 // June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #pragma once
 
-#include <cassert>
-#include <memory>
+#include <stdint.h>
+#include <assert.h>
+#include <memory.h>
 #include <functional>
 #include "BitUtil_uint32.h"
 #include "BitUtil_uint64.h"
@@ -30,7 +31,7 @@ public:
 	{
 		Tokens = maxElements / ElementsPerToken;
 		if(Tokens * ElementsPerToken != maxElements) Tokens++;
-		TokenArray = malloc(Tokens*sizeof(TToken));
+		TokenArray = (TToken*)malloc(Tokens*sizeof(TToken));
 		MaxElements = maxElements;
 				
 		LastTokenMask = 0;
@@ -46,7 +47,7 @@ public:
 		Tokens = copyFrom.Tokens;
 		LastTokenMask = copyFrom.LastTokenMask;
 		MaxElements = copyFrom.MaxElements;
-		TokenArray = malloc(Tokens*sizeof(TToken));
+		TokenArray = (TToken*)malloc(Tokens*sizeof(TToken));
 		CopyFrom(copyFrom);
 	}
 

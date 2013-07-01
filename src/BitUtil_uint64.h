@@ -1,7 +1,8 @@
 // June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
+#include <assert.h>
 #include "BitUtil.h"
 
 #if defined(_MSC_VER)
@@ -116,12 +117,16 @@ static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsign
 	
 	static bool SetBit(uint64_t* vec, unsigned bit)
 	{
+		bool r = TestBit(vec, bit);
 		*vec |= (uint64_t)1 << bit;
+		return r;
 	}
 
 	static bool ClearBit(uint64_t* vec, unsigned bit)
 	{
+		bool r = TestBit(vec, bit);
 		*vec &= ~((uint64_t)1 << bit);
+		return r;
 	}
 
 	static bool TestBit(const uint64_t* vec, unsigned bit)

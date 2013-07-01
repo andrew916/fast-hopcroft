@@ -22,7 +22,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_IS_CLANG)
-    set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++")
+    set(CMAKE_CXX_FLAGS "-std=c++11")
 endif()
 	
 install(TARGETS FastHopcroftExecutable DESTINATION bin)
