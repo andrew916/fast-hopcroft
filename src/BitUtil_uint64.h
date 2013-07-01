@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "BitUtil.h"
 
+#include <intrin.h>
 
 template<bool UseAVX256>
 class BitUtil<uint64_t, UseAVX256>
@@ -15,12 +16,7 @@ public:
 	{
 		return _BitScanForward64(idx, v) != 0;
 	}
-
-	static bool BitScanReverse(unsigned long* idx, uint64_t v)
-	{
-		return _BitScanReverse64(idx, v) != 0;
-	}
-
+	
 	static bool SetBit(uint64_t* vec, unsigned bit)
 	{
 		return _bittestandset64((int64_t*)vec, bit) != 0;
@@ -35,16 +31,52 @@ public:
 	{
 		return _bittest64((const int64_t*)vec, bit) != 0;
 	}
-
-	static void ClearAllBits(uint64_t* vec, unsigned tokens)
-	{
-		memset(vec, 0, tokens * sizeof(uint64_t));	
-	}
-
+		
 	static void OrAndClearSecondBit(uint64_t* vec, unsigned b1, unsigned b2) 
 	{	
 		auto c2 = _bittestandreset64((int64_t*)vec, b2);
 		if(c2) _bittestandset64((int64_t*)vec, b1);	
+	}
+
+#else
+	static bool BitScanForward(unsigned long* idx, uint64_t v)
+	{
+		auto l = __builtin_ffsll(v);
+		if(l == 0) return false;
+		*idx = l-1;
+		return true;
+	}
+	
+	static bool SetBit(uint64_t* vec, unsigned bit)
+	{
+		*vec |= (uint64_t)1 << bit;
+	}
+
+	static bool ClearBit(uint64_t* vec, unsigned bit)
+	{
+		*vec &= ~((uint64_t)1 << bit);
+	}
+
+	static bool TestBit(const uint64_t* vec, unsigned bit)
+	{
+		return ((*vec >> bit) & 1) != 0;
+	}
+	
+	static void OrAndClearSecondBit(uint64_t* vec, unsigned b1, unsigned b2) 
+	{	
+		auto c2 = TestBit(vec, b2);
+		if(c2) 
+		{
+			ClearBit(vec, b2);
+			SetBit(vec, b1);
+		}
+	}
+		
+#endif
+	
+	static void ClearAllBits(uint64_t* vec, unsigned tokens)
+	{
+		memset(vec, 0, tokens * sizeof(uint64_t));	
 	}
 
 	static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsigned s)
@@ -64,6 +96,27 @@ public:
 			while(s--)
 			{
 				*o++ = *v1++ | *v2++;
+			}
+		}
+	}
+
+	static void AndVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsigned s)
+	{
+		if(UseAVX256)
+		{
+			assert(s * 64 % 256 == 0); // tokens debe ser multiplo de 256
+			const int incr = 256 / 64; // AVX use 256-bit registers
+			for(unsigned i=0; i<s; i+=incr)
+			{
+				__m256 rs = _mm256_loadu_ps((const float*)&v1[i]);
+				__m256 rd = _mm256_loadu_ps((const float*)&v2[i]);		
+				rd = _mm256_and_ps(rs, rd);
+				_mm256_storeu_ps((float*)&o[i], rd);
+			}
+		} else {
+			while(s--)
+			{
+				*o++ = *v1++ & *v2++;
 			}
 		}
 	}
@@ -88,29 +141,5 @@ public:
 			return false;
 		}
 	}
-#else
-	static bool BitScanForward(unsigned long* idx, uint64_t v)
-	{
-		auto l = __builtin_ffs(v);
-		if(l != 0) { *idx = l-1; return true; }
-		return false;
-	}
-
-
-	static bool SetBit(uint64_t* vec, unsigned bit)
-	{
-		*vec |= (uint64_t)1 << bit;
-	}
-
-	static bool ClearBit(uint64_t* vec, unsigned bit)
-	{
-		*vec &= ¬((uint64_t)1 << bit);
-	}
-
-	static bool TestBit(const uint64_t* vec, unsigned bit)
-	{
-		return _bittest64((const int64_t*)vec, bit) != 0;
-	}
-#endif
 };
 
