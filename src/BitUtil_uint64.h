@@ -4,10 +4,13 @@
 #include <cstdint>
 #include "BitUtil.h"
 
+
 template<bool UseAVX256>
 class BitUtil<uint64_t, UseAVX256>
 {
 public:
+
+#if defined(_MSC_VER)
 	static bool BitScanForward(unsigned long* idx, uint64_t v)
 	{
 		return _BitScanForward64(idx, v) != 0;
@@ -85,5 +88,29 @@ public:
 			return false;
 		}
 	}
+#else
+	static bool BitScanForward(unsigned long* idx, uint64_t v)
+	{
+		auto l = __builtin_ffs(v);
+		if(l != 0) { *idx = l-1; return true; }
+		return false;
+	}
+
+
+	static bool SetBit(uint64_t* vec, unsigned bit)
+	{
+		*vec |= (uint64_t)1 << bit;
+	}
+
+	static bool ClearBit(uint64_t* vec, unsigned bit)
+	{
+		*vec &= ¬((uint64_t)1 << bit);
+	}
+
+	static bool TestBit(const uint64_t* vec, unsigned bit)
+	{
+		return _bittest64((const int64_t*)vec, bit) != 0;
+	}
+#endif
 };
 
