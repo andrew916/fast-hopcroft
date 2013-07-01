@@ -4,7 +4,11 @@
 #include <cstdint>
 #include "BitUtil.h"
 
+#if defined(_MSC_VER)
 #include <intrin.h>
+#endif
+
+#include <immintrin.h>
 
 template<bool UseAVX256>
 class BitUtil<uint64_t, UseAVX256>
@@ -38,48 +42,7 @@ public:
 		if(c2) _bittestandset64((int64_t*)vec, b1);	
 	}
 
-#else
-	static bool BitScanForward(unsigned long* idx, uint64_t v)
-	{
-		auto l = __builtin_ffsll(v);
-		if(l == 0) return false;
-		*idx = l-1;
-		return true;
-	}
-	
-	static bool SetBit(uint64_t* vec, unsigned bit)
-	{
-		*vec |= (uint64_t)1 << bit;
-	}
-
-	static bool ClearBit(uint64_t* vec, unsigned bit)
-	{
-		*vec &= ~((uint64_t)1 << bit);
-	}
-
-	static bool TestBit(const uint64_t* vec, unsigned bit)
-	{
-		return ((*vec >> bit) & 1) != 0;
-	}
-	
-	static void OrAndClearSecondBit(uint64_t* vec, unsigned b1, unsigned b2) 
-	{	
-		auto c2 = TestBit(vec, b2);
-		if(c2) 
-		{
-			ClearBit(vec, b2);
-			SetBit(vec, b1);
-		}
-	}
-		
-#endif
-	
-	static void ClearAllBits(uint64_t* vec, unsigned tokens)
-	{
-		memset(vec, 0, tokens * sizeof(uint64_t));	
-	}
-
-	static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsigned s)
+static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsigned s)
 	{
 		if(UseAVX256)
 		{
@@ -141,5 +104,72 @@ public:
 			return false;
 		}
 	}
+
+#else
+	static bool BitScanForward(unsigned long* idx, uint64_t v)
+	{
+		auto l = __builtin_ffsll(v);
+		if(l == 0) return false;
+		*idx = l-1;
+		return true;
+	}
+	
+	static bool SetBit(uint64_t* vec, unsigned bit)
+	{
+		*vec |= (uint64_t)1 << bit;
+	}
+
+	static bool ClearBit(uint64_t* vec, unsigned bit)
+	{
+		*vec &= ~((uint64_t)1 << bit);
+	}
+
+	static bool TestBit(const uint64_t* vec, unsigned bit)
+	{
+		return ((*vec >> bit) & 1) != 0;
+	}
+	
+	static void OrAndClearSecondBit(uint64_t* vec, unsigned b1, unsigned b2) 
+	{	
+		auto c2 = TestBit(vec, b2);
+		if(c2) 
+		{
+			ClearBit(vec, b2);
+			SetBit(vec, b1);
+		}
+	}
+
+static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsigned s)
+	{
+			while(s--)
+			{
+				*o++ = *v1++ | *v2++;
+			}
+	}
+
+	static void AndVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsigned s)
+	{
+			while(s--)
+			{
+				*o++ = *v1++ & *v2++;
+			}
+	}
+
+	static bool AnyBitOfAndVector(const uint64_t* v1, const uint64_t* v2, unsigned s)
+	{
+			while(s--)
+			{
+				if(*v1++ & *v2++) return true;
+			}
+			return false;
+	}
+		
+#endif
+	
+	static void ClearAllBits(uint64_t* vec, unsigned tokens)
+	{
+		memset(vec, 0, tokens * sizeof(uint64_t));	
+	}
+	
 };
 

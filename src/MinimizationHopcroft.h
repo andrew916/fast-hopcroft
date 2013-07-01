@@ -39,10 +39,10 @@ public:
 		int cnt = 0;
 		std::string str;
 		str.append("{");
-		set.ForEachMember([&cnt, &str](TState i)
+		set.ForEachMember( [&cnt, &str] (TState i)
 		{
 			if(cnt++ > 0) str += ", ";			
-			str.append(std::to_string(i));			
+			str.append(std::to_string(i));
 			return true;
 		});
 		str.append("}");

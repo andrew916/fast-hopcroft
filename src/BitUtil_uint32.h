@@ -2,9 +2,14 @@
 
 #include <boost/static_assert.hpp>
 #include <cstdint>
+#include <memory.h>
 #include "BitUtil.h"
 
+#if defined(_MSC_VER)
 #include <intrin.h>
+#endif
+
+#include <immintrin.h>
 
 /// Specialized implementation for 32-bit tokens
 template<bool UseAVX256>
@@ -42,7 +47,7 @@ public:
 	}
 		
 #else
-	static bool BitScanForward(unsigned long* idx, uint64_t v)
+	static bool BitScanForward(unsigned long* idx, uint32_t v)
 	{
 		auto l = __builtin_ffsll(v);
 		if(l == 0) return false;
@@ -50,17 +55,17 @@ public:
 		return true;
 	}
 	
-	static bool SetBit(uint64_t* vec, unsigned bit)
+	static bool SetBit(uint32_t* vec, unsigned bit)
 	{
-		*vec |= (uint64_t)1 << bit;
+		*vec |= (uint32_t)1 << bit;
 	}
 
-	static bool ClearBit(uint64_t* vec, unsigned bit)
+	static bool ClearBit(uint32_t* vec, unsigned bit)
 	{
-		*vec &= ~((uint64_t)1 << bit);
+		*vec &= ~((uint32_t)1 << bit);
 	}
 
-	static bool TestBit(const uint64_t* vec, unsigned bit)
+	static bool TestBit(const uint32_t* vec, unsigned bit)
 	{
 		return ((*vec >> bit) & 1) != 0;
 	}

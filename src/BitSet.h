@@ -30,7 +30,7 @@ public:
 	{
 		Tokens = maxElements / ElementsPerToken;
 		if(Tokens * ElementsPerToken != maxElements) Tokens++;
-		TokenArray = new TToken[Tokens];
+		TokenArray = malloc(Tokens*sizeof(TToken));
 		MaxElements = maxElements;
 				
 		LastTokenMask = 0;
@@ -46,7 +46,7 @@ public:
 		Tokens = copyFrom.Tokens;
 		LastTokenMask = copyFrom.LastTokenMask;
 		MaxElements = copyFrom.MaxElements;
-		TokenArray = new TToken[Tokens];
+		TokenArray = malloc(Tokens*sizeof(TToken));
 		CopyFrom(copyFrom);
 	}
 
@@ -56,6 +56,7 @@ public:
 		TokenArray = rhs.TokenArray;
 		LastTokenMask = rhs.LastTokenMask;
 		Tokens = rhs.Tokens;
+		MaxElements = rhs.MaxElements;
 
 		rhs.TokenArray = nullptr;
 	}
@@ -78,7 +79,7 @@ public:
 			Tokens = rh.Tokens;
 			LastTokenMask = rh.LastTokenMask;
 			MaxElements = rh.MaxElements;
-			realloc(TokenArray, sizeof(TToken)*Tokens)		
+			realloc(TokenArray, sizeof(TToken)*Tokens);
 		}
 		CopyFrom(rh);		
 		return *this;
@@ -91,6 +92,7 @@ public:
 		{
 			TokenArray = rhs.TokenArray;
 			LastTokenMask = rhs.LastTokenMask;
+			MaxElements = rhs.MaxElements;
 			Tokens = rhs.Tokens;
 
 			rhs.TokenArray = nullptr;
@@ -163,7 +165,7 @@ public:
 	/// Respecto al numero de elementos se ejecuta en tiempo constante
 	bool IsEmpty() const
 	{
-		for(unsigned s=0; s<c.Tokens; s++)
+		for(unsigned s=0; s<Tokens; s++)
 		{
 			if(TokenArray[s]) return false;
 		}
