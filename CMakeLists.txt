@@ -23,6 +23,7 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_IS_CLANG)
     set(CMAKE_CXX_FLAGS "-std=c++11")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O4")
 endif()
 	
 install(TARGETS FastHopcroftExecutable DESTINATION bin)
