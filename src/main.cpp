@@ -3,7 +3,7 @@
 #include "BitSet.h"
 #include "Dfa.h"
 #include "MinimizationHopcroft.h"
-
+#include "AfdParser.h"
 
 int main(int argc, char** argv)
 {	

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <assert.h>
+#include <memory.h>
 #include "BitUtil.h"
 
 #if defined(_MSC_VER)
@@ -17,6 +18,7 @@ class BitUtil<uint64_t, UseAVX256>
 public:
 
 #if defined(_MSC_VER)
+
 	static bool BitScanForward(unsigned long* idx, uint64_t v)
 	{
 		return _BitScanForward64(idx, v) != 0;
@@ -43,7 +45,7 @@ public:
 		if(c2) _bittestandset64((int64_t*)vec, b1);	
 	}
 
-static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsigned s)
+	static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsigned s)
 	{
 		if(UseAVX256)
 		{
@@ -107,6 +109,7 @@ static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsign
 	}
 
 #else
+
 	static bool BitScanForward(unsigned long* idx, uint64_t v)
 	{
 		auto l = __builtin_ffsll(v);
@@ -144,7 +147,7 @@ static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsign
 		}
 	}
 
-static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsigned s)
+	static void OrVector(uint64_t* o, const uint64_t* v1, const uint64_t* v2, unsigned s)
 	{
 			while(s--)
 			{

@@ -17,13 +17,7 @@ public:
 	typedef BitSet<TState, TToken> TSet;
 	typedef std::list<TSet> TPartition;
 
-	/// Controls the debugging info output
-	bool ShowConfiguration;
-
-	MinimizationHopcroft()
-		:ShowConfiguration(true)
-	{
-	}
+private:
 
 	/// Extract one member of partition.
 	/// O(1)
@@ -92,6 +86,16 @@ public:
 		});
 	}
 
+public:
+
+	/// Controls the debugging info output
+	bool ShowConfiguration;
+
+	MinimizationHopcroft()
+		:ShowConfiguration(true)
+	{
+	}
+	
 	/// Entry point to minimize any DFA
 	void Minimize(TDfa& dfa) 
 	{

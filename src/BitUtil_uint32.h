@@ -50,7 +50,7 @@ public:
 #else
 	static bool BitScanForward(unsigned long* idx, uint32_t v)
 	{
-		auto l = __builtin_ffsll(v);
+		auto l = __builtin_ffsl(v);
 		if(l == 0) return false;
 		*idx = l-1;
 		return true;
@@ -58,12 +58,16 @@ public:
 	
 	static bool SetBit(uint32_t* vec, unsigned bit)
 	{
+		bool r = TestBit(vec, bit);
 		*vec |= (uint32_t)1 << bit;
+		return r;
 	}
 
 	static bool ClearBit(uint32_t* vec, unsigned bit)
 	{
+		bool r = TestBit(vec, bit);
 		*vec &= ~((uint32_t)1 << bit);
+		return r;
 	}
 
 	static bool TestBit(const uint32_t* vec, unsigned bit)
