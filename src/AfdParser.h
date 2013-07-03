@@ -1,98 +1,159 @@
 #pragma once
 
 #include <string>
-#include <iostream>
-#include <exception>
-#include <boost/spirit/include/qi.hpp>
+#include <istream>
+#include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 #include "Dfa.h"
 
-template<typename _Iterator>
-struct AfdParserGrammar : boost::spirit::qi::grammar<_Iterator, boost::spirit::ascii::space_type>
-{
-	boost::spirit::qi::rule<_Iterator> fa_args;
-	boost::spirit::qi::rule<_Iterator> fa_arg1;
-	boost::spirit::qi::rule<_Iterator> initial_states;
-	boost::spirit::qi::rule<_Iterator> final_states;
-	boost::spirit::qi::rule<_Iterator> transitions;
-	boost::spirit::qi::rule<_Iterator> transition;
-	boost::spirit::qi::rule<_Iterator> integer_list;
-	boost::spirit::qi::rule<_Iterator> jumps;
-	boost::spirit::qi::rule<_Iterator> start;
-
-	AfdParserGrammar() : AfdParserGrammar::base_type(start)
-	{
-		using boost::spirit::qi::int_;
-		using boost::spirit::qi::char_;
-		using boost::spirit::qi::lit;
-		using boost::spirit::qi::lexeme;
-		using boost::spirit::qi::alpha;
-		using boost::spirit::qi::string;
-		
-		start %= lit("fa") 
-			>> '('
-			>> fa_args
-			>> ')'
-			>> '.';
-
-		fa_args %= fa_arg1
-			>> num_states >> ','
-			>> initial_states >> ','			
-			>> final_states >> ','
-			>> transitions >> ','
-			>> jumps;
-
-		num_states %= int_;
-
-		initial_states %= integer_list;
-
-		final_states %= integer_list;
-
-		transitions %= lit('[') 
-			>> transition 
-			>> *( ',' transition )
-			>> ']';
-
-		transition %= lit("trans") 
-			>> '('
-			>> int_ // state 1
-			>> ','
-			>> char_ // symbol
-			>> ','
-			>> int_ // state 2
-			>> ')';
-
-		integer_list %= lit('[') 
-			>> int_ >> *( ',' >> int_ );
-			>> ']';
-
-		fa_arg1 %= lit("r(fsa_frozen)");
-	}
-};
-
-template<class TState, class TSymbol, class TToken = uint64_t>
-class AfdParser 
+class AfdParser
 {
 public:
-	typedef Dfa<TState, TSymbol, TToken> TDfa;
-	
-public:	
-	typedef std::string::const_iterator iterator_type;
-	typedef AfdParserGrammar<iterator_type> AfdParserGrammar;
+protected:
+	int state;
+	bool second_step;
+	std::string token;
 
-	AfdParserGrammar g; // Our grammar
-		
-	template<typename _Iter>
-	TDfa& Parse(_Iter first, _Iter last)
-	{			
-		bool r = boost::spirit::qi::phrase_parse(first, last, g, skipper, ast);
-		return TDfa(1,1);
+	int number_states;	
+	
+
+	void expect(std::string ref)
+	{
+		if(token == ref) state++;
+		else 
+		{
+			auto msg = std::string("Se esperaba el literal: ")+ref; 
+			throw std::exception(msg.c_str()); 
+		}
 	}
 
+	void read(int& i)
+	{
+		if(!std::all_of(token.begin(), token.end(), isdigit))
+		{
+			throw std::exception("Se esperaba token numerico");
+		}
+		i = boost::lexical_cast<int,std::string>(token);
+		state++;
+	}
+
+	void read(char& i)
+	{
+		if(token.size() != 1 || !isalpha(token[0]))
+		{
+			throw std::exception("Se esperaba token caracter");
+		}
+		i = token[0];
+		state++;
+	}
+
+	bool is_numeric()
+	{
+		return isdigit(token[0]) != 0;
+	}
+	
+	void process_token()
+	{
+		int i;
+		char a;
+		switch (state)
+		{
+		case 0: expect("fa"); break;
+		case 1: expect("("); break;
+		case 2: expect("r"); break;
+		case 3: expect("("); break;
+		case 4: expect("fsa_frozen"); break;
+		case 5: expect(")"); break;
+		case 6: expect(","); break;
+		case 7: read(number_states); break;
+		case 8: expect(","); break;
+		
+		case 9: expect("["); break;
+		case 10: read(i); break;
+		case 11: if(token == ",") { expect(","); state = 10; } else { expect("]"); } break;
+		case 12: expect(","); if(second_step) state = 13; else { second_step = true; state = 9; } break;
+
+		case 13:  expect("["); break;
+		case 14: expect("trans"); break;
+		case 15: expect("("); break;
+		case 16: read(i); break;
+		case 17: expect(","); break;
+		case 18: read(a); break;
+		case 19: expect(","); break;
+		case 20: read(i); break;
+		case 21: expect(")"); break;			
+		case 22: if(token == ",") { expect(","); state = 14; } else { expect("]"); } break;
+
+		case 23: expect(","); break;
+		case 24: expect("["); break;
+		case 25: expect("]"); break;
+		case 26: expect(")"); break;
+		case 27: expect("."); break;
+
+		default:
+			break;
+		}
+	}
+
+public:
 	AfdParser()
 	{
 	}
 
 	~AfdParser()
 	{
+	}
+
+		
+	void Parse(std::istream& is)
+	{
+		const std::string token_fa = "fa";
+		const std::string token_lp = "(";
+		const std::string token_rp = ")";
+
+		state = 0;
+		second_step = false;
+				
+		// lexer
+		while(is.good())
+		{
+			char c;
+			is.read(&c, 1);
+
+			if(c == '%') 
+			{
+				if(!token.empty()) process_token();
+				std::string line;
+				std::getline(is, line);	// skip line			
+				token.clear();
+			}
+			else if(isspace(c))
+			{
+				if(!token.empty()) process_token();
+				token.clear();
+			}
+			else if(isalpha(c) || c=='_') 
+			{
+				if( !token.empty() && !(isalpha(token.back())||(token.back()=='_')) ) 
+				{
+					process_token();
+					token.clear();
+				}
+				token.push_back(c);
+			}
+			else if(isdigit(c)) 
+			{
+				if(!token.empty() && !isdigit(token.back())) 
+				{
+					process_token();
+					token.clear();
+				}
+				token.push_back(c);
+			} else {
+				if(!token.empty()) process_token();
+				token.clear();
+				token.push_back(c);
+			}
+		}
 	}
 };

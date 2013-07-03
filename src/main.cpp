@@ -4,6 +4,7 @@
 #include "Dfa.h"
 #include "MinimizationHopcroft.h"
 #include "AfdParser.h"
+#include <fstream>
 
 int main(int argc, char** argv)
 {	
@@ -57,6 +58,11 @@ int main(int argc, char** argv)
 		dfa2.SetTransition(4, 1, 4);
 
 		mini.Minimize(dfa2);
+	}
+	{
+		AfdParser parser;
+		std::ifstream afd("afd\\000_n512k2.afd");
+		parser.Parse(afd);
 	}
 	return 0;
 }
