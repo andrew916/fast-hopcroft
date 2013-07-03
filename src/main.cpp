@@ -5,7 +5,7 @@
 #include "MinimizationHopcroft.h"
 #include "AfdParser.h"
 #include <fstream>
-//#include <boost/timer/timer.hpp>
+#include <boost/timer/timer.hpp>
 
 int main(int argc, char** argv)
 {	
@@ -143,15 +143,11 @@ int main(int argc, char** argv)
 			dfa = parser.Parse(afd);
 			afd.close();
 			std::cout << "Begin, states: " << dfa.GetMaxStates() << ", alpha: " << dfa.GetAlphabethLength() << std::endl;
-			//boost::timer::cpu_timer timer;
-			//timer.start();
-			time_t t1, t2;
-			time(&t1);
-			mini.Minimize(dfa);
-			time(&t2);
-			//timer.stop();
-						
-			std::cout << "Done with " << filename << " elapsed " << (t2-t1) << std::endl;
+			boost::timer::cpu_timer timer;
+			timer.start();			
+			mini.Minimize(dfa);			
+			timer.stop();						
+			std::cout << "Done with " << filename << " elapsed (ms) " << timer.elapsed().wall / 1000000UL << std::endl;
 		}
 	}
 	return 0;
