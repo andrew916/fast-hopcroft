@@ -111,7 +111,7 @@ public:
 		L.push_front(dfa.Final);
 
 		// split sets
-		TSet B1(dfa.GetMaxStates()), B2(dfa.GetMaxStates());
+		TSet B1(dfa.GetStates()), B2(dfa.GetStates());
 		int countB1, countB2;
 
 		// O(1) empty test

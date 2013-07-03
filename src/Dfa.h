@@ -43,7 +43,7 @@ public:
 	unsigned GetAlphabethLength() const { return Alphabet; }
 
 	/// Get maximum number of states of this DFA
-	unsigned GetMaxStates() const { return Initial.GetMaxElements(); }
+	unsigned GetStates() const { return Initial.GetMaxElements(); }
 
 	/// Set or unset one state as Final
 	/// O(1)

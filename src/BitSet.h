@@ -24,6 +24,7 @@ class BitSet
 	unsigned Tokens;
 	unsigned MaxElements;
 		
+	 std::size_t ReqSize(unsigned r) { return sizeof(TToken)*std::max(r, 16u); }
 public:
 
 	/// <param ref="maxElements" /> Indicates the maximum number of elements
@@ -31,7 +32,7 @@ public:
 	{
 		Tokens = maxElements / ElementsPerToken;
 		if(Tokens * ElementsPerToken != maxElements) Tokens++;
-		TokenArray = (TToken*)malloc(Tokens*sizeof(TToken));
+		TokenArray = (TToken*)malloc(ReqSize(Tokens));
 		MaxElements = maxElements;
 				
 		LastTokenMask = 0;
@@ -47,7 +48,7 @@ public:
 		Tokens = copyFrom.Tokens;
 		LastTokenMask = copyFrom.LastTokenMask;
 		MaxElements = copyFrom.MaxElements;
-		TokenArray = (TToken*)malloc(Tokens*sizeof(TToken));
+		TokenArray = (TToken*)malloc(ReqSize(Tokens));
 		CopyFrom(copyFrom);
 	}
 
@@ -80,7 +81,7 @@ public:
 			Tokens = rh.Tokens;
 			LastTokenMask = rh.LastTokenMask;
 			MaxElements = rh.MaxElements;
-			TokenArray = (TToken*)realloc(TokenArray, sizeof(TToken)*Tokens);
+			TokenArray = (TToken*)realloc(TokenArray, ReqSize(Tokens));
 		}
 		CopyFrom(rh);
 		return *this;
