@@ -80,9 +80,9 @@ public:
 			Tokens = rh.Tokens;
 			LastTokenMask = rh.LastTokenMask;
 			MaxElements = rh.MaxElements;
-			realloc(TokenArray, sizeof(TToken)*Tokens);
+			TokenArray = (TToken*)realloc(TokenArray, sizeof(TToken)*Tokens);
 		}
-		CopyFrom(rh);		
+		CopyFrom(rh);
 		return *this;
 	}
 

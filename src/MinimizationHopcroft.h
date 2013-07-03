@@ -97,7 +97,7 @@ public:
 	}
 	
 	/// Entry point to minimize any DFA
-	void Minimize(TDfa& dfa) 
+	void Minimize(const TDfa& dfa) 
 	{
 		// P = { F, ~F }
 		TPartition P;
