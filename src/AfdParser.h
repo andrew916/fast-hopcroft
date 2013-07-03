@@ -1,21 +1,31 @@
 #pragma once
 
 #include <string>
+#include <map>
+#include <unordered_set>
+#include <vector>
 #include <istream>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <stdint.h>
 #include "Dfa.h"
 
+template<class TState, class TSymbol, class TToken = uint64_t>
 class AfdParser
 {
 public:
+	typedef Dfa<TState, TSymbol, TToken> TDfa;
+
 protected:
 	int state;
 	bool second_step;
 	std::string token;
 
-	int number_states;	
-	
+	int number_states;
+	std::unordered_set<int> initial_states;
+	std::unordered_set<int> final_states;
+	std::map<char,int> alphabet;
+	std::vector<std::tuple<int,char,int>> transitions;	
 
 	void expect(std::string ref)
 	{
@@ -105,12 +115,8 @@ public:
 	}
 
 		
-	void Parse(std::istream& is)
+	TDfa Parse(std::istream& is)
 	{
-		const std::string token_fa = "fa";
-		const std::string token_lp = "(";
-		const std::string token_rp = ")";
-
 		state = 0;
 		second_step = false;
 				
@@ -155,5 +161,6 @@ public:
 				token.push_back(c);
 			}
 		}
+		return TDfa(alphabet.size(), number_states);
 	}
 };

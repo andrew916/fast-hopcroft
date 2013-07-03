@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 		mini.Minimize(dfa2);
 	}
 	{
-		AfdParser parser;
+		AfdParser<uint8_t, uint32_t> parser;
 		std::ifstream afd("afd\\000_n512k2.afd");
 		parser.Parse(afd);
 	}
