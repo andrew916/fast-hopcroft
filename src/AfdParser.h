@@ -22,9 +22,13 @@ protected:
 	std::string token;
 
 	int number_states;
+	int source;
+	int destination;
+	char symbol;
+
 	std::unordered_set<int> initial_states;
 	std::unordered_set<int> final_states;
-	std::map<char,int> alphabet;
+	std::map<char, int> alphabet;
 	std::vector<std::tuple<int,char,int>> transitions;	
 
 	void expect(std::string ref)
@@ -63,9 +67,8 @@ protected:
 	}
 	
 	void process_token()
-	{
+	{		
 		int i;
-		char a;
 		switch (state)
 		{
 		case 0: expect("fa"); break;
@@ -78,23 +81,63 @@ protected:
 		case 7: read(number_states); break;
 		case 8: expect(","); break;
 		
+			// int collection
 		case 9: expect("["); break;
-		case 10: read(i); break;
-		case 11: if(token == ",") { expect(","); state = 10; } else { expect("]"); } break;
-		case 12: expect(","); if(second_step) state = 13; else { second_step = true; state = 9; } break;
+		case 10: read(i); 
+			if(!second_step) 
+			{
+				initial_states.emplace(i); 
+			} else {
+				final_states.emplace(i); 
+			}
+			break;
+		case 11: 
+			if(token == ",") 
+			{
+				expect(","); 
+				state = 10; // goto 10
+			} else { 
+				expect("]"); 
+			} 
+			break;
+		case 12: 
+			expect(","); 
+			if(second_step) 
+			{
+				state = 13; // goto 13
+			} else { 
+				second_step = true; 
+				state = 9; // goto 9
+			} 
+			break;
 
+			// trans collection
 		case 13:  expect("["); break;
 		case 14: expect("trans"); break;
 		case 15: expect("("); break;
-		case 16: read(i); break;
+		case 16: read(source); break;
 		case 17: expect(","); break;
-		case 18: read(a); break;
+		case 18: read(symbol); break;
 		case 19: expect(","); break;
-		case 20: read(i); break;
-		case 21: expect(")"); break;			
-		case 22: if(token == ",") { expect(","); state = 14; } else { expect("]"); } break;
+		case 20: read(destination); break;
+		case 21: 
+			expect(")"); 
+			transitions.push_back(std::tuple<int,char,int>(source, symbol, destination)); 
+			alphabet.emplace(symbol, 0);
+			break;
+		case 22: 
+			if(token == ",") 
+			{ 
+				expect(","); 
+				state = 14; // goto 14
+			} else { 
+				expect("]"); 
+			} 
+			break;
 
 		case 23: expect(","); break;
+
+			// empty collection
 		case 24: expect("["); break;
 		case 25: expect("]"); break;
 		case 26: expect(")"); break;
@@ -119,6 +162,10 @@ public:
 	{
 		state = 0;
 		second_step = false;
+		initial_states.clear();
+		final_states.clear();
+		transitions.clear();
+		alphabet.clear();
 				
 		// lexer
 		while(is.good())
@@ -161,6 +208,21 @@ public:
 				token.push_back(c);
 			}
 		}
-		return TDfa(alphabet.size(), number_states);
+		
+		unsigned alpha_size = (unsigned)alphabet.size();
+		TDfa dfa(alpha_size, number_states);
+		for(auto i : initial_states) dfa.SetInitial(i);
+		for(auto j : final_states) dfa.SetFinal(j);
+		int l = 0;
+		for(auto k : alphabet) 
+		{
+			alphabet[k.first] = l++;
+		}
+		for(auto m : transitions)
+		{
+			dfa.SetTransition(std::get<0>(m), alphabet[std::get<1>(m)], std::get<2>(m));
+		}
+
+		return dfa;
 	}
 };
