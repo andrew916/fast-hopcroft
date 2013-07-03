@@ -106,9 +106,9 @@ public:
 		t.Complement();
 		P.push_front(t); 
 
-		// L = { ~F }
+		// L = { min(P) }
 		TPartition L;
-		L.push_front(t);
+		L.push_front(dfa.Final);
 
 		// split sets
 		TSet B1(dfa.GetMaxStates()), B2(dfa.GetMaxStates());
@@ -127,10 +127,10 @@ public:
 					std::cout << "Splitter = (S:" << strS << ", a:" << stra << ")" << std::endl;
 				}
 				auto Biter = P.begin();
-				auto Bend = P.end();				
+				auto Bend = P.end();
 				while(Biter != Bend)
 				{
-					auto& B = *Biter;		
+					auto& B = *Biter;
 					if(ShowConfiguration)
 					{	
 						auto strB = SetToString(B);
@@ -146,8 +146,8 @@ public:
 					{
 						// care, it destroys B, do not reference B beyond this point
 						Biter = P.erase(Biter); // O(1)
-						P.push_back(B1); // O(1)
-						P.push_back(B2); // O(1)
+						P.push_front(B1); // O(1)
+						P.push_front(B2); // O(1)
 						if(countB1 < countB2)
 						{
 							L.push_back(B1); // O(1)
