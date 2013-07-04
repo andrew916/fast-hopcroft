@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <iostream>
 #include <unordered_set>
-#include <typeinfo>
 #include "Dfa.h"
 
 /// Hopcroft's DFA Minimization Algorithm.
@@ -42,7 +41,7 @@ private:
 		set.ForEachMember( [&cnt, &str] (TState i)
 		{
 			if(cnt++ > 0) str += ", ";			
-			str.append(std::to_string(i));
+			str.append(std::to_string((uint64_t)i));
 			return true;
 		});
 		str.append("}");
@@ -164,6 +163,8 @@ public:
 		
 		TSet B1(dfa.GetStates()), B2(dfa.GetStates());
 		TSet S(dfa.GetStates());
+		// El peor caso de W es cuando cada division 
+		// añada un elemento por cada estado
 		while (!W.empty())
 		{
 			S = ExtractOne(W);
@@ -171,6 +172,8 @@ public:
 			{
 				std::cout << "S=" << SetToString(S) << std::endl;
 			}
+			// Ciclo aportando siempre una contribucion lineal
+			// en el numero de simbolos
 			for(TSymbol b=0; b<dfa.GetAlphabethLength(); b++)
 			{
 				if(ShowConfiguration) 
@@ -180,9 +183,15 @@ public:
 
 				// pred = b^(-1).S 
 				// estados que consumiendo b llegan a S
-				// O(Card(S))
+				// O(Card(S)) la cardinalidad de S crece con log2(N)
+				// como se enuncia en  
+				// "On the complexity of Hopcroft's state minimization algorithm, Berstel, Carton, 2004, pag. 3"
+				// y "Minimization of Automata, Berstel, Boasson, Carton, Fagnot, 2011, pag. 12"				
 				const TSet pred = Inverse(dfa, S, b);
 
+				// Las particiones van aumentando con cada division
+				// maximo al doble de Card(P) en un bloque completo de
+				// este ciclo.
 				for(auto B = P.begin(); B != P.end(); )
 				{				
 					if(ShowConfiguration) 
@@ -228,7 +237,8 @@ public:
 						}		
 					}
 				
-					// TODO: Confirm B1 y B2 insert and skip
+					// Insertamos antes del iterador porque B1 y B2 no pueden dividirse mas
+					// con este mismo splitter
 					P.insert(B, B2);
 					P.insert(B, B1);
 					B = P.erase(B); // advance B
