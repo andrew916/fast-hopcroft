@@ -2,6 +2,7 @@
 #include "Dfa.h"
 #include "BitSet.h"
 #include "Dfa.h"
+#include "DfaGraphVizExporter.h"
 #include "MinimizationHopcroft.h"
 #include "AfdParser.h"
 #include <fstream>
@@ -10,6 +11,7 @@
 int main(int argc, char** argv)
 {	
 	MinimizationHopcroft<uint32_t, uint8_t> mini;
+	DfaGraphVizExporter<uint32_t, uint8_t> exporter;
 	{
 		Dfa<uint32_t, uint8_t> dfa(2, 4);
 
@@ -32,33 +34,118 @@ int main(int argc, char** argv)
 
 
 		mini.Minimize(dfa);
+		exporter.Export(dfa, std::ofstream("dfa1.dot"));
 	}
 	{
 		//    / 1 - 3
 		//  0
 		//    \ 2 - 4
-		Dfa<uint32_t, uint8_t> dfa2(2, 5);
+		Dfa<uint32_t, uint8_t> dfa(2, 5);
 
-		dfa2.SetInitial(0);
-		dfa2.SetFinal(3);
-		dfa2.SetFinal(4);
+		dfa.SetInitial(0);
+		dfa.SetFinal(3);
+		dfa.SetFinal(4);
 
-		dfa2.SetTransition(0, 0, 1);
-		dfa2.SetTransition(0, 1, 2);
+		dfa.SetTransition(0, 0, 1);
+		dfa.SetTransition(0, 1, 2);
 
-		dfa2.SetTransition(1, 0, 3);
-		dfa2.SetTransition(1, 1, 1);
+		dfa.SetTransition(1, 0, 3);
+		dfa.SetTransition(1, 1, 1);
 
-		dfa2.SetTransition(2, 0, 4);
-		dfa2.SetTransition(2, 1, 2);
+		dfa.SetTransition(2, 0, 4);
+		dfa.SetTransition(2, 1, 2);
 
-		dfa2.SetTransition(3, 0, 3);
-		dfa2.SetTransition(3, 1, 3);
+		dfa.SetTransition(3, 0, 3);
+		dfa.SetTransition(3, 1, 3);
 
-		dfa2.SetTransition(4, 0, 4);
-		dfa2.SetTransition(4, 1, 4);
+		dfa.SetTransition(4, 0, 4);
+		dfa.SetTransition(4, 1, 4);
 
-		mini.Minimize(dfa2);
+		mini.Minimize(dfa);
+		exporter.Export(dfa, std::ofstream("dfa2.dot"));
+	}
+	{
+		// uses zero as invisible null-sink state
+		//      2 - 5 - 8  - 11
+		//    /
+		//   1 -3 - 6 - 9  - 12
+		//    \
+		//      4 - 7 - 10 - 13
+		Dfa<uint32_t, uint8_t> dfa(3, 14);
+
+		dfa.SetInitial(1);
+		dfa.SetFinal(11);
+		dfa.SetFinal(12);
+		dfa.SetFinal(13);
+
+		dfa.SetTransition(1, 0, 2);
+		dfa.SetTransition(1, 1, 3);
+		dfa.SetTransition(1, 2, 4);
+
+		dfa.SetTransition(2, 0, 5);
+		dfa.SetTransition(3, 0, 6);
+		dfa.SetTransition(4, 0, 7);
+
+		dfa.SetTransition(5, 0, 8);
+		dfa.SetTransition(6, 1, 9);
+		dfa.SetTransition(7, 2, 10);
+
+		dfa.SetTransition(8, 0, 11);
+		dfa.SetTransition(9, 1, 12);
+		dfa.SetTransition(10, 2, 13);
+
+		exporter.Export(dfa, std::ofstream("dfa3.dot"), false);
+		mini.Minimize(dfa);				
+	}
+	{
+		// uses zero as invisible null-sink state
+		//      2 - 5 - 8  - 11
+		//    /       \   /
+		//   1 -3 - 6 - 9  - 12
+		//    \       \   \
+		//      4 - 7 - 10 - 13
+		Dfa<uint32_t, uint8_t> dfa(3, 14);
+
+		dfa.SetInitial(1);
+		dfa.SetFinal(11);
+		dfa.SetFinal(12);
+		dfa.SetFinal(13);
+
+		dfa.SetTransition(1, 0, 2);
+		dfa.SetTransition(1, 1, 3);
+		dfa.SetTransition(1, 2, 4);
+
+		dfa.SetTransition(2, 0, 5);
+		dfa.SetTransition(3, 0, 6);
+		dfa.SetTransition(4, 0, 7);
+
+		dfa.SetTransition(5, 0, 8);		
+		dfa.SetTransition(5, 1, 9);		
+		dfa.SetTransition(5, 2, 9);		
+
+		dfa.SetTransition(6, 1, 9);
+		dfa.SetTransition(6, 0, 10);
+		dfa.SetTransition(6, 2, 10);
+
+		dfa.SetTransition(7, 0, 10);
+		dfa.SetTransition(7, 1, 10);
+		dfa.SetTransition(7, 2, 10);
+
+		dfa.SetTransition(8, 0, 11);
+		dfa.SetTransition(8, 1, 11);
+		dfa.SetTransition(8, 2, 11);
+		
+		dfa.SetTransition(9, 0, 11);
+		dfa.SetTransition(9, 1, 12);
+		dfa.SetTransition(9, 2, 13);
+
+		dfa.SetTransition(10, 0, 13);
+		dfa.SetTransition(10, 1, 13);
+		dfa.SetTransition(10, 2, 13);
+
+		exporter.Export(dfa, std::ofstream("dfa4.dot"), false);
+		mini.Minimize(dfa);
+		//mini.Minimize2(dfa);
 	}
 	{
 		AfdParser<uint32_t, uint8_t> parser;
@@ -144,8 +231,8 @@ int main(int argc, char** argv)
 			afd.close();
 			std::cout << "Begin, states: " << dfa.GetStates() << ", alpha: " << dfa.GetAlphabethLength() << std::endl;
 			boost::timer::cpu_timer timer;
-			timer.start();			
-			mini.Minimize(dfa);			
+			timer.start();
+			mini.Minimize(dfa);
 			timer.stop();						
 			std::cout << "Done with " << filename << " elapsed (ms) " << timer.elapsed().wall / 1000000UL << std::endl;
 		}

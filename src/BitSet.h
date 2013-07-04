@@ -13,24 +13,26 @@
 /// It allows Union, Intersect, Add, Remove, Copy, Complement oprations to run in constant time.
 /// <param ref="TElement" /> is the integer type for each state. Note that it affects maximum elements number.
 /// <param ref="TToken" /> is the integer type to internal storage.
-template<class TElement, class TToken>
+template<class TElement, class TToken, bool UseAVX256 = false, bool UsePOPCNT=true>
 class BitSet
 {
 	static const unsigned int ElementsPerToken = sizeof(TToken)*8;
-	typedef BitUtil<TToken, false> BU;
+	typedef BitUtil<TToken, UseAVX256, UsePOPCNT> BU;
 
 	TToken* TokenArray;
+	// Ones means used bits, Zeros unused bits
 	TToken LastTokenMask;
 	unsigned Tokens;
 	unsigned MaxElements;
 		
-	 std::size_t ReqSize(unsigned r) { return sizeof(TToken)*std::max(r, 16u); }
+	std::size_t ReqSize(unsigned r) { return sizeof(TToken)*std::max(r, 1u); }
+
 public:
 
 	/// <param ref="maxElements" /> Indicates the maximum number of elements
 	BitSet(unsigned maxElements)
-	{
-		Tokens = maxElements / ElementsPerToken;
+	{		
+		Tokens = maxElements / ElementsPerToken;		
 		if(Tokens * ElementsPerToken != maxElements) Tokens++;
 		TokenArray = (TToken*)malloc(ReqSize(Tokens));
 		MaxElements = maxElements;
@@ -75,22 +77,23 @@ public:
 
 	/// Assign operator
 	BitSet& operator= (const BitSet& rh)
-	{
-		if(rh.Tokens != Tokens) 
+	{		
+		LastTokenMask = rh.LastTokenMask;
+		MaxElements = rh.MaxElements;
+		if(Tokens != rh.Tokens) 
 		{
 			Tokens = rh.Tokens;
-			LastTokenMask = rh.LastTokenMask;
-			MaxElements = rh.MaxElements;
 			TokenArray = (TToken*)realloc(TokenArray, ReqSize(Tokens));
 		}
+
 		CopyFrom(rh);
 		return *this;
 	}
 
 	/// Assign operator
-	BitSet& operator= (const BitSet&& rhs)
+	BitSet& operator= (BitSet&& rhs)
 	{
-		if(rhs != this)
+		if(&rhs != this)
 		{
 			TokenArray = rhs.TokenArray;
 			LastTokenMask = rhs.LastTokenMask;
@@ -206,13 +209,17 @@ public:
 		for(unsigned s=0; s<Tokens; s++)
 		{
 			TokenArray[s] = ~TokenArray[s];
+			if(s == Tokens-1)
+			{
+				TokenArray[s] &= LastTokenMask;
+			}
 		}
 	}
 	
 	/// Iterates for each member and applies the function <param ref="cb" />
 	/// If function applied return false, iteration is stopped.
 	/// Enumerates in O(N) -> N es el numero de elementos
-	void ForEachMember(std::function< bool(TElement) > cb) const
+	void ForEachMember(const std::function< bool(TElement) >& cb) const
 	{	
 		int offset = 0;
 		for(unsigned i=0; i<Tokens; i++) // Tokens can not change, it is a O(1) contributing loop
@@ -232,5 +239,32 @@ public:
 			}
 			offset += ElementsPerToken;
 		}
+	}
+		
+	unsigned Count() const
+	{		
+		return BU::CountSet(TokenArray, Tokens);		
+	}
+
+	struct hash
+	{
+		std::size_t operator()(const BitSet<TElement,TToken>& rh)
+		{		
+			std::size_t r;
+			r = std::_Hash_seq((const unsigned char*)rh.TokenArray, rh.Tokens*sizeof(TToken));
+			r ^= rh.MaxElements;
+			return r;
+		}
+	};
+
+	bool operator==(const BitSet<TElement, TToken> &other) const 
+	{
+		if(Tokens != other.Tokens) return false;
+		if(MaxElements != other.MaxElements) return false;		
+		for(unsigned i=0; i<Tokens; i++)
+		{
+			if(TokenArray[i] != other.TokenArray[i]) return false;
+		}
+		return true;
 	}
 };

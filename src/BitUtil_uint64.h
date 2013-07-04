@@ -12,8 +12,8 @@
 
 #include <immintrin.h>
 
-template<bool UseAVX256>
-class BitUtil<uint64_t, UseAVX256>
+template<bool UseAVX256, bool UsePOPCNT>
+class BitUtil<uint64_t, UseAVX256, UsePOPCNT>
 {
 public:
 
@@ -179,5 +179,29 @@ public:
 		memset(vec, 0, tokens * sizeof(uint64_t));	
 	}
 	
+	static unsigned CountSet(const uint64_t* v, unsigned s)
+	{
+		unsigned r = 0;
+		while(s--)
+		{
+			uint64_t x = *v++;
+			if(UsePOPCNT) 
+			{
+				r += (unsigned)__popcnt64(x);
+			} else {
+				const uint64_t k1 = 0x5555555555555555; /*  -1/3   */
+				const uint64_t k2 = 0x3333333333333333; /*  -1/5   */
+				const uint64_t k4 = 0x0f0f0f0f0f0f0f0f; /*  -1/17  */
+				const uint64_t kf = 0x0101010101010101; /*  -1/255 */
+				// from http://chessprogramming.wikispaces.com/Population+Count			
+				x =  x       - ((x >> 1)  & k1); /* put count of each 2 bits into those 2 bits */
+				x = (x & k2) + ((x >> 2)  & k2); /* put count of each 4 bits into those 4 bits */
+				x = (x       +  (x >> 4)) & k4 ; /* put count of each 8 bits into those 8 bits */
+				x = (x * kf) >> 56; /* returns 8 most significant bits of x + (x<<8) + (x<<16) + (x<<24) + ...  */
+				r += (unsigned)x;
+			}
+		}
+		return r;
+	}	
 };
 

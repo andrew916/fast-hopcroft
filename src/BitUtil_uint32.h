@@ -13,8 +13,8 @@
 #include <immintrin.h>
 
 /// Specialized implementation for 32-bit tokens
-template<bool UseAVX256>
-class BitUtil<uint32_t, UseAVX256>
+template<bool UseAVX256, bool UsePOPCNT>
+class BitUtil<uint32_t, UseAVX256, UsePOPCNT>
 {
 public:
 	// No se permite usar AVX256 con tokens de 32 bits
@@ -116,4 +116,29 @@ public:
 		}
 		return false;
 	}
+
+	static unsigned CountSet(const uint32_t* v, unsigned s)
+	{
+		unsigned r = 0;
+		while(s--)
+		{
+			uint32_t x = *v++;
+			if(UsePOPCNT) 
+			{
+				r += __popcnt(x);
+			} else {
+				const uint32_t k1 = 0x55555555; /*  -1/3   */
+				const uint32_t k2 = 0x33333333; /*  -1/5   */
+				const uint32_t k4 = 0x0f0f0f0f; /*  -1/17  */
+				const uint32_t kf = 0x01010101; /*  -1/255 */
+				// from http://chessprogramming.wikispaces.com/Population+Count			
+				x =  x       - ((x >> 1)  & k1); /* put count of each 2 bits into those 2 bits */
+				x = (x & k2) + ((x >> 2)  & k2); /* put count of each 4 bits into those 4 bits */
+				x = (x       +  (x >> 4)) & k4 ; /* put count of each 8 bits into those 8 bits */
+				x = (x * kf) >> 24; /* returns 8 most significant bits of x + (x<<8) + (x<<16) + (x<<24) + ...  */
+				r += (unsigned)x;
+			}
+		}
+		return r;
+	}	
 };

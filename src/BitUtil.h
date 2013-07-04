@@ -2,7 +2,7 @@
 #pragma once
 
 /// static class to provide optimal but generic bit-specific operations
-template<class T, bool UseAVX256>
+template<class T, bool UseAVX256, bool UsePOPCNT>
 class BitUtil
 {
 public:
@@ -15,4 +15,5 @@ public:
 	static void OrAndClearSecondBit(T* vec, unsigned b1, unsigned b2);
 	static void OrVector(T* o, const T* v1, const T*v2, unsigned s);
 	static bool AnyBitOfAndVector(const T* v1, const T*v2, unsigned s);
+	static unsigned CountSet(const T* v, unsigned s);
 };
