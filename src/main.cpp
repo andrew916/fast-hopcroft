@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 		dfa.SetTransition(3, 1, 3);
 
 
-		mini.Minimize(dfa);
+		mini.Minimize2(dfa);
 		exporter.Export(dfa, std::ofstream("dfa1.dot"));
 	}
 	{
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 		dfa.SetTransition(4, 0, 4);
 		dfa.SetTransition(4, 1, 4);
 
-		mini.Minimize(dfa);
+		mini.Minimize2(dfa);
 		exporter.Export(dfa, std::ofstream("dfa2.dot"));
 	}
 	{
@@ -93,8 +93,8 @@ int main(int argc, char** argv)
 		dfa.SetTransition(9, 1, 12);
 		dfa.SetTransition(10, 2, 13);
 
-		exporter.Export(dfa, std::ofstream("dfa3.dot"), false);
-		mini.Minimize(dfa);				
+		mini.Minimize2(dfa);
+		exporter.Export(dfa, std::ofstream("dfa3.dot"), false);		
 	}
 	{
 		// uses zero as invisible null-sink state
@@ -133,7 +133,7 @@ int main(int argc, char** argv)
 		dfa.SetTransition(8, 0, 11);
 		dfa.SetTransition(8, 1, 11);
 		dfa.SetTransition(8, 2, 11);
-		
+
 		dfa.SetTransition(9, 0, 11);
 		dfa.SetTransition(9, 1, 12);
 		dfa.SetTransition(9, 2, 13);
@@ -142,14 +142,13 @@ int main(int argc, char** argv)
 		dfa.SetTransition(10, 1, 13);
 		dfa.SetTransition(10, 2, 13);
 
-		exporter.Export(dfa, std::ofstream("dfa4.dot"), false);
-		mini.Minimize(dfa);
-		//mini.Minimize2(dfa);
+		mini.Minimize2(dfa);
+		exporter.Export(dfa, std::ofstream("dfa4.dot"), false);		
 	}
 	{
 		AfdParser<uint32_t, uint8_t> parser;
 		std::vector<std::string> files;
-		
+
 		files.push_back("afd\\000_n512k2.afd");
 		files.push_back("afd\\000_n1024k2.afd");
 		files.push_back("afd\\000_n2046k2.afd");
@@ -231,8 +230,8 @@ int main(int argc, char** argv)
 			std::cout << "Begin, states: " << dfa.GetStates() << ", alpha: " << dfa.GetAlphabethLength() << std::endl;
 			boost::timer::cpu_timer timer;
 			timer.start();
-			mini.Minimize(dfa);
-			timer.stop();						
+			mini.Minimize2(dfa);
+			timer.stop();
 			std::cout << "Done with " << filename << " elapsed (ms) " << timer.elapsed().wall / 1000000UL << std::endl;
 		}
 	}

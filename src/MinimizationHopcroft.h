@@ -16,12 +16,13 @@ template<class TState, class TSymbol, class TToken = uint64_t>
 class MinimizationHopcroft
 {	
 public:
-
+	typedef TState TStateSize;
 	typedef BitSet<TState, TToken> TSet;
 	typedef Dfa<TState, TSymbol, TToken> TDfa;
-	typedef std::pair<TSet, TSymbol> TSplitter;	
-	typedef std::unordered_set<TSet, typename TSet::hash> TSplitterSet;
-	typedef std::list<TSet> TPartition;
+	typedef std::pair<TStateSize, TSymbol> TSplitter;	
+	typedef std::queue<TSplitter> TSplitterSet;
+	typedef std::pair<TStateSize,TSet> TPartition;
+	typedef std::vector<TPartition> TPartitionSet;
 
 private:
 
@@ -29,11 +30,14 @@ private:
 	/// O(1)
 	TSet ExtractOne(TSplitterSet& lset)
 	{
-		TSet r = *lset.begin();
-		lset.erase(lset.begin());
+		auto i = lset.begin();
+		auto j = rand() % lset.size();
+		while(j != 0) { j--; i++; }
+		TSet r = *i;
+		lset.erase(i);
 		return r;
 	}
-		
+
 	/// Util to get a printable string representing the Set
 	std::string SetToString(const TSet& set)
 	{
@@ -49,22 +53,7 @@ private:
 		str.append("}");
 		return str;
 	}
-
-	/// Util to get a printable string representing the partition
-	std::string PartitionToString(const TPartition& p)
-	{
-		std::string str;
-		int cnt = 0;
-		str.append("{");
-		std::for_each(p.cbegin(), p.cend(), [&](const TSet& x)
-		{
-			if(cnt++ > 0) str.append(", ");			
-			str.append(SetToString(x));			
-		});
-		str.append("}");
-		return str;
-	}
-
+	
 	std::string SplitterToString(const TSplitter& c)
 	{
 		std::string str;		
@@ -76,6 +65,38 @@ private:
 		return str;
 	}
 
+	
+	// TSet
+	std::string to_string(const TSet& set)
+	{
+		using namespace std;
+		int cnt = 0;
+		string str;
+		str.append("{");
+		set.ForEachMember( [&] (TState i)
+		{
+			if(cnt++ > 0) str += ", ";
+			str.append(std::to_string((uint64_t)i));
+			return true;
+		});
+		str.append("}");
+		return str;
+	}
+
+	std::string to_string(const TPartitionSet& p)
+	{
+		std::string str;
+		int cnt = 0;
+		str.append("{");
+		std::for_each(p.cbegin(), p.cend(), [&](const TPartition& x)
+		{
+			if(cnt++ > 0) str.append(", ");
+			str.append(to_string(x.second));
+		});
+		str.append("}");
+		return str;
+	}
+		
 	std::string SplitterSetToString(const TSplitterSet& s)
 	{
 		std::string str;
@@ -89,28 +110,7 @@ private:
 		str.append("}");
 		return str;
 	}
-
-	/// Split operation, Refine B' using the Splitter (B, a) resulting B1 and B2.
-	/// <math>(B1, B2) = B' \ (B,a)</math>
-	void Split(const TDfa& dfa, const TSet& Bc, const TSet& B, TSymbol a, TSet& B1, TSet& B2)
-	{
-		// En 'B1' los estados de 'Bc' que llegan a 'B' consumiendo 'a'
-		// O(N) -> N estados de B
-		B1.Clear();		
-		B.ForEachMember([&, a](TState q)
-		{
-			// O(1)
-			const TSet& pred = dfa.GetPredecessor(q, a);
-			// O(1)
-			B1.UnionWith(pred);
-			return true;
-		});
-		B2 = B1;
-		B1.IntersectWith(Bc);
-		B2.Complement();
-		B2.IntersectWith(Bc);
-	}
-
+	
 	TSet Inverse(const TDfa& dfa, const TSet& B, TSymbol a)
 	{
 		TSet outp(dfa.GetStates());
@@ -139,207 +139,120 @@ public:
 	void Minimize2(const TDfa& dfa)
 	{
 		using namespace std;
-		typedef TState TStateSize;
-
-		// L = { min(P) }
+		
 		unsigned final_states_count = dfa.Final.Count();
 		unsigned non_final_states_count = dfa.GetStates() - final_states_count;
 
 		// Un automata sin estado final?
 		assert(final_states_count > 0);
-				
-		// P = { F, ~F }, maxima cantidad de particiones es una por estado
-		vector<pair<TStateSize,TSet>> P(dfa.GetStates());
-		
-		auto final_it = P.push_front(dfa.Final);
+
+		// cantidad de estados en la particion y particion
+		TPartitionSet P;
+		P.reserve(dfa.GetStates());
+
+		P.emplace_back(final_states_count, dfa.Final);
 
 		TSet t = dfa.Final;
-		t.Complement();
-		auto non_final_it = P.push_front(t);
+		t.Complement();		
+		P.emplace_back(non_final_states_count, t);
 
 		// conjunto de espera
-		queue<pair<TStateSize, TSymbol>> wait_splitters;
+		TSplitterSet wait_splitters;
+		TSet wait_splitters_membership(dfa.GetStates()*dfa.GetAlphabethLength());
 		for(TSymbol c=0; c<dfa.GetAlphabethLength(); c++)
 		{
 			if(final_states_count < non_final_states_count) 
 			{
-				wait_splitters.emplace(final_it, c);
+				wait_splitters.emplace(0, c); // final states
+				wait_splitters_membership.Add(0*dfa.GetAlphabethLength()+c);
 			} else {
-				wait_splitters.emplace(non_final_it, c);
+				wait_splitters.emplace(1, c); // Non-final states
+				wait_splitters_membership.Add(1*dfa.GetAlphabethLength()+c);
 			}
 		}
 		
 		TSet partitions_to_split(dfa.GetStates());
-		vector<TStateSize> state_to_partition(dfa.GetStates());
-		
+		// Inicializa funcion inversa para obtener la particion a la que pertenece un estado
+		vector<TStateSize> state_to_partition(dfa.GetStates());		
+		for(TState st=0; st<dfa.GetStates(); st++)
+		{
+			state_to_partition[st] = dfa.IsFinal(st) ? 0 : 1;
+		}
+				
 		// El peor caso de W es cuando cada division 
 		// añada un elemento por cada estado
 		while (!wait_splitters.empty())
 		{
-			auto splitter = wait_splitters.pop();
+			TSplitter splitter = wait_splitters.front();
+			wait_splitters.pop();
+			wait_splitters_membership.Remove(splitter.first*dfa.GetAlphabethLength()+splitter.second);
 
+			if(ShowConfiguration)
+			{
+				cout << "Spliter=" << to_string(P[splitter.first].second) << endl;
+			}
+						
+			TSet predecessors = Inverse(dfa, P[splitter.first].second, splitter.second);
+			TSet comp_predecessors = predecessors;
+			comp_predecessors.Complement();
 			partitions_to_split.Clear();
-			TSet predecessors = Inverse(dfa, *splitter.first, splitter.second);
-			TSet comp_predecesors = predecessors;
-			comp_predecesors.Complement();
 			predecessors.ForEachMember([&](TState i)
 			{
-				auto partition_index = state_to_partition[i];
+				if(ShowConfiguration)
+				{
+					cout << "state=" << (uint64_t)i << endl;
+				}
+
+				TStateSize partition_index = state_to_partition[i];
 				if(partitions_to_split.Contains(partition_index)) return true;
-				TSet split = partitions[partition_index];
-				auto partition_size = split.Count();
-				split.IntersectWith(predecessors);
-				auto split_size = split.Count();
 				partitions_to_split.Add(partition_index);
+
+				TSet& partition = P[partition_index].second;
+				TStateSize partition_size = P[partition_index].first;
 				
+				TSet backup = partition;
+				partition.IntersectWith(predecessors); // make split
+				TStateSize split_size = partition.Count();
+
 				if(split_size == partition_size) return true;
+				P[partition_index].first = split_size; // update count (lookup)
+
+				backup.IntersectWith(comp_predecessors);
 				
-				partitions[partition_index].IntersectWith(comp_predecessors);
-				partitions.push_back(split);
+				TStateSize new_index = (TStateSize)P.size();
 
 				// Update state to partition info
-				split.ForEachMember([&](TState s)
+				backup.ForEachMember([&](TState s)
 				{
-					state_to_partition[s] = partitions.size() - 1;
+					state_to_partition[s] = new_index;
 					return true;
 				});
+				P.emplace_back(partition_size - split_size, backup);
+				if(ShowConfiguration)
+				{
+					cout << "P=" << to_string(P) << endl;
+				}
 
 				for(TSymbol s=0; s<dfa.GetAlphabethLength(); s++)
 				{
-					if(split_size < partition_size - split_size) 
+					TStateSize index_to_add;
+					if(wait_splitters_membership.Contains(partition_index*dfa.GetAlphabethLength()+s))
 					{
-						wait_splitters.emplace(split, s);
+						index_to_add = new_index;
 					} else {
-						wait_splitters.emplace(partitions[partition_index], s);
+						index_to_add = split_size < partition_size - split_size ? new_index : partition_index;
 					}
+					wait_splitters.emplace(index_to_add, s);
+					wait_splitters_membership.Add(index_to_add*dfa.GetAlphabethLength()+s);					
 				}
 				
 				return true;
 			});
-		}		
-	}
-
-	/// Entry point to minimize any DFA
-	void Minimize(const TDfa& dfa) 
-	{
-		// P = { F, ~F }
-		TPartition P;
-		P.push_front(dfa.Final);
-
-		TSet t = dfa.Final;
-		t.Complement();
-		P.push_front(t); 
-
-		// L = { min(P) }
-		unsigned final_states_count = dfa.Final.Count();
-		unsigned non_final_states_count = dfa.GetStates() - final_states_count;
-
-		// Un automata sin estado final?
-		assert(final_states_count > 0);
-
-		TSplitterSet W(dfa.GetStates()*2);
-		
-		if(final_states_count < non_final_states_count) 
-		{
-			W.emplace(dfa.Final);
-		} else {
-			W.emplace(t);
-		}
-		
-		TSet B1(dfa.GetStates()), B2(dfa.GetStates());
-		TSet S(dfa.GetStates());
-		// El peor caso de W es cuando cada division 
-		// añada un elemento por cada estado
-		while (!W.empty())
-		{
-			S = ExtractOne(W);
-			if(ShowConfiguration) 
-			{
-				std::cout << "S=" << SetToString(S) << std::endl;
-			}
-			// Ciclo aportando siempre una contribucion lineal
-			// en el numero de simbolos
-			for(TSymbol b=0; b<dfa.GetAlphabethLength(); b++)
-			{
-				if(ShowConfiguration) 
-				{
-					std::cout << "b=" << (uint64_t)b << std::endl;
-				}
-
-				// pred = b^(-1).S 
-				// estados que consumiendo b llegan a S
-				// O(Card(S)) la cardinalidad de S crece con log2(N)
-				// como se enuncia en  
-				// "On the complexity of Hopcroft's state minimization algorithm, Berstel, Carton, 2004, pag. 3"
-				// y "Minimization of Automata, Berstel, Boasson, Carton, Fagnot, 2011, pag. 12"				
-				const TSet pred = Inverse(dfa, S, b);
-
-				// Las particiones van aumentando con cada division
-				// maximo al doble de Card(P) en un bloque completo de
-				// este ciclo.
-				for(auto B = P.begin(); B != P.end(); )
-				{
-					if(ShowConfiguration) 
-					{
-						std::cout << "Test B=" << SetToString(*B) << std::endl;
-					}
-					
-					// termina de calcular el split en O(1)
-					B1 = pred;
-					B2 = pred;
-					B1.IntersectWith(*B);
-					B2.Complement();
-					B2.IntersectWith(*B);
-
-					// was there split?
-					if(B1.IsEmpty() || B2.IsEmpty()) 
-					{
-						B++; // advance B
-						continue;
-					}
-
-					if(ShowConfiguration)
-					{
-						std::cout << "B1=" << SetToString(B1) << std::endl;
-						std::cout << "B2=" << SetToString(B2) << std::endl;
-					}
-
-					auto f = W.find(*B);
-					if(f != W.end())
-					{
-						W.erase(f);
-						W.emplace(B1);
-						W.emplace(B2);
-					} else {		
-						auto B1count = B1.Count();
-						auto B2count = B2.Count();
-						// El añadido contendra maximo la mitad de los estados en B
-						if(B1count < B2count) 
-						{
-							W.emplace(B1);
-						} else {
-							W.emplace(B2);
-						}		
-					}
-				
-					// Insertamos antes del iterador porque B1 y B2 no pueden dividirse mas
-					// con este mismo splitter
-					P.insert(B, B2);
-					P.insert(B, B1);
-					B = P.erase(B); // advance B
-
-					if(ShowConfiguration)
-					{
-						std::cout << "P=" << PartitionToString(P) << std::endl;
-						std::cout << "W=" << SplitterSetToString(W) << std::endl;
-					}
-				}
-			}
-			if(W.size() % 1000 == 0) std::cout << W.size() << " splitters remaining" << std::endl;
-		}
+		}	
+		cout << "Finished, " << P.size() << " states of " << dfa.GetStates() << endl;
 		if(ShowConfiguration)
-		{			
-			std::cout << "FINALLY P=" << PartitionToString(P) << std::endl;
+		{
+			cout << "Final P=" << to_string(P) << endl;
 		}
 	}
 };
