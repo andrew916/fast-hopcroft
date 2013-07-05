@@ -25,15 +25,23 @@ class BitSet
 	unsigned Tokens;
 	unsigned MaxElements;
 		
-	std::size_t ReqSize(unsigned r) { return sizeof(TToken)*std::max(r, 1u); }
+	std::size_t ReqSize(unsigned r) 
+	{ 
+		if(UseAVX256 && r != 0)
+		{
+			assert(ElementsPerToken < 256);
+			auto m = 256/ElementsPerToken;
+			r = (r - 1)/m + m;
+		}
+		return sizeof(TToken)*r; 
+	}
 
 public:
 
 	/// <param ref="maxElements" /> Indicates the maximum number of elements
 	BitSet(unsigned maxElements)
-	{		
-		Tokens = maxElements / ElementsPerToken;		
-		if(Tokens * ElementsPerToken != maxElements) Tokens++;
+	{
+		Tokens = maxElements == 0 ? 0 : (maxElements - 1) / ElementsPerToken + 1;
 		TokenArray = (TToken*)malloc(ReqSize(Tokens));
 		MaxElements = maxElements;
 				

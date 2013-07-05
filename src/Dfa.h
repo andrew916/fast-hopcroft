@@ -18,7 +18,7 @@ template<class TState, class TSymbol, class TToken = uint64_t>
 class Dfa
 {
 public:	
-	typedef BitSet<TState, TToken> TSet;
+	typedef BitSet<TState, TToken, false, true> TSet;
 
 	/// number of symbols in alphabet
 	unsigned Alphabet;	
