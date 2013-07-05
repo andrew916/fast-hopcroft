@@ -96,7 +96,19 @@ private:
 		str.append("}");
 		return str;
 	}
-		
+
+	std::string to_string(const TSplitter& splitter, const TPartitionSet& P)
+	{
+		using namespace std;
+		string str;
+		str.append("(");
+		str.append(to_string(P[splitter.first].second));
+		str.append(", ");
+		str.append(std::to_string((uint64_t)splitter.second));
+		str.append(")");
+		return str;
+	}
+			
 	std::string SplitterSetToString(const TSplitterSet& s)
 	{
 		std::string str;
@@ -189,28 +201,34 @@ public:
 
 			if(ShowConfiguration)
 			{
-				cout << "Spliter=" << to_string(P[splitter.first].second) << endl;
+				cout << "Spliter=" << to_string(splitter, P) << endl;
+				cout << "P=" << to_string(P) << endl;
 			}
 						
 			TSet predecessors = Inverse(dfa, P[splitter.first].second, splitter.second);
 			TSet comp_predecessors = predecessors;
 			comp_predecessors.Complement();
 			partitions_to_split.Clear();
+
 			predecessors.ForEachMember([&](TState i)
 			{
-				if(ShowConfiguration)
-				{
-					cout << "state=" << (uint64_t)i << endl;
-				}
-
-				TStateSize partition_index = state_to_partition[i];
+				TStateSize partition_index = state_to_partition[i];				
+				
 				if(partitions_to_split.Contains(partition_index)) return true;
 				partitions_to_split.Add(partition_index);
+								
+				TStateSize partition_size = P[partition_index].first;
+				if(partition_size == 1) return true;
+
+				if(ShowConfiguration)
+				{
+					cout << "state=" << (uint64_t)i << " in partition " << partition_index << endl;
+				}
 
 				TSet& partition = P[partition_index].second;
-				TStateSize partition_size = P[partition_index].first;
 				
 				TSet backup = partition;
+
 				partition.IntersectWith(predecessors); // make split
 				TStateSize split_size = partition.Count();
 
@@ -219,7 +237,9 @@ public:
 
 				backup.IntersectWith(comp_predecessors);
 				
+				// indice del complemento en el conjunto de particiones
 				TStateSize new_index = (TStateSize)P.size();
+				TStateSize split_complement_size = partition_size - split_size;
 
 				// Update state to partition info
 				backup.ForEachMember([&](TState s)
@@ -227,12 +247,8 @@ public:
 					state_to_partition[s] = new_index;
 					return true;
 				});
-				P.emplace_back(partition_size - split_size, backup);
-				if(ShowConfiguration)
-				{
-					cout << "P=" << to_string(P) << endl;
-				}
-
+				P.emplace_back(split_complement_size, backup);
+				
 				for(TSymbol s=0; s<dfa.GetAlphabethLength(); s++)
 				{
 					TStateSize index_to_add;
@@ -240,7 +256,7 @@ public:
 					{
 						index_to_add = new_index;
 					} else {
-						index_to_add = split_size < partition_size - split_size ? new_index : partition_index;
+						index_to_add = split_size < split_complement_size ? partition_index : new_index;
 					}
 					wait_splitters.emplace(index_to_add, s);
 					wait_splitters_membership.Add(index_to_add*dfa.GetAlphabethLength()+s);					
