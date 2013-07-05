@@ -81,11 +81,13 @@ private:
 			outp.UnionWith(pred);
 
 			// O(Card(pred))
-			/*pred.ForEachMember([&](TState q) throw()
+			/*
+			pred.ForEachMember([&](TState q) throw()
 			{
 				outp.Add(q);
 				return true;
-			})*/;
+			});
+			*/
 			return true;
 		});
 	}
@@ -189,10 +191,7 @@ public:
 				backup = partition;
 
 				TStateSize split_size = partition_size;
-				// intersect O(N) 
-				// partition.IntersectWith(predecessors); // make split
-				// backup.IntersectWith(comp_predecessors);
-
+				
 				// intersect O(card(B))
 				partition.ForEachMember([&](TState t) throw()
 				{
