@@ -25,47 +25,7 @@ public:
 	typedef std::vector<TPartition> TPartitionSet;
 
 private:
-
-	/// Extract one member of partition.
-	/// O(1)
-	TSet ExtractOne(TSplitterSet& lset)
-	{
-		auto i = lset.begin();
-		auto j = rand() % lset.size();
-		while(j != 0) { j--; i++; }
-		TSet r = *i;
-		lset.erase(i);
-		return r;
-	}
-
-	/// Util to get a printable string representing the Set
-	std::string SetToString(const TSet& set)
-	{
-		int cnt = 0;
-		std::string str;
-		str.append("{");
-		set.ForEachMember( [&cnt, &str] (TState i)
-		{
-			if(cnt++ > 0) str += ", ";			
-			str.append(std::to_string((uint64_t)i));
-			return true;
-		});
-		str.append("}");
-		return str;
-	}
-	
-	std::string SplitterToString(const TSplitter& c)
-	{
-		std::string str;		
-		str.append("(");
-		str.append(SetToString(c.first));
-		str.append(", ");
-		str.append(std::to_string((uint64_t)c.second));
-		str.append(")");
-		return str;
-	}
-
-	
+		
 	// TSet
 	std::string to_string(const TSet& set)
 	{
@@ -108,21 +68,7 @@ private:
 		str.append(")");
 		return str;
 	}
-			
-	std::string SplitterSetToString(const TSplitterSet& s)
-	{
-		std::string str;
-		int cnt = 0;
-		str.append("{");
-		for(auto c : s)
-		{
-			if(cnt++ > 0) str.append(", ");
-			str.append(SetToString(c));
-		}
-		str.append("}");
-		return str;
-	}
-	
+
 	TSet Inverse(const TDfa& dfa, const TSet& B, TSymbol a)
 	{
 		TSet outp(dfa.GetStates());
@@ -192,7 +138,7 @@ public:
 		}
 				
 		// El peor caso de W es cuando cada division 
-		// añada un elemento por cada estado
+		// añada un elemento por cada estado (y por cada letra, claro esta)
 		while (!wait_splitters.empty())
 		{
 			TSplitter splitter = wait_splitters.front();
@@ -201,28 +147,30 @@ public:
 
 			if(ShowConfiguration)
 			{
-				cout << "Spliter=" << to_string(splitter, P) << endl;
 				cout << "P=" << to_string(P) << endl;
+				cout << "Spliter=" << to_string(splitter, P) << endl;				
 			}
-						
+
 			TSet predecessors = Inverse(dfa, P[splitter.first].second, splitter.second);
 			TSet comp_predecessors = predecessors;
 			comp_predecessors.Complement();
 			partitions_to_split.Clear();
 
+			// let a=splitter.second, B=P[splitter.first].second
+			// O(card(a^{-1}.B)
 			predecessors.ForEachMember([&](TState i)
 			{
 				TStateSize partition_index = state_to_partition[i];				
-				
+
 				if(partitions_to_split.Contains(partition_index)) return true;
 				partitions_to_split.Add(partition_index);
-								
+
 				TStateSize partition_size = P[partition_index].first;
 				if(partition_size == 1) return true;
 
 				if(ShowConfiguration)
 				{
-					cout << "state=" << (uint64_t)i << " in partition " << partition_index << endl;
+					cout << "pred state=" << (uint64_t)i << " in partition " << partition_index << endl;
 				}
 
 				TSet& partition = P[partition_index].second;
