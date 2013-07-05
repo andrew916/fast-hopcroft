@@ -5,7 +5,6 @@
 #include <unordered_set>
 #include <vector>
 #include <istream>
-#include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <stdint.h>
 #include "Dfa.h"

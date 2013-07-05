@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/static_assert.hpp>
 #include <stdint.h>
 #include <assert.h>
 #include <memory.h>
@@ -18,7 +17,7 @@ class BitUtil<uint32_t, UseAVX256, UsePOPCNT>
 {
 public:
 	// No se permite usar AVX256 con tokens de 32 bits
-	BOOST_STATIC_ASSERT(!UseAVX256);
+	static_assert(!UseAVX256, "No se permite usar AVX256 con tokens de 32 bits");
 
 #if defined(_MSC_VER)
 	static bool BitScanForward(unsigned long* idx, uint32_t v)

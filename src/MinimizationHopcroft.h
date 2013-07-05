@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <iostream>
 #include <unordered_set>
+#include <queue>
 #include "Dfa.h"
 
 /// Hopcroft's DFA Minimization Algorithm.
@@ -15,6 +16,7 @@ template<class TState, class TSymbol, class TToken = uint64_t>
 class MinimizationHopcroft
 {	
 public:
+
 	typedef BitSet<TState, TToken> TSet;
 	typedef Dfa<TState, TSymbol, TToken> TDfa;
 	typedef std::pair<TSet, TSymbol> TSplitter;	
@@ -134,6 +136,89 @@ public:
 	{
 	}
 
+	void Minimize2(const TDfa& dfa)
+	{
+		using namespace std;
+		typedef TState TStateSize;
+
+		// L = { min(P) }
+		unsigned final_states_count = dfa.Final.Count();
+		unsigned non_final_states_count = dfa.GetStates() - final_states_count;
+
+		// Un automata sin estado final?
+		assert(final_states_count > 0);
+				
+		// P = { F, ~F }, maxima cantidad de particiones es una por estado
+		vector<pair<TStateSize,TSet>> P(dfa.GetStates());
+		
+		auto final_it = P.push_front(dfa.Final);
+
+		TSet t = dfa.Final;
+		t.Complement();
+		auto non_final_it = P.push_front(t);
+
+		// conjunto de espera
+		queue<pair<TStateSize, TSymbol>> wait_splitters;
+		for(TSymbol c=0; c<dfa.GetAlphabethLength(); c++)
+		{
+			if(final_states_count < non_final_states_count) 
+			{
+				wait_splitters.emplace(final_it, c);
+			} else {
+				wait_splitters.emplace(non_final_it, c);
+			}
+		}
+		
+		TSet partitions_to_split(dfa.GetStates());
+		vector<TStateSize> state_to_partition(dfa.GetStates());
+		
+		// El peor caso de W es cuando cada division 
+		// añada un elemento por cada estado
+		while (!wait_splitters.empty())
+		{
+			auto splitter = wait_splitters.pop();
+
+			partitions_to_split.Clear();
+			TSet predecessors = Inverse(dfa, *splitter.first, splitter.second);
+			TSet comp_predecesors = predecessors;
+			comp_predecesors.Complement();
+			predecessors.ForEachMember([&](TState i)
+			{
+				auto partition_index = state_to_partition[i];
+				if(partitions_to_split.Contains(partition_index)) return true;
+				TSet split = partitions[partition_index];
+				auto partition_size = split.Count();
+				split.IntersectWith(predecessors);
+				auto split_size = split.Count();
+				partitions_to_split.Add(partition_index);
+				
+				if(split_size == partition_size) return true;
+				
+				partitions[partition_index].IntersectWith(comp_predecessors);
+				partitions.push_back(split);
+
+				// Update state to partition info
+				split.ForEachMember([&](TState s)
+				{
+					state_to_partition[s] = partitions.size() - 1;
+					return true;
+				});
+
+				for(TSymbol s=0; s<dfa.GetAlphabethLength(); s++)
+				{
+					if(split_size < partition_size - split_size) 
+					{
+						wait_splitters.emplace(split, s);
+					} else {
+						wait_splitters.emplace(partitions[partition_index], s);
+					}
+				}
+				
+				return true;
+			});
+		}		
+	}
+
 	/// Entry point to minimize any DFA
 	void Minimize(const TDfa& dfa) 
 	{
@@ -193,7 +278,7 @@ public:
 				// maximo al doble de Card(P) en un bloque completo de
 				// este ciclo.
 				for(auto B = P.begin(); B != P.end(); )
-				{				
+				{
 					if(ShowConfiguration) 
 					{
 						std::cout << "Test B=" << SetToString(*B) << std::endl;
