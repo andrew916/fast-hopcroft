@@ -159,6 +159,7 @@ public:
 		
 	TDfa Parse(std::istream& is)
 	{
+		using namespace std;
 		state = 0;
 		second_step = false;
 		initial_states.clear();
@@ -175,8 +176,8 @@ public:
 			if(c == '%') 
 			{
 				if(!token.empty()) process_token();
-				std::string line;
-				std::getline(is, line);	// skip line			
+				string line;				
+				getline(is, line);	// skip line			
 				token.clear();
 			}
 			else if(isspace(c))
@@ -219,7 +220,7 @@ public:
 		}
 		for(auto m : transitions)
 		{
-			dfa.SetTransition(std::get<0>(m), alphabet[std::get<1>(m)], std::get<2>(m));
+			dfa.SetTransition(get<0>(m), alphabet[get<1>(m)], get<2>(m));
 		}
 
 		return dfa;

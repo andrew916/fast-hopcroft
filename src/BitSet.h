@@ -8,6 +8,7 @@
 #include "BitUtil_uint32.h"
 #include "BitUtil_uint64.h"
 
+
 /// Represents a Set. Internal storage uses bit vectors.
 /// Every member of the Set is an integer number in a zero-based range.
 /// It allows Union, Intersect, Add, Remove, Copy, Complement oprations to run in constant time.
@@ -18,31 +19,21 @@ class BitSet
 {
 	static const unsigned int ElementsPerToken = sizeof(TToken)*8;
 	typedef BitUtil<TToken, UseAVX256, UsePOPCNT> BU;
-
-	TToken* TokenArray;
+	
 	// Ones means used bits, Zeros unused bits
 	TToken LastTokenMask;
-	unsigned Tokens;
+
 	unsigned MaxElements;
 		
-	std::size_t ReqSize(unsigned r) 
-	{ 
-		if(UseAVX256 && r != 0)
-		{
-			assert(ElementsPerToken < 256);
-			auto m = 256/ElementsPerToken;
-			r = (r - 1)/m + m;
-		}
-		return sizeof(TToken)*r; 
-	}
-
 public:
+		TToken* TokenArray;
+			unsigned Tokens;
 
 	/// <param ref="maxElements" /> Indicates the maximum number of elements
 	BitSet(unsigned maxElements)
 	{
 		Tokens = maxElements == 0 ? 0 : (maxElements - 1) / ElementsPerToken + 1;
-		TokenArray = (TToken*)malloc(ReqSize(Tokens));
+		TokenArray = (TToken*)malloc(Tokens*sizeof(TToken));
 		MaxElements = maxElements;
 				
 		LastTokenMask = 0;
@@ -58,7 +49,7 @@ public:
 		Tokens = copyFrom.Tokens;
 		LastTokenMask = copyFrom.LastTokenMask;
 		MaxElements = copyFrom.MaxElements;
-		TokenArray = (TToken*)malloc(ReqSize(Tokens));
+		TokenArray = (TToken*)malloc(Tokens*sizeof(TToken));
 		CopyFrom(copyFrom);
 	}
 
@@ -91,7 +82,7 @@ public:
 		if(Tokens != rh.Tokens) 
 		{
 			Tokens = rh.Tokens;
-			TokenArray = (TToken*)realloc(TokenArray, ReqSize(Tokens));
+			TokenArray = (TToken*)realloc(TokenArray, Tokens*sizeof(TToken));
 		}
 
 		CopyFrom(rh);

@@ -80,14 +80,13 @@ private:
 			// O(N)  - N es la cantidad de estados de dfa
 			outp.UnionWith(pred);
 
-			// O(Card(pred))
-			/*
-			pred.ForEachMember([&](TState q) throw()
+			// O(Card(pred))			
+			/*pred.ForEachMember([&](TState q) throw()
 			{
 				outp.Add(q);
 				return true;
 			});
-			*/
+			//*/
 			return true;
 		});
 	}
@@ -115,7 +114,7 @@ public:
 		// cantidad de estados en la particion y particion
 		// Maximo puede exisitir una particion por cada estado, por ello reservamos de esta forma
 		TPartitionSet P(dfa.GetStates(), TPartition(0, dfa.GetStates()));
-
+		
 		P[0].first = final_states_count;
 		P[0].second = dfa.Final;
 
@@ -138,6 +137,7 @@ public:
 		}
 
 		TSet partitions_to_split(dfa.GetStates());
+
 		// Inicializa funcion inversa para obtener la particion a la que pertenece un estado
 		vector<TStateSize> state_to_partition(dfa.GetStates());		
 		for(TState st=0; st<dfa.GetStates(); st++)
@@ -195,12 +195,12 @@ public:
 				// intersect O(card(B))
 				partition.ForEachMember([&](TState t) throw()
 				{
-					if(!predecessors.Contains(t)) 
-					{	
-						partition.Remove(t); 
-						split_size--; 
+					if(!predecessors.Contains(t))
+					{
+						partition.Remove(t);
+						split_size--;
 					}
-					else 
+					else
 					{
 						backup.Remove(t);
 					}
@@ -216,7 +216,7 @@ public:
 				P[new_index].first = split_complement_size;
 				
 				// Update state to partition info
-				backup.ForEachMember([&](TState s) throw()
+				backup.ForEachMember([&state_to_partition, new_index](TState s) throw()
 				{
 					state_to_partition[s] = new_index;
 					return true;
@@ -237,7 +237,7 @@ public:
 					wait_splitters_membership.Add(index_to_add*dfa.GetAlphabethLength()+s);					
 				}
 
-				// si ha llegado hasta aqui, hizo division, el indice para la nueva particion debe elevarse
+				// si ha llegado hasta aqui entonces hizo division, el indice para la nueva particion debe elevarse
 				new_index++;
 				return true;
 			});

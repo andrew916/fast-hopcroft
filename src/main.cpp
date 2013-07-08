@@ -7,6 +7,8 @@
 #include <fstream>
 #include <boost/timer/timer.hpp>
 
+using namespace std;
+
 int main(int argc, char** argv)
 {	
 	MinimizationHopcroft<uint32_t, uint8_t> mini;
@@ -219,20 +221,35 @@ int main(int argc, char** argv)
 		files.push_back("afd\\009_n8192k2.afd");
 		files.push_back("afd\\009_n16384k2.afd");
 
-		std::ifstream afd;
+		ifstream afd;
+		ofstream report ("report.txt");
 		Dfa<uint32_t, uint8_t> dfa(0,0);
 		mini.ShowConfiguration = false;
+				
 		for(auto filename : files) 
 		{
 			afd.open(filename);
 			dfa = parser.Parse(afd);
 			afd.close();
-			std::cout << "Begin, states: " << dfa.GetStates() << ", alpha: " << dfa.GetAlphabethLength() << std::endl;
+			
+			{
+			stringstream str;
+			str << "Begin, states: " << dfa.GetStates() << ", alpha: " << dfa.GetAlphabethLength() << endl;
+			cout << str.str();
+			report << str.str();
+			}
+
 			boost::timer::cpu_timer timer;
 			timer.start();
 			mini.Minimize2(dfa);
 			timer.stop();
-			std::cout << "Done with " << filename << " elapsed (ms) " << timer.elapsed().wall / 1000000UL << std::endl;
+						
+			{
+			stringstream str;
+			str << "Done with " << filename << " elapsed (ms) " << timer.elapsed().wall / 1000000UL << endl;
+			cout << str.str();
+			report << str.str();
+			}
 		}
 	}
 	return 0;
