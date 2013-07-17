@@ -1,7 +1,7 @@
 // June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #pragma once
 
-#include "BitSet.h"
+#include <boost/dynamic_bitset.hpp>
 #include <vector>
 #include <limits>
 #include <cassert>
@@ -18,7 +18,7 @@ template<class TState, class TSymbol, class TToken = uint64_t>
 class Dfa
 {
 public:	
-	typedef BitSet<TState, TToken, false, true> TSet;
+	typedef boost::dynamic_bitset<TToken> TSet;
 
 	/// number of symbols in alphabet
 	unsigned Alphabet;	
@@ -35,14 +35,16 @@ public:
 	/// Final states set
 	TSet Final;
 
+	unsigned States;
+
 	/// <param ref="alpha" /> is the number of symbols in alphabet.	
 	Dfa(unsigned alpha, unsigned states)
-		: Alphabet(alpha), Succesors(alpha*states), Predecessors(alpha * states, TSet(states)), Initial(states), Final(states)
+		: States(states), Alphabet(alpha), Succesors(alpha*states), Predecessors(alpha * states, TSet(states)), Initial(states), Final(states)
 	{
 		// At boot, each state go to state zero with every symbol		
 		for(TSymbol sym=0; sym<alpha; sym++)
 		{
-			Predecessors[sym].Complement();
+			Predecessors[sym] = ~Predecessors[sym];
 		}		
 	}
 		
@@ -50,22 +52,22 @@ public:
 	unsigned GetAlphabethLength() const { return Alphabet; }
 
 	/// Get maximum number of states of this DFA
-	unsigned GetStates() const { return Initial.GetMaxElements(); }
+	unsigned GetStates() const { return States; }
 
 	/// Set or unset one state as Final
 	/// O(1)
 	void SetFinal(TState state, bool st = true)
 	{
-		if(st) Final.Add(state);
-		else Final.Remove(state);
+		if(st) Final.set(state);
+		else Final.reset(state);
 	}
 
 	/// Set or unset one state as Initial
 	/// O(1)
 	void SetInitial(TState state, bool st = true)
 	{
-		if(st) Initial.Add(state);
-		else Initial.Remove(state);
+		if(st) Initial.set(state);
+		else Initial.reset(state);
 	}
 
 	/// Adjust the transition from <param ref="source_state" /> consuming <param ref="symbol" /> to <param ref="target_state" />
@@ -77,10 +79,10 @@ public:
 		Succesors[index1] = target_state;
 		
 		auto index2 = Alphabet * prev_target + symbol;
-		Predecessors[index2].Remove(source_state);
+		Predecessors[index2].reset(source_state);
 
 		auto index3 = Alphabet * target_state + symbol;				
-		Predecessors[index3].Add(source_state);
+		Predecessors[index3].set(source_state);
 	}
 	
 	/// Get the target state transitioned from <param ref="source" /> consuming <param ref="symbol" />
@@ -101,10 +103,10 @@ public:
 
 	/// Indicates if <param ref="state" /> is a Final State
 	/// O(1)
-	bool IsFinal(TState state) const { return Final.Contains(state); }
+	bool IsFinal(TState state) const { return Final.test(state); }
 
 	/// Indicates if <param ref="state" /> is an Initial State
 	/// O(1)
-	bool IsInitial(TState state) const { return Initial.Contains(state); }		
+	bool IsInitial(TState state) const { return Initial.test(state); }		
 };
 

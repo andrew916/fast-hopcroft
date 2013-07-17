@@ -1,8 +1,8 @@
 // June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
+#include "MinimizationHopcroft.h"
 #include "Dfa.h"
 #include "BitSet.h"
 #include "DfaGraphVizExporter.h"
-#include "MinimizationHopcroft.h"
 #include "AfdParser.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
@@ -36,6 +36,7 @@ int main(int argc, char** argv)
 
 		mini.Minimize2(dfa);
 		exporter.Export(dfa, std::ofstream("dfa1.dot"));
+		cout << endl;
 	}
 	{
 		//    / 1 - 3
@@ -64,6 +65,7 @@ int main(int argc, char** argv)
 
 		mini.Minimize2(dfa);
 		exporter.Export(dfa, std::ofstream("dfa2.dot"));
+		cout << endl;
 	}
 	{
 		// uses zero as invisible null-sink state
@@ -97,6 +99,7 @@ int main(int argc, char** argv)
 
 		mini.Minimize2(dfa);
 		exporter.Export(dfa, std::ofstream("dfa3.dot"), false);		
+		cout << endl;
 	}
 	{
 		// uses zero as invisible null-sink state
@@ -146,6 +149,7 @@ int main(int argc, char** argv)
 
 		mini.Minimize2(dfa);
 		exporter.Export(dfa, std::ofstream("dfa4.dot"), false);		
+		cout << endl;
 	}
 	{
 		AfdParser<uint32_t, uint8_t> parser;
@@ -225,30 +229,31 @@ int main(int argc, char** argv)
 		ofstream report ("report.txt");
 		Dfa<uint32_t, uint8_t> dfa(0,0);
 		mini.ShowConfiguration = false;
-				
+
 		for(auto filename : files) 
 		{
 			afd.open(filename);
 			dfa = parser.Parse(afd);
 			afd.close();
-			
+
 			{
-			stringstream str;
-			str << "Begin, states: " << dfa.GetStates() << ", alpha: " << dfa.GetAlphabethLength() << endl;
-			cout << str.str();
-			report << str.str();
+				stringstream str;
+				str << "Begin, states: " << dfa.GetStates() << ", alpha: " << dfa.GetAlphabethLength() << endl;
+				cout << str.str();
+				report << str.str();
 			}
 
 			boost::timer::cpu_timer timer;
 			timer.start();
 			mini.Minimize2(dfa);
 			timer.stop();
-						
+
 			{
-			stringstream str;
-			str << "Done with " << filename << " elapsed (ms) " << timer.elapsed().wall / 1000000UL << endl;
-			cout << str.str();
-			report << str.str();
+				stringstream str;
+				str << "Done with " << filename << " elapsed (ms) " << timer.elapsed().wall / 1000000UL << endl;
+				cout << str.str();
+				report << str.str();
+				cout << endl;
 			}
 		}
 	}
