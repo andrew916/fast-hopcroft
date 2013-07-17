@@ -1,7 +1,7 @@
 // June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #include "MinimizationHopcroft.h"
 #include "Dfa.h"
-#include "BitSet.h"
+#include "DfaGenerator.h"
 #include "DfaGraphVizExporter.h"
 #include "AfdParser.h"
 #include <fstream>
@@ -11,10 +11,10 @@ using namespace std;
 
 int main(int argc, char** argv)
 {	
-	MinimizationHopcroft<uint32_t, uint8_t> mini;
-	DfaGraphVizExporter<uint32_t, uint8_t> exporter;
+	MinimizationHopcroft<uint16_t, uint8_t> mini;
+	DfaGraphVizExporter<uint16_t, uint8_t> exporter;
 	{
-		Dfa<uint32_t, uint8_t> dfa(2, 4);
+		Dfa<uint16_t, uint8_t> dfa(2, 4);
 
 		//   / 2 \
 		// 0 - 1 - 3
@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 		//    / 1 - 3
 		//  0
 		//    \ 2 - 4
-		Dfa<uint32_t, uint8_t> dfa(2, 5);
+		Dfa<uint16_t, uint8_t> dfa(2, 5);
 
 		dfa.SetInitial(0);
 		dfa.SetFinal(3);
@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 		//   1 -3 - 6 - 9  - 12
 		//    \
 		//      4 - 7 - 10 - 13
-		Dfa<uint32_t, uint8_t> dfa(3, 14);
+		Dfa<uint16_t, uint8_t> dfa(3, 14);
 
 		dfa.SetInitial(1);
 		dfa.SetFinal(11);
@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 		//   1 -3 - 6 - 9  - 12
 		//    \       \   \
 		//      4 - 7 - 10 - 13
-		Dfa<uint32_t, uint8_t> dfa(3, 14);
+		Dfa<uint16_t, uint8_t> dfa(3, 14);
 
 		dfa.SetInitial(1);
 		dfa.SetFinal(11);
@@ -152,7 +152,7 @@ int main(int argc, char** argv)
 		cout << endl;
 	}
 	{
-		AfdParser<uint32_t, uint8_t> parser;
+		AfdParser<uint16_t, uint8_t> parser;
 		std::vector<std::string> files;
 
 		files.push_back("afd\\000_n512k2.afd");
@@ -227,9 +227,10 @@ int main(int argc, char** argv)
 
 		ifstream afd;
 		ofstream report ("report.txt");
-		Dfa<uint32_t, uint8_t> dfa(0,0);
+		Dfa<uint16_t, uint8_t> dfa(0,0);
 		mini.ShowConfiguration = false;
 
+		for(int jjj=0; jjj<100; jjj++)
 		for(auto filename : files) 
 		{
 			afd.open(filename);
