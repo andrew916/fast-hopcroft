@@ -49,7 +49,7 @@ public:
 	}
 		
 	/// Get the number of symbols in alphabet
-	unsigned GetAlphabethLength() const { return Alphabet; }
+	unsigned GetAlphabetLength() const { return Alphabet; }
 
 	/// Get maximum number of states of this DFA
 	unsigned GetStates() const { return States; }

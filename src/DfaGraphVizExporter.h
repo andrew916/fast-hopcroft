@@ -51,7 +51,7 @@ public:
 			{
 				if(ignoreZeroState && dst == 0) continue;
 				int c = 0;
-				for(TSymbol sym=0; sym<dfa.GetAlphabethLength(); sym++)
+				for(TSymbol sym=0; sym<dfa.GetAlphabetLength(); sym++)
 				{					
 					if(dfa.GetSucessor(src, sym) == dst)
 					{

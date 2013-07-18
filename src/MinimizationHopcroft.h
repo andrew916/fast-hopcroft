@@ -142,7 +142,7 @@ __other_block:
 template<typename TState, typename TSymbol, typename TToken = uint64_t>
 class MinimizationHopcroft
 {	
-public:
+public:	
 	typedef TState TStateSize;
 	typedef Dfa<TState, TSymbol, TToken> TDfa;
 	typedef typename TDfa::TSet TSet;
@@ -190,7 +190,17 @@ public:
 	{
 	}
 
-	void Minimize2(const TDfa& dfa)
+	TDfa Synthetize(const TDfa& dfa, const std::vector<std::vector<TState>>& partitions, const std::vector<TStateSize>& state_to_partition)
+	{
+		TDfa ndfa(dfa.GetAlphabetLength(), partitions.size());
+		for(auto a : partitions)
+		{
+			
+		}
+		return ndfa;
+	}		
+
+	std::vector<std::vector<TState>> Minimize(const TDfa& dfa)
 	{
 		using namespace std;
 
@@ -231,14 +241,14 @@ public:
 		TStateSize min_initial_partition_index = final_states_count < non_final_states_count ? 0 : 1;
 
 		// set containing the next partitions to be processed
-		dynamic_bitset<uint64_t> wait_set_membership(dfa.GetStates());
+		TSet wait_set_membership(dfa.GetStates());
 		wait_set_membership.set(min_initial_partition_index);
 
 		// set containing the already processed partitions
-		dynamic_bitset<uint64_t> partitions_to_split(dfa.GetStates());
+		TSet partitions_to_split(dfa.GetStates());
 
 		// conjunto de predecesores
-		dynamic_bitset<uint64_t> predecessors(dfa.GetStates());
+		TSet predecessors(dfa.GetStates());
 
 		// worst case is when WaitSet has one entry per state
 		for(auto splitter_set=wait_set_membership.find_first(); splitter_set!=TSet::npos; splitter_set=wait_set_membership.find_first())
@@ -257,7 +267,7 @@ public:
 			}
 
 			// Per symbol loop
-			for(TSymbol splitter_letter=0; splitter_letter<dfa.GetAlphabethLength(); splitter_letter++)
+			for(TSymbol splitter_letter=0; splitter_letter<dfa.GetAlphabetLength(); splitter_letter++)
 			{								
 				predecessors.reset();
 
@@ -369,5 +379,17 @@ public:
 		{
 			cout << "Final P=" << to_string(P, new_index, Pcontent) << endl;
 		}
+
+		// synth new
+		vector<vector<TState>> nstates(new_index);
+		auto p = P.begin();
+		for(auto it1=nstates.begin(); it1 != nstates.end(); it1++, p++)
+		{
+			for(auto it2=Pcontent.begin()+p->first; it2 != Pcontent.begin()+p->first+p->second; it2++)
+			{
+				it1->push_back(*it2);
+			}
+		}
+		return nstates;
 	}
 };
