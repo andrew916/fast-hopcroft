@@ -12,10 +12,11 @@ using namespace std;
 int main(int argc, char** argv)
 {	
 	MinimizationHopcroft<uint16_t, uint8_t> mini;
-	DfaGraphVizExporter<uint16_t, uint8_t> exporter;
+	/*
+	DfaGraphVizExporter<uint16_t, uint8_t> exporter;	
 	{
 		Dfa<uint16_t, uint8_t> dfa(2, 4);
-
+		
 		//   / 2 \
 		// 0 - 1 - 3
 		dfa.SetInitial(0);
@@ -151,6 +152,7 @@ int main(int argc, char** argv)
 		exporter.Export(dfa, std::ofstream("dfa4.dot"), false);		
 		cout << endl;
 	}
+	*/
 	{
 		AfdParser<uint16_t, uint8_t> parser;
 		std::vector<std::string> files;
@@ -229,11 +231,16 @@ int main(int argc, char** argv)
 		ofstream report ("report.txt");
 		Dfa<uint16_t, uint8_t> dfa(0,0);
 		mini.ShowConfiguration = false;
-
-		for(int jjj=0; jjj<100; jjj++)
+				
 		for(auto filename : files) 
 		{
 			afd.open(filename);
+			if(afd.fail())  
+			{
+				cout << "No se pudo abrir el archivo: " << filename << endl;
+				cout << endl;
+				continue;
+			}
 			dfa = parser.Parse(afd);
 			afd.close();
 
@@ -246,6 +253,7 @@ int main(int argc, char** argv)
 
 			boost::timer::cpu_timer timer;
 			timer.start();
+			for(int jjj=0; jjj<100; jjj++)
 			mini.Minimize2(dfa);
 			timer.stop();
 

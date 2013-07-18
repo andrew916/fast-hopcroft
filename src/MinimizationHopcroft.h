@@ -139,7 +139,7 @@ __other_block:
 #endif//_MSC_VER  
 
 /// Hopcroft's DFA Minimization Algorithm.
-template<class TState, class TSymbol, class TToken = uint64_t>
+template<typename TState, typename TSymbol, typename TToken = uint64_t>
 class MinimizationHopcroft
 {	
 public:
@@ -225,6 +225,7 @@ public:
 			state_to_partition[st] = dfa.IsFinal(st) ? 0 : 1;
 		}
 
+		// partitions count
 		TStateSize new_index = 2;
 
 		TStateSize min_initial_partition_index = final_states_count < non_final_states_count ? 0 : 1;
@@ -299,7 +300,7 @@ public:
 						TState state = *partition_it_begin;
 						if(predecessors.test(state))
 						{
-							partition_it_begin++;							
+							partition_it_begin++;
 						}
 						else 
 						{
