@@ -214,6 +214,54 @@ public:
 		return ndfa;
 	}		
 
+	TSet ComputeReachable(const TDfa& dfa)
+	{
+		using namespace std;		
+		TSet reachable = dfa.Initial;
+		TSet new_states = reachable;
+		TSet temp(dfa.GetStates());
+		do
+		{
+			temp.reset();
+			for(auto q=new_states.find_first(); q!=new_states.npos; q=new_states.find_next(q))
+			{
+				for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
+				{
+					TState qd = dfa.GetSucessor(q, c);
+					reachable.set(qd);
+					temp.set(qd);
+				}
+			}
+			new_states = temp - reachable;
+		} while(!new_states.none());
+		return reachable;
+	}
+
+	TDfa CleanUnreachable(const TDfa& dfa)
+	{		
+		TSet reach = ComputeReachable(dfa);		
+		TDfa ndfa(dfa.GetAlphabetLength(), reach.count());
+		vector<TState> table(dfa.GetStates());
+		for(TState q=0, qn=0; q<dfa.GetStates(); q++)
+		{
+			if(!reach.test(q)) continue;
+			table[q] = qn++;
+		}
+		for(TState q=0; q<dfa.GetStates(); q++)
+		{
+			if(!reach.test(q)) continue;
+			TSymbol qn = table[q];
+			ndfa.SetInitial(qn, dfa.IsInitial(q));
+			ndfa.SetFinal(qn, dfa.IsFinal(q));
+			for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
+			{
+				TState qd = dfa.GetSucessor(q, c);
+				ndfa.SetTransition(qn, c, table[qd]);
+			}
+		}
+		return ndfa;
+	}
+
 	void Minimize(const TDfa& dfa, TPartitionVector& out_partitions = TPartitionVector(), TStateToPartition& state_to_partition = TStateToPartition())
 	{
 		using namespace std;

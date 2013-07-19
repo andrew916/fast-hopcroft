@@ -310,15 +310,20 @@ void test6()
 			exporter.Export(dfa, generated_stream, false);
 			generated_stream.close();
 
+			TMinimizer::TDfa urdfa = mini.CleanUnreachable(dfa);
+
+			ofstream clean_stream(filename + "_clean.dot");
+			exporter.Export(urdfa, clean_stream, false);
+			clean_stream.close();
+
 			TMinimizer::TPartitionVector partitions;
 			TMinimizer::TStateToPartition state_to_partition;
-			mini.Minimize(dfa, partitions, state_to_partition);
-			TMinimizer::TDfa ndfa = mini.Synthetize(dfa, partitions, state_to_partition);
+			mini.Minimize(urdfa, partitions, state_to_partition);
+			TMinimizer::TDfa ndfa = mini.Synthetize(urdfa, partitions, state_to_partition);
 			
 			ofstream minimized_stream(filename + "_min.dot");
 			exporter.Export(ndfa, minimized_stream, false);
 			minimized_stream.close();
-
 		}
 	}
 }
