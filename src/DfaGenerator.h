@@ -67,6 +67,20 @@ public:
 		return dfa;
 	}
 
+	TDfa Generate2(int alpha, int states, int initial_states, int final_states, float density, TRandomGen& gen=boost::random::mt19937(), bool use_null_state=true)
+	{
+		using namespace std;
+		using namespace boost::random;
+
+		TDfa dfa(alpha, states);
+		uniform_int_distribution<TState> ud(min_state, states-1);
+		InitializeDfa(dfa, ud, gen,  initial_states, final_states);
+
+		uniform_int_distribution<TSymbol> sd(0, alpha-1);
+
+		return dfa;
+	}
+
 
 	TDfa GenerateBridge(int alpha, int states, int initial_states, int final_states, 
 		int max_steps, float density,

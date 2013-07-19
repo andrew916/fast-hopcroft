@@ -275,7 +275,7 @@ void test5()
 
 		boost::timer::cpu_timer timer;
 		timer.start();		
-		auto ns = mini.Minimize(dfa);		
+		mini.Minimize(dfa);		
 		timer.stop();
 
 		{
@@ -292,7 +292,8 @@ void test6()
 {
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	MinimizationHopcroft<TState, TSymbol> mini;	
+	typedef MinimizationHopcroft<TState, TSymbol> TMinimizer;
+	TMinimizer mini;
 	DfaGraphVizExporter<TState, TSymbol> exporter;	
 	DfaGenerator<TState, TSymbol> gen;
 
@@ -300,11 +301,24 @@ void test6()
 	{
 		for(int n=2; n!=10; n++) 
 		{
-			auto dfa = gen.Generate(a, n, 1, 1, 0.4f);
-			stringstream filename;
-			filename << "test6_a" << a << "_n" << n << ".dot";			
-			ofstream stre(filename.str());
-			exporter.Export(dfa, stre, true);
+			auto rnd = boost::random::mt19937();
+			rnd.seed(static_cast<unsigned int>(std::time(nullptr)));
+			auto dfa = gen.Generate(a, n, 1, 1, 0.4f, rnd);
+			string filename = string("test6_a") + to_string((size_t)a) + "_n" + to_string((size_t)n);
+			
+			ofstream generated_stream(filename + ".dot");
+			exporter.Export(dfa, generated_stream, false);
+			generated_stream.close();
+
+			TMinimizer::TPartitionVector partitions;
+			TMinimizer::TStateToPartition state_to_partition;
+			mini.Minimize(dfa, partitions, state_to_partition);
+			TMinimizer::TDfa ndfa = mini.Synthetize(dfa, partitions, state_to_partition);
+			
+			ofstream minimized_stream(filename + "_min.dot");
+			exporter.Export(ndfa, minimized_stream, false);
+			minimized_stream.close();
+
 		}
 	}
 }
@@ -314,8 +328,8 @@ int main(int argc, char** argv)
 	/*test1();
 	test2();
 	test3();
-	test4();*/
-	test5();
+	test4();
+	test5();*/
 	test6();
 	
 	return 0;

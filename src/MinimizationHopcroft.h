@@ -149,6 +149,8 @@ public:
 	typedef std::pair<TStateSize,TStateSize> TPartition;
 	typedef std::vector<TPartition> TPartitionSet;
 
+	typedef std::vector<std::vector<TState>> TPartitionVector;
+	typedef std::vector<TStateSize> TStateToPartition;
 private:
 
 	std::string to_string(const TPartition& P, const std::vector<TState>& Pcontent)
@@ -190,17 +192,29 @@ public:
 	{
 	}
 
-	TDfa Synthetize(const TDfa& dfa, const std::vector<std::vector<TState>>& partitions, const std::vector<TStateSize>& state_to_partition)
+	TDfa Synthetize(const TDfa& dfa, const TPartitionVector& partitions, const TStateToPartition& state_to_partition)
 	{
-		TDfa ndfa(dfa.GetAlphabetLength(), partitions.size());
-		for(auto a : partitions)
+		TDfa ndfa(dfa.GetAlphabetLength(), (unsigned int)partitions.size());
+		int pidx = 0;
+		for(auto p : partitions)
 		{
-			
+			for(auto s : p)
+			{
+				for(TSymbol sym=0; sym<dfa.GetAlphabetLength(); sym++)
+				{
+					TState tgt = dfa.GetSucessor(s, sym);
+					TState ptgt = state_to_partition[tgt];
+					ndfa.SetTransition(pidx, sym, ptgt);
+				}
+				if(dfa.IsInitial(s)) ndfa.SetInitial(pidx);
+				if(dfa.IsFinal(s)) ndfa.SetFinal(pidx);
+			}
+			pidx++;
 		}
 		return ndfa;
 	}		
 
-	std::vector<std::vector<TState>> Minimize(const TDfa& dfa)
+	void Minimize(const TDfa& dfa, TPartitionVector& out_partitions = TPartitionVector(), TStateToPartition& state_to_partition = TStateToPartition())
 	{
 		using namespace std;
 
@@ -224,7 +238,8 @@ public:
 		P[1].second = non_final_states_count;
 
 		// Inicializa funcion inversa para obtener la particion a la que pertenece un estado
-		vector<TStateSize> state_to_partition(dfa.GetStates());		
+		state_to_partition.clear();
+		state_to_partition.resize(dfa.GetStates());
 
 		auto it_f = Pcontent.begin();
 		auto it_nf = Pcontent.rbegin();
@@ -253,7 +268,7 @@ public:
 		// worst case is when WaitSet has one entry per state
 		for(auto splitter_set=wait_set_membership.find_first(); splitter_set!=TSet::npos; splitter_set=wait_set_membership.find_first())
 		{
-			assert(new_index < dfa.GetStates());
+			assert(new_index <= dfa.GetStates());
 
 			// remove current
 			wait_set_membership.reset(splitter_set);
@@ -381,15 +396,15 @@ public:
 		}
 
 		// synth new
-		vector<vector<TState>> nstates(new_index);
+		out_partitions.clear();
+		out_partitions.resize(new_index);
 		auto p = P.begin();
-		for(auto it1=nstates.begin(); it1 != nstates.end(); it1++, p++)
+		for(auto it1=out_partitions.begin(); it1 != out_partitions.end(); it1++, p++)
 		{
 			for(auto it2=Pcontent.begin()+p->first; it2 != Pcontent.begin()+p->first+p->second; it2++)
 			{
 				it1->push_back(*it2);
 			}
-		}
-		return nstates;
+		}		
 	}
 };
