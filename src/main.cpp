@@ -302,8 +302,8 @@ void test6()
 		for(int n=2; n!=10; n++) 
 		{
 			auto rnd = boost::random::mt19937();
-			rnd.seed(static_cast<unsigned int>(std::time(nullptr)));
-			auto dfa = gen.Generate(a, n, 1, 1, 0.4f, rnd);
+			rnd.seed(1);
+			auto dfa = gen.GenerateBridge(a, n, 1, 1, n/2, 0.4f, rnd);
 			string filename = string("test6_a") + to_string((size_t)a) + "_n" + to_string((size_t)n);
 			
 			ofstream generated_stream(filename + ".dot");

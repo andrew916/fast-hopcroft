@@ -227,12 +227,12 @@ public:
 			{
 				for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
 				{
-					TState qd = dfa.GetSucessor(q, c);
-					reachable.set(qd);
+					TState qd = dfa.GetSucessor(q, c);					
 					temp.set(qd);
 				}
 			}
 			new_states = temp - reachable;
+			reachable |= new_states;
 		} while(!new_states.none());
 		return reachable;
 	}

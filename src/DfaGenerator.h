@@ -67,20 +67,6 @@ public:
 		return dfa;
 	}
 
-	TDfa Generate2(int alpha, int states, int initial_states, int final_states, float density, TRandomGen& gen=boost::random::mt19937(), bool use_null_state=true)
-	{
-		using namespace std;
-		using namespace boost::random;
-
-		TDfa dfa(alpha, states);
-		uniform_int_distribution<TState> ud(min_state, states-1);
-		InitializeDfa(dfa, ud, gen,  initial_states, final_states);
-
-		uniform_int_distribution<TSymbol> sd(0, alpha-1);
-
-		return dfa;
-	}
-
 
 	TDfa GenerateBridge(int alpha, int states, int initial_states, int final_states, 
 		int max_steps, float density,
@@ -92,35 +78,70 @@ public:
 		typedef typename uniform_int_distribution<TState> TDState;
 		typedef typename uniform_int_distribution<TSymbol> TDSymbol;
 		typedef typename uniform_int_distribution<> TD;
+		typedef TDfa::TSet TSet;
 
 		TDfa dfa(alpha, states);
 		TDState ud(0, states-1);
 		TDState td(0, final_states-1);
-		TDState sd(0, alpha-1);
-		
+		TDSymbol sd(0, alpha-1);
+		TD ssd(0, states * alpha);
+		TSet reach(states);
+		TSet edges(states*alpha);
+
 		InitializeDfa(dfa, ud, gen,  initial_states, final_states);
 
-		for(auto i=dfa.Initial.find_first(); i!=dfa.Initial.npos; i=dfa.Initial.find_next(i))
+		// los primeros estados que originan bridges son los iniciales
+		TSet origin = dfa.Initial;
+				
+process_origin:
+		// para cada estado origen
+		for(auto i=origin.find_first(); i!=origin.npos; i=origin.find_next(i))
 		{
-			int selected_final = td(gen);
-			for(auto k=dfa.Final.find_first(); k!=dfa.Final.npos; k=dfa.Final.find_next(k))
+			reach.set(i);
+
+			// selecciona un estado final
+			size_t selected_final = td(gen);
+
+			// obtiene el estado final seleccionado
+			TState k=dfa.Final.find_first();
+			while(selected_final--) k=dfa.Final.find_next(k);
+
+			TState j = i;
+			TState t;
+			TSymbol c;
+			for(int step = 0; step<max_steps; step++)
 			{
-				if(selected_final-- != 0) continue;
-				TState j = i;
-				TState t;
-				TSymbol s;
-				for(int step = 0; step<max_steps; step++)
-				{
-					t = ud(gen);
-					s = sd(gen);
-					dfa.SetTransition(j, s, t);
-					if(t==k) break;
-					j = t;
-				}
-				if(t!=k) dfa.SetTransition(t, s, k);
-				break;
+				t = ud(gen);
+				c = sd(gen);
+
+				if(t == k) break;
+
+				dfa.SetTransition(j, c, t);
+
+				reach.set(t);
+				j = t;
 			}
+			// cerrar el bridge
+			dfa.SetTransition(j, c, k);
+			reach.set(k);
 		}
+
+		// alcanza los que faltaron
+		TSet unreach = ~reach;
+		for(auto i=unreach.find_first(); i!=unreach.npos; i=unreach.find_next(i))
+		{
+			// selecciona un estado final
+			TState pred;
+			do { 
+				pred = ud(gen);
+			}while(unreach.test(pred));
+			// simbolo de transicion
+			TSymbol c = sd(gen);
+			dfa.SetTransition(pred, c, i);			
+		}
+		origin = unreach;
+		if(origin.any()) goto process_origin;
+
 		return dfa;
 	}
 };
