@@ -227,7 +227,7 @@ public:
 			{
 				for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
 				{
-					TState qd = dfa.GetSucessor(q, c);					
+					TState qd = dfa.GetSucessor((TState)q, c);					
 					temp.set(qd);
 				}
 			}
@@ -240,7 +240,7 @@ public:
 	TDfa CleanUnreachable(const TDfa& dfa)
 	{		
 		TSet reach = ComputeReachable(dfa);		
-		TDfa ndfa(dfa.GetAlphabetLength(), reach.count());
+		TDfa ndfa(dfa.GetAlphabetLength(), (unsigned)reach.count());
 		vector<TState> table(dfa.GetStates());
 		for(TState q=0, qn=0; q<dfa.GetStates(); q++)
 		{
@@ -250,7 +250,7 @@ public:
 		for(TState q=0; q<dfa.GetStates(); q++)
 		{
 			if(!reach.test(q)) continue;
-			TSymbol qn = table[q];
+			TState qn = table[q];
 			ndfa.SetInitial(qn, dfa.IsInitial(q));
 			ndfa.SetFinal(qn, dfa.IsFinal(q));
 			for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)

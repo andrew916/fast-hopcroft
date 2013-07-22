@@ -295,15 +295,15 @@ void test6()
 	typedef MinimizationHopcroft<TState, TSymbol> TMinimizer;
 	TMinimizer mini;
 	DfaGraphVizExporter<TState, TSymbol> exporter;	
-	DfaGenerator<TState, TSymbol> gen;
+	DfaBridgeGenerator<TState, TSymbol> gen;
 
 	for(int a=2; a!=5; a++)
 	{
 		for(int n=2; n!=10; n++) 
 		{
-			auto rnd = boost::random::mt19937();
+			auto rnd = std::mt19937();
 			rnd.seed(1);
-			auto dfa = gen.GenerateBridge(a, n, 1, 1, n/2, 0.4f, rnd);
+			auto dfa = gen.Generate(a, n, 1, 1, n/2, 0.4f, rnd);
 			string filename = string("test6_a") + to_string((size_t)a) + "_n" + to_string((size_t)n);
 			
 			ofstream generated_stream(filename + ".dot");
