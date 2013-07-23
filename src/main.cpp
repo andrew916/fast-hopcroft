@@ -4,6 +4,7 @@
 #include "DfaGenerator.h"
 #include "DfaGraphVizExporter.h"
 #include "AfdParser.h"
+#include "AfdParser2.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
 
@@ -286,6 +287,11 @@ void test5()
 			cout << endl;
 		}
 	}
+}
+
+void test7()
+{
+
 }
 
 void test6()

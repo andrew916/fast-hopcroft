@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include "Dfa.h"
 
+
 template<class TState, class TSymbol, class TToken = uint64_t>
 class AfdParser
 {
