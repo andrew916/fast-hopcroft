@@ -169,7 +169,7 @@ public:
 	}
 
 	TDfa Generate(int alpha, int states, int initial_states, int final_states, 
-		int max_steps, float density,
+		int max_steps,
 		TRandomGen& gen)
 	{
 		using namespace std;

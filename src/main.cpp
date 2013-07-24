@@ -3,8 +3,9 @@
 #include "Dfa.h"
 #include "DfaGenerator.h"
 #include "DfaGraphVizExporter.h"
-#include "AfdParser.h"
-#include "AfdParser2.h"
+#include "FsaFormatReader.h"
+#include "DfaPlainTextReader.h"
+#include "DfaPlainTextWriter.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
 
@@ -177,7 +178,7 @@ void test5()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	MinimizationHopcroft<TState, TSymbol> mini;		
-	AfdParser<TState, TSymbol> parser;
+	FsaFormatReader<TState, TSymbol> parser;
 	vector<string> files;
 
 	files.push_back("afd\\000_n512k2.afd");
@@ -289,11 +290,6 @@ void test5()
 	}
 }
 
-void test7()
-{
-
-}
-
 void test6()
 {
 	typedef uint16_t TState;
@@ -309,7 +305,7 @@ void test6()
 		{
 			auto rnd = std::mt19937();
 			rnd.seed(1);
-			auto dfa = gen.Generate(a, n, 1, 1, n/2, 0.4f, rnd);
+			auto dfa = gen.Generate(a, n, 1, 1, n/2, rnd);
 			string filename = string("test6_a") + to_string((size_t)a) + "_n" + to_string((size_t)n);
 			
 			ofstream generated_stream(filename + ".dot");
@@ -330,8 +326,26 @@ void test6()
 			ofstream minimized_stream(filename + "_min.dot");
 			exporter.Export(ndfa, minimized_stream, false);
 			minimized_stream.close();
+
+
 		}
 	}
+}
+
+void test7()
+{
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;				
+	typedef DfaBridgeGenerator<TState, TSymbol> TGenerator;
+	typedef TGenerator::TDfa TDfa;
+	TGenerator gen;
+	DfaPlainTextWriter<TState, TSymbol> exporter;
+	
+	ofstream output("dfa_plain_text.txt");
+	mt19937 rgen;
+	TDfa dfa = gen.Generate(5, 10, 2, 2, 3, rgen);
+	exporter.Export(dfa, output);
+	output.close();	
 }
 
 int main(int argc, char** argv)
@@ -340,8 +354,9 @@ int main(int argc, char** argv)
 	test2();
 	test3();
 	test4();
-	test5();*/
-	test6();
+	test5();
+	test6();*/
+	test7();
 	
 	return 0;
 }
