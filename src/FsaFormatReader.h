@@ -11,7 +11,7 @@
 
 
 template<class TState, class TSymbol, class TToken = uint64_t>
-class AfdParser
+class FsaFormatReader
 {
 public:
 	typedef Dfa<TState, TSymbol, TToken> TDfa;
@@ -149,16 +149,16 @@ protected:
 	}
 
 public:
-	AfdParser()
+	FsaFormatReader()
 	{
 	}
 
-	~AfdParser()
+	~FsaFormatReader()
 	{
 	}
 
 		
-	TDfa Parse(std::istream& is)
+	TDfa Read(std::istream& is)
 	{
 		using namespace std;
 		state = 0;

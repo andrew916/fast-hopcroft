@@ -6,7 +6,7 @@
 #include <boost\algorithm\string\split.hpp>
 
 template<class TState, class TSymbol, class TToken = uint64_t>
-class AfdParser2
+class DfaPlainTextReader
 {
 public:
 	typedef Dfa<TState, TSymbol, TToken> TDfa;
@@ -14,13 +14,14 @@ public:
 protected:	
 
 public:
-	TDfa Parse(std::istream& str)
+	TDfa Read(std::istream& str)
 	{
 		using namespace std;
 
 		if(str.eof()) throw exception();
 
 		string line;
+		vector<string> col;
 
 		// states
 		getline(str, line);		
@@ -43,10 +44,12 @@ public:
 		getline(str, line);
 		if(line[0] != '#') throw exception();
 
-		auto ini = boost::split(line, ' ');
-		for(auto i : ini)
+		col.clear();
+		getline(str, line);		
+		boost::split(col, line, isspace);
+		for(string i : col)
 		{
-			TState st = (TState)stol(st);
+			TState st = (TState)stol(i);
 			dfa.SetInitial(st);
 		}
 
@@ -54,28 +57,36 @@ public:
 		getline(str, line);
 		if(line[0] != '#') throw exception();
 
-		auto fin = boost::split(line, ' ');
-		for(auto i : fin)
+		col.clear();
+		getline(str, line);				
+		auto fin = boost::split(col, line, isspace);
+		for(string i : fin)
 		{
-			TState st = (TState)stol(st);
+			TState st = (TState)stol(i);
 			dfa.SetFinal(st);
 		}
 
 		// transitions
 		getline(str, line);
 		if(line[0] != '#') throw exception();
-
+				
+		size_t transitionsRead=0;
 		while(!str.eof())
 		{
 			getline(str, line);
-			auto parts = boost::split(line, ' ');
-			if(parts.size() != 3) throw exception();
 
-			TState qs = (TState)stol(parts[0]);
-			TSymbol c = (TSymbol)stol(parts[1]);
-			TState qt = (TState)stol(parts[2]);
+			if(line.empty()) break;
+
+			col.clear();
+			boost::split(col, line, isspace);
+			if(col.size() != 3) throw exception();
+
+			TState qs = (TState)stol(col[0]);
+			TSymbol c = (TSymbol)stol(col[1]);
+			TState qt = (TState)stol(col[2]);
 			
 			dfa.SetTransition(qs, c, qt);
+			transitionsRead++;
 		}
 
 		return dfa;
