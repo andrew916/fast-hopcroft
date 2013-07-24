@@ -265,7 +265,7 @@ void test5()
 			cout << endl;
 			continue;
 		}
-		dfa = parser.Parse(afd);
+		dfa = parser.Read(afd);
 		afd.close();
 
 		{
@@ -340,12 +340,17 @@ void test7()
 	typedef TGenerator::TDfa TDfa;
 	TGenerator gen;
 	DfaPlainTextWriter<TState, TSymbol> exporter;
+	DfaPlainTextReader<TState, TSymbol> reader;
 	
 	ofstream output("dfa_plain_text.txt");
 	mt19937 rgen;
 	TDfa dfa = gen.Generate(5, 10, 2, 2, 3, rgen);
-	exporter.Export(dfa, output);
+	exporter.Write(dfa, output);
 	output.close();	
+
+	ifstream input("dfa_plain_text.txt");
+	TDfa dfa2 = reader.Read(input);
+	input.close();
 }
 
 int main(int argc, char** argv)
