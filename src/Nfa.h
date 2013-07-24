@@ -4,10 +4,8 @@
 #include "dynamic_bitset.h"
 #include <vector>
 #include <limits>
-#include <cassert>
-#include <functional>
 
-///	Represents a Deterministic Finite Automata.
+///	Represents a Non-Deterministic Finite Automata.
 ///	<param ref="TState" /> is the integer type representing states.
 ///	<param ref="TSymbol" /> is the integer type representing symbols.
 ///	<param ref="TToken" /> is the integer type used in order to manage internal storage of BitSets.
@@ -15,24 +13,24 @@
 /// Each state is a zero-based integer index.
 /// Each symbol is a zero-based integer index.
 template<class TState, class TSymbol, class TToken = uint64_t>
-class Dfa
+class Nfa
 {
 public:	
 	typedef dynamic_bitset<TToken> TSet;
 	typedef TState TState;
 	typedef TSymbol TSymbol;
 	typedef TToken TToken;
-
+	
 private:
 	/// number of symbols in alphabet
-	unsigned Alphabet;	
+	unsigned Alphabet;
 
-	/// states back field
+	/// States backing field
 	unsigned States;
-
 public:
+	
 	/// Function to calculate next state
-	std::vector<TState> Succesors;
+	std::vector<TSet> Succesors;
 
 	/// Inverse function
 	std::vector<TSet> Predecessors;
@@ -41,19 +39,16 @@ public:
 	TSet Initial;
 
 	/// Final states set
-	TSet Final;	
+	TSet Final;
 
-	/// <param ref="alpha" /> is the number of symbols in alphabet.	
-	Dfa(unsigned alpha, unsigned states)
-		: States(states), Alphabet(alpha), Succesors(alpha*states), Predecessors(alpha * states, TSet(states)), Initial(states), Final(states)
+	
+
+	Nfa(size_t alpha, size_t states)
+		:States(states), Alphabet(alpha), Predecessors(alpha * states, TSet(states)), Succesors(alpha * states, TSet(states)), Initial(states), Final(states)
 	{
-		// At boot, each state go to state zero with every symbol
-		for(TSymbol sym=0; sym<alpha; sym++)
-		{
-			Predecessors[sym].set();
-		}		
-	}
 		
+	}
+
 	/// Get the number of symbols in alphabet
 	/// O(1)
 	unsigned GetAlphabetLength() const { return Alphabet; }
@@ -80,41 +75,37 @@ public:
 
 	/// Adjust the transition from <param ref="source_state" /> consuming <param ref="symbol" /> to <param ref="target_state" />
 	/// O(1)
-	void SetTransition(TState source_state, TSymbol symbol, TState target_state)
+	void SetTransition(TState source_state, TSymbol symbol, TState target_state, bool add)
 	{
-		auto index1 = Alphabet * source_state + symbol;
-		auto prev_target = Succesors[index1];
-		Succesors[index1] = target_state;
+		auto index1 = Alphabet * source_state + symbol;		
+		Succesors[index1].set(target_state, add);
 		
-		auto index2 = Alphabet * prev_target + symbol;
-		Predecessors[index2].reset(source_state);
-
-		auto index3 = Alphabet * target_state + symbol;				
-		Predecessors[index3].set(source_state);
+		auto index2 = Alphabet * target_state + symbol;
+		Predecessors[index2].set(source_state, add);
 	}
 	
 	/// Get the target state transitioned from <param ref="source" /> consuming <param ref="symbol" />
 	/// O(1)
-	TState GetSucessor(TState source, TSymbol symbol) const
+	TSet GetSucessors(TState source, TSymbol symbol) const
 	{
 		auto index = source * Alphabet + symbol;
 		return Succesors[index];
-	}
-
-	/// Get the source state transitioned to <param ref="target" /> consuming <param ref="symbol"/>
-	/// O(1)
-	TSet GetPredecessors(TState target, TSymbol symbol) const
-	{
-		auto index = target * Alphabet + symbol;
-		return Predecessors[index];
 	}
 
 	/// Check if state <param ref="target" /> is reach from state <param ref="source" /> consuming symbol <param ref="symbol" />
 	/// O(1)
 	bool IsSuccesor(TState source, TSymbol symbol, TState target) const 
 	{
-		auto r = GetSucessor(source, symbol) == target;
+		auto r = GetSucessors(source, symbol).test(target);
 		return r;
+	}
+		
+	/// Get the source state transitioned to <param ref="target" /> consuming <param ref="symbol"/>
+	/// O(1)
+	const TSet& GetPredecessors(TState target, TSymbol symbol) const
+	{
+		auto index = target * Alphabet + symbol;
+		return Predecessors[index];
 	}
 
 	/// Indicates if <param ref="state" /> is a Final State
@@ -123,6 +114,5 @@ public:
 
 	/// Indicates if <param ref="state" /> is an Initial State
 	/// O(1)
-	bool IsInitial(TState state) const { return Initial.test(state); }		
+	bool IsInitial(TState state) const { return Initial.test(state); }
 };
-

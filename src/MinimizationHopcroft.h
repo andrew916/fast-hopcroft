@@ -215,7 +215,7 @@ public:
 				for(; partition_it_begin != partition_it_end; partition_it_begin++)
 				{
 					TState state = *partition_it_begin;
-					predecessors |= dfa.GetPredecessor(state, splitter_letter);
+					predecessors |= dfa.GetPredecessors(state, splitter_letter);
 				}
 
 				partitions_to_split.reset();

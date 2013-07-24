@@ -4,8 +4,9 @@
 #include "DfaGenerator.h"
 #include "DfaGraphVizExporter.h"
 #include "FsaFormatReader.h"
-#include "DfaPlainTextReader.h"
-#include "DfaPlainTextWriter.h"
+#include "FsmPlainTextReader.h"
+#include "FsmPlainTextWriter.h"
+#include "Nfa.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
 
@@ -339,8 +340,8 @@ void test7()
 	typedef DfaBridgeGenerator<TState, TSymbol> TGenerator;
 	typedef TGenerator::TDfa TDfa;
 	TGenerator gen;
-	DfaPlainTextWriter<TState, TSymbol> exporter;
-	DfaPlainTextReader<TState, TSymbol> reader;
+	FsmPlainTextWriter<TDfa> exporter;
+	FsmPlainTextReader<TDfa> reader;
 	
 	ofstream output("dfa_plain_text.txt");
 	mt19937 rgen;

@@ -5,18 +5,21 @@
 #include "Dfa.h"
 #include <boost\algorithm\string\split.hpp>
 
-template<class TState, class TSymbol, class TToken = uint64_t>
-class DfaPlainTextReader
+template<typename TFsm>
+class FsmPlainTextReader
 {
 public:
-	typedef Dfa<TState, TSymbol, TToken> TDfa;
+	typedef typename TFsm::TState TState;
+	typedef typename TFsm::TSymbol TSymbol;
+	typedef typename TFsm::TToken TToken;
 
 protected:	
 
 public:
-	TDfa Read(std::istream& str)
+	TFsm Read(std::istream& str)
 	{
 		using namespace std;
+		using boost::split;
 
 		if(str.eof()) throw exception();
 
@@ -38,7 +41,7 @@ public:
 		long alpha = stol(line);
 
 		// initialization
-		TDfa dfa(alpha, states);
+		TFsm dfa(alpha, states);
 
 		// initial
 		getline(str, line);
@@ -46,7 +49,7 @@ public:
 
 		col.clear();
 		getline(str, line);		
-		boost::split(col, line, isspace);
+		split(col, line, isspace);
 		for(string i : col)
 		{
 			TState st = (TState)stol(i);
@@ -59,7 +62,7 @@ public:
 
 		col.clear();
 		getline(str, line);				
-		auto fin = boost::split(col, line, isspace);
+		auto fin = split(col, line, isspace);
 		for(string i : fin)
 		{
 			TState st = (TState)stol(i);
@@ -78,7 +81,7 @@ public:
 			if(line.empty()) break;
 
 			col.clear();
-			boost::split(col, line, isspace);
+			split(col, line, isspace);
 			if(col.size() != 3) throw exception();
 
 			TState qs = (TState)stol(col[0]);

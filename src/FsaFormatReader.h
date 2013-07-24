@@ -65,7 +65,7 @@ protected:
 	{
 		return isdigit(token[0]) != 0;
 	}
-	
+
 	void process_token()
 	{		
 		int i;
@@ -80,7 +80,7 @@ protected:
 		case 6: expect(","); break;
 		case 7: read(number_states); break;
 		case 8: expect(","); break;
-		
+
 			// int collection
 		case 9: expect("["); break;
 		case 10: read(i); 
@@ -112,7 +112,7 @@ protected:
 			break;
 
 			// trans collection
-		case 13:  expect("["); break;
+		case 13: expect("["); break;
 		case 14: expect("trans"); break;
 		case 15: expect("("); break;
 		case 16: read(source); break;
@@ -157,7 +157,7 @@ public:
 	{
 	}
 
-		
+
 	TDfa Read(std::istream& is)
 	{
 		using namespace std;
@@ -167,7 +167,7 @@ public:
 		final_states.clear();
 		transitions.clear();
 		alphabet.clear();
-				
+
 		// lexer
 		while(is.good())
 		{
@@ -209,7 +209,7 @@ public:
 				token.push_back(c);
 			}
 		}
-		
+
 		unsigned alpha_size = (unsigned)alphabet.size();
 		TDfa dfa(alpha_size, number_states);
 		for(auto i : initial_states) dfa.SetInitial(i);

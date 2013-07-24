@@ -20,7 +20,15 @@ public:
 	bool test(size_type n) const { return __base::test(n); }
 	dynamic_bitset& set(size_type n, bool val = true) { __base::set(n, val); return *this; }
 	dynamic_bitset& reset(size_type n) { __base::reset(n); return *this; }
+	dynamic_bitset& set() { __base::set(); return *this; }
+	dynamic_bitset& reset() { __base::reset(); return *this; }
 
+	dynamic_bitset& operator-=(const dynamic_bitset& b)
+	{
+		__base::operator-=(b);
+		return *this;
+	}
+	
 	dynamic_bitset(const dynamic_bitset& c) 
 		: __base(c)
 	{
@@ -31,6 +39,13 @@ public:
 	{
 	}
 };
+
+template<typename Block, typename Allocator>
+dynamic_bitset<Block, Allocator>& operator-(const dynamic_bitset<Block, Allocator>& x, const dynamic_bitset<Block, Allocator>& y)
+{
+    dynamic_bitset<Block, Allocator> b(x);
+	return b -= y;
+}
 
 #ifdef _MSC_VER  
 // MSVC specific - intrinsics usage
@@ -51,13 +66,22 @@ public:
 	{
 	}
 
+	dynamic_bitset& operator-=(const dynamic_bitset& b)
+	{
+		__base::operator-=(b);
+		return *this;
+	}
+
+	dynamic_bitset& set() { __base::set(); return *this; }
+	dynamic_bitset& reset() { __base::reset(); return *this; }
+	
 	bool test(size_type n) const
 	{
 		auto r = (const int64_t*)&m_bits[n/bits_per_block];
 		auto idx = n%bits_per_block;
 		return _bittest64(r, idx) != 0;
 	}
-
+		
 	dynamic_bitset& set(size_type n, bool val = true)
 	{
 		auto r = (int64_t*)&m_bits[n/bits_per_block];
@@ -66,18 +90,12 @@ public:
 		else _bittestandreset64(r, idx);
 		return *this;
 	}
-
+	
 	dynamic_bitset& reset(size_type n)
 	{
 		auto r = (int64_t*)&m_bits[n/bits_per_block];
 		auto idx = n%bits_per_block;
 		_bittestandreset64(r, idx);
-		return *this;
-	}
-
-	dynamic_bitset& reset()
-	{		
-		__base::reset();
 		return *this;
 	}
 
