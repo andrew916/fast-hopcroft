@@ -6,6 +6,7 @@
 #include "FsaFormatReader.h"
 #include "FsmPlainTextReader.h"
 #include "FsmPlainTextWriter.h"
+#include "Determinization.h"
 #include "Nfa.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
@@ -19,7 +20,7 @@ void test1()
 	MinimizationHopcroft<TState, TSymbol> mini;	
 	DfaGraphVizExporter<TState, TSymbol> exporter;	
 	Dfa<TState, TSymbol> dfa(2, 4);
-		
+
 	//   / 2 \
 	// 0 - 1 - 3
 	dfa.SetInitial(0);
@@ -74,7 +75,7 @@ void test2()
 	dfa.SetTransition(4, 1, 4);
 
 	mini.Minimize(dfa);
-	exporter.Export(dfa, std::ofstream("test2.dot"));
+	exporter.Export(dfa, ofstream("test2.dot"));
 	cout << endl;
 }
 
@@ -114,7 +115,7 @@ void test3()
 	dfa.SetTransition(10, 2, 13);
 
 	mini.Minimize(dfa);
-	exporter.Export(dfa, std::ofstream("test3.dot"), false);		
+	exporter.Export(dfa, ofstream("test3.dot"), false);		
 	cout << endl;
 }
 
@@ -170,7 +171,7 @@ void test4()
 	dfa.SetTransition(10, 2, 13);
 
 	mini.Minimize(dfa);
-	exporter.Export(dfa, std::ofstream("test4.dot"), false);		
+	exporter.Export(dfa, ofstream("test4.dot"), false);		
 	cout << endl;
 }
 
@@ -256,7 +257,7 @@ void test5()
 	ofstream report ("report.txt");
 	Dfa<uint16_t, uint8_t> dfa(0,0);
 	mini.ShowConfiguration = false;
-				
+
 	for(auto filename : files) 
 	{
 		afd.open(filename);
@@ -304,11 +305,11 @@ void test6()
 	{
 		for(int n=2; n!=10; n++) 
 		{
-			auto rnd = std::mt19937();
+			auto rnd = mt19937();
 			rnd.seed(1);
 			auto dfa = gen.Generate(a, n, 1, 1, n/2, rnd);
 			string filename = string("test6_a") + to_string((size_t)a) + "_n" + to_string((size_t)n);
-			
+
 			ofstream generated_stream(filename + ".dot");
 			exporter.Export(dfa, generated_stream, false);
 			generated_stream.close();
@@ -323,12 +324,10 @@ void test6()
 			TMinimizer::TStateToPartition state_to_partition;
 			mini.Minimize(urdfa, partitions, state_to_partition);
 			TMinimizer::TDfa ndfa = mini.Synthetize(urdfa, partitions, state_to_partition);
-			
+
 			ofstream minimized_stream(filename + "_min.dot");
 			exporter.Export(ndfa, minimized_stream, false);
 			minimized_stream.close();
-
-
 		}
 	}
 }
@@ -342,7 +341,7 @@ void test7()
 	TGenerator gen;
 	FsmPlainTextWriter<TDfa> exporter;
 	FsmPlainTextReader<TDfa> reader;
-	
+
 	ofstream output("dfa_plain_text.txt");
 	mt19937 rgen;
 	TDfa dfa = gen.Generate(5, 10, 2, 2, 3, rgen);
@@ -354,6 +353,12 @@ void test7()
 	input.close();
 }
 
+void test8()
+{
+	// generacion de NFAs
+	
+}
+
 int main(int argc, char** argv)
 {		
 	/*test1();
@@ -363,6 +368,7 @@ int main(int argc, char** argv)
 	test5();
 	test6();*/
 	test7();
-	
+	test8();
+
 	return 0;
 }
