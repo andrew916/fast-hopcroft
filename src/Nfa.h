@@ -61,6 +61,8 @@ public:
 	/// O(1)
 	void SetFinal(TState state, bool st = true)
 	{
+		assert(state < States);
+
 		if(st) Final.set(state);
 		else Final.reset(state);
 	}
@@ -69,6 +71,8 @@ public:
 	/// O(1)
 	void SetInitial(TState state, bool st = true)
 	{
+		assert(state < States);
+
 		if(st) Initial.set(state);
 		else Initial.reset(state);
 	}
@@ -77,6 +81,10 @@ public:
 	/// O(1)
 	void SetTransition(TState source_state, TSymbol symbol, TState target_state, bool add=true)
 	{
+		assert(source_state < States);
+		assert(target_state < States);
+		assert(symbol < Alphabet);
+
 		auto index1 = Alphabet * source_state + symbol;		
 		Succesors[index1].set(target_state, add);
 		
@@ -88,14 +96,21 @@ public:
 	/// O(1)
 	TSet GetSuccessors(TState source, TSymbol symbol) const
 	{
+		assert(source < States);		
+		assert(symbol < Alphabet);
+
 		auto index = source * Alphabet + symbol;
 		return Succesors[index];
 	}
 
 	/// Check if state <param ref="target" /> is reach from state <param ref="source" /> consuming symbol <param ref="symbol" />
 	/// O(1)
-	bool IsSuccesor(TState source, TSymbol symbol, TState target) const 
+	bool IsSuccessor(TState source, TSymbol symbol, TState target) const 
 	{
+		assert(source < States);
+		assert(target < States);
+		assert(symbol < Alphabet);
+
 		auto r = GetSuccessors(source, symbol).test(target);
 		return r;
 	}
@@ -104,15 +119,28 @@ public:
 	/// O(1)
 	TSet GetPredecessors(TState target, TSymbol symbol) const
 	{
+		assert(target < States);
+		assert(symbol < Alphabet);
+
 		auto index = target * Alphabet + symbol;
 		return Predecessors[index];
 	}
 
 	/// Indicates if <param ref="state" /> is a Final State
 	/// O(1)
-	bool IsFinal(TState state) const { return Final.test(state); }
+	bool IsFinal(TState state) const 
+	{		
+		assert(state < States);
+
+		return Final.test(state); 
+	}
 
 	/// Indicates if <param ref="state" /> is an Initial State
 	/// O(1)
-	bool IsInitial(TState state) const { return Initial.test(state); }
+	bool IsInitial(TState state) const 
+	{ 
+		assert(state < States);
+
+		return Initial.test(state); 
+	}
 };

@@ -4,6 +4,7 @@
 #include <istream>
 #include "Dfa.h"
 #include <boost\algorithm\string\split.hpp>
+#include <boost\algorithm\string\trim.hpp>
 
 template<typename TFsm>
 class FsmPlainTextReader
@@ -20,6 +21,7 @@ public:
 	{
 		using namespace std;
 		using boost::split;
+		using boost::trim;
 
 		if(str.eof()) throw exception();
 
@@ -48,8 +50,9 @@ public:
 		if(line[0] != '#') throw exception();
 
 		col.clear();
-		getline(str, line);		
-		split(col, line, isspace);
+		getline(str, line);
+		trim(line);
+		split(col, line, isspace);		
 		for(string i : col)
 		{
 			TState st = (TState)stol(i);
@@ -61,9 +64,10 @@ public:
 		if(line[0] != '#') throw exception();
 
 		col.clear();
-		getline(str, line);				
-		auto fin = split(col, line, isspace);
-		for(string i : fin)
+		getline(str, line);	
+		trim(line);
+		split(col, line, isspace);
+		for(string i : col)
 		{
 			TState st = (TState)stol(i);
 			dfa.SetFinal(st);
@@ -81,6 +85,7 @@ public:
 			if(line.empty()) break;
 
 			col.clear();
+			trim(line);
 			split(col, line, isspace);
 			if(col.size() != 3) throw exception();
 

@@ -367,23 +367,33 @@ void test8()
 	typedef Nfa<TState, TSymbol> TNfa;
 	
 	FsmPlainTextReader<TNfa> reader;
-	ifstream fsm_input("nfa.txt");
+	ifstream fsm_input("nfa\\nfa.txt");
 	auto nfa = reader.Read(fsm_input);
 	fsm_input.close();
 
 	Determinization<TDfa, TNfa> determ;
 	auto dfa = determ.Determinize(nfa);
+
+	FsmGraphVizExporter<TNfa> dot1;
+	ofstream fsm_input_dot("nfa\\nfa.dot");
+	dot1.Export(nfa, fsm_input_dot);
+	fsm_input_dot.close();
+
+	FsmGraphVizExporter<TDfa> dot2;
+	ofstream fsm_output_dot("nfa\\dfa.dot");
+	dot2.Export(dfa, fsm_output_dot);
+	fsm_output_dot.close();
 }
 
 int main(int argc, char** argv)
 {		
-	test1();
+	/*test1();
 	test2();
 	test3();
 	test4();
 	test5();
 	test6();
-	test7();
+	test7();*/
 	test8();
 
 	return 0;

@@ -31,38 +31,38 @@ public:
 		new_states.push_back(nfa.Initial);
 		
 		TSet next(nfa.GetStates());
-				
-		TDfaState new_state_index = 0;
+		
 		TDfaState current_state_index = 0;
 		
-		for(auto current_iterator=new_states.begin(); current_iterator != new_states.end(); current_iterator++)
+		while(current_state_index < new_states.size())
 		{
+			auto current = new_states[current_state_index];
 			for(TSymbol c=0; c<nfa.GetAlphabetLength(); c++)
 			{				
-				next.clear();
-				auto current = *current_iterator;
+				next.reset();				
 				for(auto s=current.find_first(); s!=current.npos; s=current.find_next(s))
 				{
 					TNfaState qs = (TNfaState)s;
 					next |= nfa.GetSuccessors(qs, c);
 				}
-				auto found = find(new_states.begin(), new_states.end(), next);
+				TDfaState target_state_index;
+				auto found = find(new_states.begin(), new_states.end(), next);				
 				if(found == new_states.end())
 				{
-					new_state_index = (TDfaState)new_states.size();
+					target_state_index = (TDfaState)new_states.size();
 					new_states.push_back(next);
 					// detecta si contiene un final, para marcarlo como final
 					auto finalMask = nfa.Final & next;
 					if(finalMask.any())
 					{
-						final_states.push_back(new_state_index);
-					}
+						final_states.push_back(target_state_index);
+					}					
 				} 
-				else 
+				else
 				{
-					new_state_index = (TDfaState)(found - new_states.begin());
+					target_state_index = (TDfaState)(found - new_states.begin());
 				}
-				new_edges.push_back(TEdge(current_state_index, c, new_state_index));
+				new_edges.push_back(TEdge(current_state_index, c, target_state_index));
 			}
 			current_state_index++;
 		}

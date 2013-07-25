@@ -66,6 +66,8 @@ public:
 	/// O(1)
 	void SetFinal(TState state, bool st = true)
 	{
+		assert(state < States);
+
 		if(st) Final.set(state);
 		else Final.reset(state);
 	}
@@ -74,6 +76,8 @@ public:
 	/// O(1)
 	void SetInitial(TState state, bool st = true)
 	{
+		assert(state < States);
+
 		if(st) Initial.set(state);
 		else Initial.reset(state);
 	}
@@ -82,6 +86,10 @@ public:
 	/// O(1)
 	void SetTransition(TState source_state, TSymbol symbol, TState target_state)
 	{
+		assert(source_state < States);
+		assert(target_state < States);
+		assert(symbol < Alphabet);
+
 		auto index1 = Alphabet * source_state + symbol;
 		auto prev_target = Succesors[index1];
 		Succesors[index1] = target_state;
@@ -97,6 +105,9 @@ public:
 	/// O(1)
 	TState GetSuccessor(TState source, TSymbol symbol) const
 	{
+		assert(source < States);
+		assert(symbol < Alphabet);
+
 		auto index = source * Alphabet + symbol;
 		return Succesors[index];
 	}
@@ -105,6 +116,9 @@ public:
 	/// O(1)
 	TSet GetPredecessors(TState target, TSymbol symbol) const
 	{
+		assert(target < States);
+		assert(symbol < Alphabet);
+
 		auto index = target * Alphabet + symbol;
 		return Predecessors[index];
 	}
@@ -113,16 +127,30 @@ public:
 	/// O(1)
 	bool IsSuccessor(TState source, TSymbol symbol, TState target) const 
 	{
+		assert(source < States);
+		assert(target < States);
+		assert(symbol < Alphabet);
+
 		auto r = GetSuccessor(source, symbol) == target;
 		return r;
 	}
 
 	/// Indicates if <param ref="state" /> is a Final State
 	/// O(1)
-	bool IsFinal(TState state) const { return Final.test(state); }
+	bool IsFinal(TState state) const 
+	{ 
+		assert(state < States);
+
+		return Final.test(state); 
+	}
 
 	/// Indicates if <param ref="state" /> is an Initial State
 	/// O(1)
-	bool IsInitial(TState state) const { return Initial.test(state); }		
+	bool IsInitial(TState state) const 
+	{
+		assert(state < States);
+
+		return Initial.test(state); 
+	}
 };
 
