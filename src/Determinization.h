@@ -84,7 +84,7 @@ public:
 		{
 			TDfaState qs = get<0>(edge);
 			TSymbol c = get<1>(edge);
-			TDfaState qt = get<1>(edge);
+			TDfaState qt = get<2>(edge);
 			dfa.SetTransition(qs, c, qt);
 		}
 		return dfa;

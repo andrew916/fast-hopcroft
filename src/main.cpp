@@ -10,6 +10,7 @@
 #include "Determinization.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
+#include <boost/format.hpp>
 
 using namespace std;
 
@@ -282,8 +283,8 @@ void test5()
 		}
 
 		boost::timer::cpu_timer timer;
-		timer.start();		
-		mini.Minimize(dfa);		
+		timer.start();
+		mini.Minimize(dfa);
 		timer.stop();
 
 		{
@@ -359,31 +360,80 @@ void test7()
 	input.close();
 }
 
+template<typename TFsm>
+void write_dot(TFsm fsm, string filename)
+{
+	FsmGraphVizWriter<TFsm> writer;
+	ofstream s(filename);
+	writer.Write(fsm, s);
+	s.close();
+}
+
+template<typename TFsm>
+TFsm read_text(string filename)
+{
+	FsmPlainTextReader<TFsm> reader;
+	ifstream fsm_input(filename);
+	auto fsm = reader.Read(fsm_input);
+	fsm_input.close();
+	return fsm;
+}
+
 void test8()
 {
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
-	
-	FsmPlainTextReader<TNfa> reader;
-	ifstream fsm_input("nfa\\nfa.txt");
-	auto nfa = reader.Read(fsm_input);
-	fsm_input.close();
+	typedef MinimizationHopcroft<TState, TSymbol> TMinimizer;
 
-	Determinization<TDfa, TNfa> determ;
-	auto dfa = determ.Determinize(nfa);
+	ofstream report("report_test8.txt");
 
-	FsmGraphVizWriter<TNfa> dot1;
-	ofstream fsm_input_dot("nfa\\nfa.dot");
-	dot1.Write(nfa, fsm_input_dot);
-	fsm_input_dot.close();
+	for(int states=4; states<1000; states*=2)
+	{
+		for(int symbols=2; symbols<100; symbols*=2)
+		{	
+			for(int redundancy=0; redundancy<20; redundancy++)
+			{
+				auto filename1 = boost::format("nfa\\nfa_n%1%_a%2%_r%3%") % states % symbols % redundancy;
+				auto filename = filename1.str();
+				auto exec = boost::format("nfa\\genNFAv2.py -n %1% -k %2% -t 0.5 > %3%.txt") % states % symbols % filename;
+						
+				cout << "Generando " << filename << "... ";
+				string exec_cmd = exec.str();
+				system(exec_cmd.c_str());
+				cout << "Done." << endl;
 
-	FsmGraphVizWriter<TDfa> dot2;
-	ofstream fsm_output_dot("nfa\\dfa.dot");
-	dot2.Write(dfa, fsm_output_dot);
-	fsm_output_dot.close();
+				TNfa nfa = read_text<TNfa>(filename + ".txt");
+
+				cout << "Determinizando " << filename << "... ";
+				Determinization<TDfa, TNfa> determ;
+				auto dfa = determ.Determinize(nfa);
+				cout << "Done." << endl;
+
+				TMinimizer mini;
+				TMinimizer::TPartitionVector part;
+				TMinimizer::TStateToPartition conv_table;
+				mini.ShowConfiguration = false;
+
+				boost::timer::cpu_timer timer;
+				timer.start();
+				mini.Minimize(dfa, part, conv_table);
+				timer.stop();
+			
+				auto fmt = boost::format("%1%, %2%, %3%, %4%, %5%") % states % dfa.GetStates() % part.size() % symbols % timer.elapsed().wall;
+				report << fmt.str() << endl;
+
+				auto dfa2 = mini.Synthetize(dfa, part, conv_table);
+
+				//write_dot(nfa, filename + ".dot");
+				//write_dot(dfa, filename + "_dfa.dot");
+				//write_dot(dfa2, filename + "_mini.dot");
+			}
+		}
+	}
 }
+
 
 int main(int argc, char** argv)
 {		
