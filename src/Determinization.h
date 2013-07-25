@@ -8,10 +8,10 @@ template<typename TDfa, typename TNfa>
 class Determinization
 {
 public:
-	typedef typename TNfa::TState typedef typename TNfa::TSet TSet;;
-	typedef typename TDfa::TState TDfaState;
-	typedef typename TNfa::TSymbol TSymbol;
 	typedef typename TNfa::TSet TSet;
+	typedef typename TNfa::TState TNfaState;	
+	typedef typename TDfa::TState TDfaState;
+	typedef typename TNfa::TSymbol TSymbol;	
 
 private:
 

@@ -2,7 +2,7 @@
 #include "MinimizationHopcroft.h"
 #include "Dfa.h"
 #include "DfaGenerator.h"
-#include "DfaGraphVizExporter.h"
+#include "FsmGraphVizWriter.h"
 #include "FsaFormatReader.h"
 #include "FsmPlainTextReader.h"
 #include "FsmPlainTextWriter.h"
