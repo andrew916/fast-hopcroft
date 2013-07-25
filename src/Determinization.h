@@ -33,7 +33,7 @@ public:
 		TSet next(nfa.GetStates());
 				
 		TDfaState new_state_index = 0;
-		TDfaState current_state_index=0;
+		TDfaState current_state_index = 0;
 		
 		for(auto current_iterator=new_states.begin(); current_iterator != new_states.end(); current_iterator++)
 		{
