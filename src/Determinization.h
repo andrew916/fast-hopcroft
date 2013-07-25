@@ -73,6 +73,7 @@ public:
 			current_state_index++;
 		}
 
+		// el dfa solo puede ser creado aqui porque no es mutable
 		TDfa dfa(nfa.GetAlphabetLength(), new_states.size());
 		dfa.SetInitial(0);
 		for(auto f : final_states)
