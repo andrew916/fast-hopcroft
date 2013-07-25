@@ -5,17 +5,19 @@
 #include <stdint.h>
 #include "Dfa.h"
 
-template<class TState, class TSymbol, class TToken = uint64_t>
-class DfaPlainTextWriter
+template<typename TFsm>
+class FsmPlainTextWriter
 {
 public:
-	typedef Dfa<TState, TSymbol, TToken> TDfa;
+	typedef TFsm TFsm;
+	typedef typename TFsm::TState TState;
+	typedef typename TFsm::TSymbol TSymbol;
 
 protected:
 
 public:
 	
-	void Write(const TDfa& dfa, std::ostream& output)
+	void Write(const TFsm& dfa, std::ostream& output)
 	{
 		using namespace std;
 		
@@ -50,7 +52,8 @@ public:
 			{
 				for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
 				{
-					output << (size_t)qs << " " << (size_t)c << " " << (size_t)qt << endl;
+					if(dfa.IsSuccesor(qs, c, qt))
+						output << (size_t)qs << " " << (size_t)c << " " << (size_t)qt << endl;
 				}
 			}
 		}
