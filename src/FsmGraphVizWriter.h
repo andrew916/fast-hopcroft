@@ -5,7 +5,7 @@
 #include "Dfa.h"
 
 template<typename TFsm>
-class FsmGraphVizExporter
+class FsmGraphVizWriter
 {
 public:	
 	typedef typename TFsm::TSet TSet;
@@ -15,7 +15,7 @@ public:
 protected:
 public:
 	
-	void Export(const TFsm& dfa, std::ofstream& out, bool ignoreZeroState = false)
+	void Write(const TFsm& dfa, std::ofstream& out, bool ignoreZeroState = false)
 	{
 		using namespace std;
 

@@ -19,7 +19,7 @@ void test1()
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	MinimizationHopcroft<TState, TSymbol> mini;	
-	FsmGraphVizExporter<TDfa> exporter;	
+	FsmGraphVizWriter<TDfa> exporter;	
 	TDfa dfa(2, 4);
 
 	//   / 2 \
@@ -41,7 +41,7 @@ void test1()
 
 
 	mini.Minimize(dfa);
-	exporter.Export(dfa, ofstream("test1.dot"));
+	exporter.Write(dfa, ofstream("test1.dot"));
 	cout << endl;
 }
 
@@ -51,7 +51,7 @@ void test2()
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState,TSymbol> TDfa;
 	MinimizationHopcroft<TState, TSymbol> mini;	
-	FsmGraphVizExporter<TDfa> exporter;
+	FsmGraphVizWriter<TDfa> exporter;
 	//    / 1 - 3
 	//  0
 	//    \ 2 - 4
@@ -77,7 +77,7 @@ void test2()
 	dfa.SetTransition(4, 1, 4);
 
 	mini.Minimize(dfa);
-	exporter.Export(dfa, ofstream("test2.dot"));
+	exporter.Write(dfa, ofstream("test2.dot"));
 	cout << endl;
 }
 
@@ -87,7 +87,7 @@ void test3()
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	MinimizationHopcroft<TState, TSymbol> mini;	
-	FsmGraphVizExporter<TDfa> exporter;	
+	FsmGraphVizWriter<TDfa> exporter;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /
@@ -118,7 +118,7 @@ void test3()
 	dfa.SetTransition(10, 2, 13);
 
 	mini.Minimize(dfa);
-	exporter.Export(dfa, ofstream("test3.dot"), false);		
+	exporter.Write(dfa, ofstream("test3.dot"), false);		
 	cout << endl;
 }
 
@@ -128,7 +128,7 @@ void test4()
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	MinimizationHopcroft<TState, TSymbol> mini;	
-	FsmGraphVizExporter<TDfa> exporter;	
+	FsmGraphVizWriter<TDfa> exporter;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /       \   /
@@ -175,7 +175,7 @@ void test4()
 	dfa.SetTransition(10, 2, 13);
 
 	mini.Minimize(dfa);
-	exporter.Export(dfa, ofstream("test4.dot"), false);		
+	exporter.Write(dfa, ofstream("test4.dot"), false);		
 	cout << endl;
 }
 
@@ -303,7 +303,7 @@ void test6()
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef MinimizationHopcroft<TState, TSymbol> TMinimizer;
 
-	FsmGraphVizExporter<TDfa> exporter;		
+	FsmGraphVizWriter<TDfa> exporter;		
 	DfaBridgeGenerator<TState, TSymbol> gen;
 	TMinimizer mini;
 
@@ -317,13 +317,13 @@ void test6()
 			string filename = string("test6_a") + to_string((size_t)a) + "_n" + to_string((size_t)n);
 
 			ofstream generated_stream(filename + ".dot");
-			exporter.Export(dfa, generated_stream, false);
+			exporter.Write(dfa, generated_stream, false);
 			generated_stream.close();
 
 			TMinimizer::TDfa urdfa = mini.CleanUnreachable(dfa);
 
 			ofstream clean_stream(filename + "_clean.dot");
-			exporter.Export(urdfa, clean_stream, false);
+			exporter.Write(urdfa, clean_stream, false);
 			clean_stream.close();
 
 			TMinimizer::TPartitionVector partitions;
@@ -332,7 +332,7 @@ void test6()
 			TMinimizer::TDfa ndfa = mini.Synthetize(urdfa, partitions, state_to_partition);
 
 			ofstream minimized_stream(filename + "_min.dot");
-			exporter.Export(ndfa, minimized_stream, false);
+			exporter.Write(ndfa, minimized_stream, false);
 			minimized_stream.close();
 		}
 	}
@@ -374,14 +374,14 @@ void test8()
 	Determinization<TDfa, TNfa> determ;
 	auto dfa = determ.Determinize(nfa);
 
-	FsmGraphVizExporter<TNfa> dot1;
+	FsmGraphVizWriter<TNfa> dot1;
 	ofstream fsm_input_dot("nfa\\nfa.dot");
-	dot1.Export(nfa, fsm_input_dot);
+	dot1.Write(nfa, fsm_input_dot);
 	fsm_input_dot.close();
 
-	FsmGraphVizExporter<TDfa> dot2;
+	FsmGraphVizWriter<TDfa> dot2;
 	ofstream fsm_output_dot("nfa\\dfa.dot");
-	dot2.Export(dfa, fsm_output_dot);
+	dot2.Write(dfa, fsm_output_dot);
 	fsm_output_dot.close();
 }
 
