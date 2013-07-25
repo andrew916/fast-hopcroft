@@ -61,7 +61,7 @@ public:
 				int c = 0;
 				for(TSymbol sym=0; sym<dfa.GetAlphabetLength(); sym++)
 				{
-					if(dfa.GetSucessor(src, sym) == dst)
+					if(dfa.IsSuccesor(src, sym, dst))
 					{
 						if(c == 0) out << "  s" << (size_t)src << " -> s" << (size_t)dst << " [label=\"";
 						if(c != 0) out << ", ";
