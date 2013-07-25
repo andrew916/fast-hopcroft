@@ -23,10 +23,10 @@ public:
 	
 private:
 	/// number of symbols in alphabet
-	unsigned Alphabet;
+	size_t Alphabet;
 
 	/// States backing field
-	unsigned States;
+	size_t States;
 public:
 	
 	/// Function to calculate next state
@@ -51,11 +51,11 @@ public:
 
 	/// Get the number of symbols in alphabet
 	/// O(1)
-	unsigned GetAlphabetLength() const { return Alphabet; }
+	size_t GetAlphabetLength() const { return Alphabet; }
 
 	/// Get maximum number of states of this DFA
 	/// O(1)
-	unsigned GetStates() const { return States; }
+	size_t GetStates() const { return States; }
 
 	/// Set or unset one state as Final
 	/// O(1)
@@ -75,7 +75,7 @@ public:
 
 	/// Adjust the transition from <param ref="source_state" /> consuming <param ref="symbol" /> to <param ref="target_state" />
 	/// O(1)
-	void SetTransition(TState source_state, TSymbol symbol, TState target_state, bool add)
+	void SetTransition(TState source_state, TSymbol symbol, TState target_state, bool add=true)
 	{
 		auto index1 = Alphabet * source_state + symbol;		
 		Succesors[index1].set(target_state, add);
@@ -86,7 +86,7 @@ public:
 	
 	/// Get the target state transitioned from <param ref="source" /> consuming <param ref="symbol" />
 	/// O(1)
-	TSet GetSucessors(TState source, TSymbol symbol) const
+	TSet GetSuccessors(TState source, TSymbol symbol) const
 	{
 		auto index = source * Alphabet + symbol;
 		return Succesors[index];
@@ -96,13 +96,13 @@ public:
 	/// O(1)
 	bool IsSuccesor(TState source, TSymbol symbol, TState target) const 
 	{
-		auto r = GetSucessors(source, symbol).test(target);
+		auto r = GetSuccessors(source, symbol).test(target);
 		return r;
 	}
 		
 	/// Get the source state transitioned to <param ref="target" /> consuming <param ref="symbol"/>
 	/// O(1)
-	const TSet& GetPredecessors(TState target, TSymbol symbol) const
+	TSet GetPredecessors(TState target, TSymbol symbol) const
 	{
 		auto index = target * Alphabet + symbol;
 		return Predecessors[index];

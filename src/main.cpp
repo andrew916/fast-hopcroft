@@ -1,13 +1,13 @@
 // June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #include "MinimizationHopcroft.h"
 #include "Dfa.h"
+#include "Nfa.h"
 #include "DfaGenerator.h"
 #include "FsmGraphVizWriter.h"
 #include "FsaFormatReader.h"
 #include "FsmPlainTextReader.h"
 #include "FsmPlainTextWriter.h"
 #include "Determinization.h"
-#include "Nfa.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
 
@@ -17,9 +17,10 @@ void test1()
 {	
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
 	MinimizationHopcroft<TState, TSymbol> mini;	
-	DfaGraphVizExporter<TState, TSymbol> exporter;	
-	Dfa<TState, TSymbol> dfa(2, 4);
+	FsmGraphVizExporter<TDfa> exporter;	
+	TDfa dfa(2, 4);
 
 	//   / 2 \
 	// 0 - 1 - 3
@@ -48,12 +49,13 @@ void test2()
 {
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
+	typedef Dfa<TState,TSymbol> TDfa;
 	MinimizationHopcroft<TState, TSymbol> mini;	
-	DfaGraphVizExporter<TState, TSymbol> exporter;	
+	FsmGraphVizExporter<TDfa> exporter;
 	//    / 1 - 3
 	//  0
 	//    \ 2 - 4
-	Dfa<TState, TSymbol> dfa(2, 5);
+	TDfa dfa(2, 5);
 
 	dfa.SetInitial(0);
 	dfa.SetFinal(3);
@@ -83,15 +85,16 @@ void test3()
 {
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
 	MinimizationHopcroft<TState, TSymbol> mini;	
-	DfaGraphVizExporter<TState, TSymbol> exporter;	
+	FsmGraphVizExporter<TDfa> exporter;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /
 	//   1 -3 - 6 - 9  - 12
 	//    \
 	//      4 - 7 - 10 - 13
-	Dfa<TState, TSymbol> dfa(3, 14);
+	TDfa dfa(3, 14);
 
 	dfa.SetInitial(1);
 	dfa.SetFinal(11);
@@ -123,8 +126,9 @@ void test4()
 {
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
 	MinimizationHopcroft<TState, TSymbol> mini;	
-	DfaGraphVizExporter<TState, TSymbol> exporter;	
+	FsmGraphVizExporter<TDfa> exporter;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /       \   /
@@ -296,10 +300,12 @@ void test6()
 {
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
 	typedef MinimizationHopcroft<TState, TSymbol> TMinimizer;
-	TMinimizer mini;
-	DfaGraphVizExporter<TState, TSymbol> exporter;	
+
+	FsmGraphVizExporter<TDfa> exporter;		
 	DfaBridgeGenerator<TState, TSymbol> gen;
+	TMinimizer mini;
 
 	for(int a=2; a!=5; a++)
 	{
@@ -359,12 +365,14 @@ void test8()
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
-	FsmPlainTextReader<TNfa> reader;
-
-	ifstream fsm_input("nfa.txt");
-	reader.Read(fsm_input);
-	fsm_input.close();
 	
+	FsmPlainTextReader<TNfa> reader;
+	ifstream fsm_input("nfa.txt");
+	auto nfa = reader.Read(fsm_input);
+	fsm_input.close();
+
+	Determinization<TDfa, TNfa> determ;
+	auto dfa = determ.Determinize(nfa);
 }
 
 int main(int argc, char** argv)

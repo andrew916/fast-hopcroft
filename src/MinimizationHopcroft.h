@@ -77,7 +77,7 @@ public:
 			{
 				for(TSymbol sym=0; sym<dfa.GetAlphabetLength(); sym++)
 				{
-					TState tgt = dfa.GetSucessor(s, sym);
+					TState tgt = dfa.GetSuccessor(s, sym);
 					TState ptgt = state_to_partition[tgt];
 					ndfa.SetTransition(pidx, sym, ptgt);
 				}
@@ -102,7 +102,7 @@ public:
 			{
 				for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
 				{
-					TState qd = dfa.GetSucessor((TState)q, c);					
+					TState qd = dfa.GetSuccessor((TState)q, c);					
 					temp.set(qd);
 				}
 			}
@@ -130,7 +130,7 @@ public:
 			ndfa.SetFinal(qn, dfa.IsFinal(q));
 			for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
 			{
-				TState qd = dfa.GetSucessor(q, c);
+				TState qd = dfa.GetSuccessor(q, c);
 				ndfa.SetTransition(qn, c, table[qd]);
 			}
 		}

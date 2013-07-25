@@ -52,7 +52,7 @@ public:
 			{
 				for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
 				{
-					if(dfa.IsSuccesor(qs, c, qt))
+					if(dfa.IsSuccessor(qs, c, qt))
 						output << (size_t)qs << " " << (size_t)c << " " << (size_t)qt << endl;
 				}
 			}

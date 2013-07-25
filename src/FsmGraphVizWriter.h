@@ -4,17 +4,18 @@
 #include <string>
 #include "Dfa.h"
 
-template<class TState, class TSymbol>
-class DfaGraphVizExporter
+template<typename TFsm>
+class FsmGraphVizExporter
 {
-public:
-	typedef Dfa<TState, TSymbol> TDfa;
-	typedef typename TDfa::TSet TSet;
+public:	
+	typedef typename TFsm::TSet TSet;
+	typedef typename TFsm::TSymbol TSymbol;
+	typedef typename TFsm::TState TState;
 	
 protected:
 public:
 	
-	void Export(const TDfa& dfa, std::ofstream& out, bool ignoreZeroState = false)
+	void Export(const TFsm& dfa, std::ofstream& out, bool ignoreZeroState = false)
 	{
 		using namespace std;
 
@@ -61,7 +62,7 @@ public:
 				int c = 0;
 				for(TSymbol sym=0; sym<dfa.GetAlphabetLength(); sym++)
 				{
-					if(dfa.IsSuccesor(src, sym, dst))
+					if(dfa.IsSuccessor(src, sym, dst))
 					{
 						if(c == 0) out << "  s" << (size_t)src << " -> s" << (size_t)dst << " [label=\"";
 						if(c != 0) out << ", ";
