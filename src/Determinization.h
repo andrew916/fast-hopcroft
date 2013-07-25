@@ -29,6 +29,12 @@ public:
 		vector<TDfaState> final_states;
 
 		new_states.push_back(nfa.Initial);
+		if((nfa.Initial & nfa.Final).any()) 
+		{
+			// si alguno de los estados iniciales es tambien final
+			// este primer estado es final
+			final_states.push_back(0);
+		}
 		
 		TSet next(nfa.GetStates());
 		
