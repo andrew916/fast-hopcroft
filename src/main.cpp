@@ -355,18 +355,26 @@ void test7()
 
 void test8()
 {
-	// generacion de NFAs
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	typedef Nfa<TState, TSymbol> TNfa;
+	FsmPlainTextReader<TNfa> reader;
+
+	ifstream fsm_input("nfa.txt");
+	reader.Read(fsm_input);
+	fsm_input.close();
 	
 }
 
 int main(int argc, char** argv)
 {		
-	/*test1();
+	test1();
 	test2();
 	test3();
 	test4();
 	test5();
-	test6();*/
+	test6();
 	test7();
 	test8();
 
