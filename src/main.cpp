@@ -1,5 +1,6 @@
 // June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #include "MinimizationHopcroft.h"
+#include "MinimizationBrzozowski.h"
 #include "Dfa.h"
 #include "Nfa.h"
 #include "DfaGenerator.h"
@@ -8,18 +9,20 @@
 #include "FsmPlainTextReader.h"
 #include "FsmPlainTextWriter.h"
 #include "Determinization.h"
+#include "NfaGenerator.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
 
 using namespace std;
+using boost::format;
 
 void test1()
 {	
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHopcroft<TState, TSymbol> mini;	
+	MinimizationHopcroft<TDfa> mini;	
 	FsmGraphVizWriter<TDfa> exporter;	
 	TDfa dfa(2, 4);
 
@@ -51,7 +54,7 @@ void test2()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState,TSymbol> TDfa;
-	MinimizationHopcroft<TState, TSymbol> mini;	
+	MinimizationHopcroft<TDfa> mini;	
 	FsmGraphVizWriter<TDfa> exporter;
 	//    / 1 - 3
 	//  0
@@ -87,7 +90,7 @@ void test3()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHopcroft<TState, TSymbol> mini;	
+	MinimizationHopcroft<TDfa> mini;	
 	FsmGraphVizWriter<TDfa> exporter;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
@@ -128,7 +131,7 @@ void test4()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHopcroft<TState, TSymbol> mini;	
+	MinimizationHopcroft<TDfa> mini;	
 	FsmGraphVizWriter<TDfa> exporter;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
@@ -184,8 +187,9 @@ void test5()
 {
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	MinimizationHopcroft<TState, TSymbol> mini;		
-	FsaFormatReader<TState, TSymbol> parser;
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationHopcroft<TDfa> mini;
+	FsaFormatReader<TDfa> parser;
 	vector<string> files;
 
 	files.push_back("afd\\000_n512k2.afd");
@@ -302,7 +306,7 @@ void test6()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	typedef MinimizationHopcroft<TState, TSymbol> TMinimizer;
+	typedef MinimizationHopcroft<TDfa> TMinimizer;
 
 	FsmGraphVizWriter<TDfa> exporter;		
 	DfaBridgeGenerator<TState, TSymbol> gen;
@@ -385,26 +389,24 @@ void test8()
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
-	typedef MinimizationHopcroft<TState, TSymbol> TMinimizer;
+	typedef MinimizationHopcroft<TDfa> TMinimizer;
 
+	mt19937 rgen;
 	ofstream report("report_test8.txt");
-
-	for(int states=4; states<1000; states*=2)
+	report << "nfa_nQ,dfa_nQ,min_nQ,alpha,time_ns" << endl;
+	
+	for(int states=4; states<100; states*=2)
 	{
-		for(int symbols=2; symbols<100; symbols*=2)
+		for(int symbols=2; symbols<20; symbols*=2)
 		{	
 			for(int redundancy=0; redundancy<20; redundancy++)
 			{
-				auto filename1 = boost::format("nfa\\nfa_n%1%_a%2%_r%3%") % states % symbols % redundancy;
+				auto filename1 = format("nfa\\nfa_n%1%_a%2%_r%3%") % states % symbols % redundancy;
 				auto filename = filename1.str();
-				auto exec = boost::format("nfa\\genNFAv2.py -n %1% -k %2% -t 0.5 > %3%.txt") % states % symbols % filename;
 						
-				cout << "Generando " << filename << "... ";
-				string exec_cmd = exec.str();
-				system(exec_cmd.c_str());
-				cout << "Done." << endl;
-
-				TNfa nfa = read_text<TNfa>(filename + ".txt");
+				cout << "Generando " << filename << "... " << endl;
+				NfaGenerator<TNfa, mt19937> nfagen;
+				TNfa nfa = nfagen.Generate(states, symbols, 1, 1, 0.05f, rgen);
 
 				cout << "Determinizando " << filename << "... ";
 				Determinization<TDfa, TNfa> determ;
@@ -421,7 +423,7 @@ void test8()
 				mini.Minimize(dfa, part, conv_table);
 				timer.stop();
 			
-				auto fmt = boost::format("%1%, %2%, %3%, %4%, %5%") % states % dfa.GetStates() % part.size() % symbols % timer.elapsed().wall;
+				auto fmt = format("%1%, %2%, %3%, %4%, %5%") % states % dfa.GetStates() % part.size() % symbols % timer.elapsed().wall;
 				report << fmt.str() << endl;
 
 				auto dfa2 = mini.Synthetize(dfa, part, conv_table);
@@ -433,7 +435,6 @@ void test8()
 		}
 	}
 }
-
 
 int main(int argc, char** argv)
 {		

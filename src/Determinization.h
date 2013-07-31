@@ -48,14 +48,14 @@ public:
 				next.reset();				
 				for(auto s=current.find_first(); s!=current.npos; s=current.find_next(s))
 				{
-					TNfaState qs = (TNfaState)s;
+					TNfaState qs = static_cast<TNfaState>(s);
 					next |= nfa.GetSuccessors(qs, c);
 				}
 				TDfaState target_state_index;
-				auto found = find(new_states.begin(), new_states.end(), next);				
+				auto found = find(new_states.begin(), new_states.end(), next);
 				if(found == new_states.end())
 				{
-					target_state_index = (TDfaState)new_states.size();
+					target_state_index = static_cast<TDfaState>(new_states.size());
 					new_states.push_back(next);
 					// detecta si contiene un final, para marcarlo como final
 					auto finalMask = nfa.Final & next;
@@ -66,7 +66,7 @@ public:
 				} 
 				else
 				{
-					target_state_index = (TDfaState)(found - new_states.begin());
+					target_state_index = static_cast<TDfaState>(found - new_states.begin());
 				}
 				new_edges.push_back(TEdge(current_state_index, c, target_state_index));
 			}

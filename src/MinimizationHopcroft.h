@@ -14,12 +14,14 @@
 
 
 /// Hopcroft's DFA Minimization Algorithm.
-template<typename TState, typename TSymbol, typename TToken = uint64_t>
+template<typename TDfa>
 class MinimizationHopcroft
 {	
 public:	
-	typedef TState TStateSize;
-	typedef Dfa<TState, TSymbol, TToken> TDfa;
+	typedef TDfa TDfa;
+	typedef typename TDfa::TState TState;
+	typedef typename TDfa::TSymbol TSymbol;
+	typedef typename TState TStateSize;	
 	typedef typename TDfa::TSet TSet;
 	typedef std::pair<TStateSize,TStateSize> TPartition;
 	typedef std::vector<TPartition> TPartitionSet;
@@ -102,7 +104,7 @@ public:
 			{
 				for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
 				{
-					TState qd = dfa.GetSuccessor((TState)q, c);					
+					TState qd = dfa.GetSuccessor(static_cast<TState>(q), c);
 					temp.set(qd);
 				}
 			}
@@ -115,7 +117,7 @@ public:
 	TDfa CleanUnreachable(const TDfa& dfa)
 	{		
 		TSet reach = ComputeReachable(dfa);		
-		TDfa ndfa(dfa.GetAlphabetLength(), (unsigned)reach.count());
+		TDfa ndfa(dfa.GetAlphabetLength(), static_cast<unsigned>(reach.count()));
 		vector<TState> table(dfa.GetStates());
 		for(TState q=0, qn=0; q<dfa.GetStates(); q++)
 		{

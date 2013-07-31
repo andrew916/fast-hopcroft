@@ -10,11 +10,12 @@
 #include "Dfa.h"
 
 
-template<class TState, class TSymbol, class TToken = uint64_t>
+template<typename TFsm>
 class FsaFormatReader
 {
 public:
-	typedef Dfa<TState, TSymbol, TToken> TDfa;
+	typedef typename TFsm::TState TState;
+	typedef typename TFsm::TSymbol TSymbol;
 
 protected:
 	int state;
@@ -158,7 +159,7 @@ public:
 	}
 
 
-	TDfa Read(std::istream& is)
+	TFsm Read(std::istream& is)
 	{
 		using namespace std;
 		state = 0;
@@ -211,9 +212,9 @@ public:
 		}
 
 		unsigned alpha_size = (unsigned)alphabet.size();
-		TDfa dfa(alpha_size, number_states);
-		for(auto i : initial_states) dfa.SetInitial(i);
-		for(auto j : final_states) dfa.SetFinal(j);
+		TFsm fsm(alpha_size, number_states);
+		for(auto i : initial_states) fsm.SetInitial(i);
+		for(auto j : final_states) fsm.SetFinal(j);
 		int l = 0;
 		for(auto k : alphabet) 
 		{
@@ -221,9 +222,9 @@ public:
 		}
 		for(auto m : transitions)
 		{
-			dfa.SetTransition(get<0>(m), alphabet[get<1>(m)], get<2>(m));
+			fsm.SetTransition(get<0>(m), alphabet[get<1>(m)], get<2>(m));
 		}
 
-		return dfa;
+		return fsm;
 	}
 };

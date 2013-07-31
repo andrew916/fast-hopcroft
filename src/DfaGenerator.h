@@ -62,7 +62,7 @@ protected:
 			qf = states.find_next(qf);
 		}
 		assert(qf != states.npos);
-		return (TState)qf;
+		return static_cast<TState>(qf);
 	}
 
 	TState RandomFinalState(TRandomGen& gen) 
@@ -86,8 +86,8 @@ protected:
 				return false;
 			}
 		} while(!edges_unused.test(r));
-		state = r / dfa.GetAlphabetLength();
-		sym = r % dfa.GetAlphabetLength();
+		state = static_cast<TState>(r / dfa.GetAlphabetLength());
+		sym = static_cast<TSymbol>(r % dfa.GetAlphabetLength());
 		return true;
 	}
 
@@ -95,8 +95,8 @@ protected:
 	{		
 		for(auto i=shuffle_mapping_it; i!=shuffle_mapping.end(); i++)
 		{
-			TState state = *i / dfa.GetAlphabetLength();
-			sym = *i % dfa.GetAlphabetLength();
+			TState state = static_cast<TState>(*i / dfa.GetAlphabetLength());
+			sym = static_cast<TSymbol>(*i % dfa.GetAlphabetLength());
 			if(state == qi && edges_unused.test(i-shuffle_mapping.begin())) 
 			{
 				return;
@@ -143,7 +143,7 @@ protected:
 	{
 		for(auto qi=dfa.Initial.find_first(); qi!=dfa.Initial.npos; qi=dfa.Initial.find_next(qi))
 		{
-			GenerateBranch(gen, (TState)qi);
+			GenerateBranch(gen, static_cast<TState>(qi));
 		}
 	}
 
@@ -154,7 +154,7 @@ protected:
 		{
 			TState qs;
 			TSymbol c;
-			TState qt = (TState)i;
+			TState qt = static_cast<TState>(i);
 			bool found = TakeUnusedEdge(qs, c);
 			if(!found) continue;
 			RegisterTransition(qs, c, qt);
