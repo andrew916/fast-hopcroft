@@ -436,6 +436,27 @@ void test8()
 	}
 }
 
+void test9()
+{
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	typedef Nfa<TState, TSymbol> TNfa;
+	NfaGenerator<TNfa, mt19937> nfagen;
+	MinimizationBrzozowski<TNfa> min;
+	mt19937 rgen;	
+	int states = 5;
+	int symbols = 2;
+	TNfa nfa = nfagen.Generate(states, symbols, 1, 1, 0.05f, rgen);
+	Determinization<TNfa, TNfa> determ;
+	nfa = determ.Determinize(nfa);
+
+	auto nfa_min = min.Minimize(nfa);
+	write_dot(nfa, "nfa\\t9_nfa_org.dot");
+	write_dot(nfa_min, "nfa\\t9_nfa_min.dot");
+
+}
+
 int main(int argc, char** argv)
 {		
 	/*test1();
@@ -444,8 +465,9 @@ int main(int argc, char** argv)
 	test4();
 	test5();
 	test6();
-	test7();*/
-	test8();
+	test7();
+	test8();*/
+	test9();
 
 	return 0;
 }

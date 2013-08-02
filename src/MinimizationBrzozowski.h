@@ -14,40 +14,23 @@ TNfa Invert(const TNfa& nfa)
 	return r;
 }
 
-template<typename TDfa, typename TNfa>
-TNfa Invert(TDfa dfa)
-{
-	TNfa nfa(dfa.GetAlphabetLength(), dfa.GetStates());
-	nfa.Initial = dfa.Final;
-	nfa.Final = dfa.Initial;
-	nfa.Sucessors = dfa.Predecessors;
-	for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
-	{
-		for(TState qs=0; qs<dfa.GetStates(); qs++)
-		{
-			nfa.SetTransition(
-		}
-	}
-	return nfa;
-}
 
 /// Brzozowski's FSM Minimization Algorithm.
-template<typename TFsm, typename TDfa = Dfa<TState, TSymbol>>
+template<typename TFsm>
 class MinimizationBrzozowski
 {
 public:	
 	typedef TFsm TFsm;
 	typedef typename TFsm::TState TState;
 	typedef typename TFsm::TSymbol TSymbol;
-
-	typedef TDfa TDfa;
-	typedef Determinization<TDfa, TFsm> TDeterminization;
+		
+	typedef Determinization<TFsm, TFsm> TDeterminization;
 private:
 
 
 public:
 
-	TDfa Minimize(const TFsm& fsm)
+	TFsm Minimize(const TFsm& fsm)
 	{
 		TDeterminization determinizer;
 		auto p1 = Invert(fsm);
