@@ -1,0 +1,1 @@
+add_executable(generate_nfa main.cpp)

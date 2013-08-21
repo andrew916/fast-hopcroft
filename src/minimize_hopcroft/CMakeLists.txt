@@ -1,0 +1,1 @@
+add_executable(minimize_hopcroft main.cpp)
