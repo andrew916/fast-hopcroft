@@ -1,15 +1,15 @@
 // June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
-#include "MinimizationHopcroft.h"
-#include "MinimizationBrzozowski.h"
-#include "Dfa.h"
-#include "Nfa.h"
-#include "DfaGenerator.h"
-#include "FsmGraphVizWriter.h"
-#include "FsaFormatReader.h"
-#include "FsmPlainTextReader.h"
-#include "FsmPlainTextWriter.h"
-#include "Determinization.h"
-#include "NfaGenerator.h"
+#include "../MinimizationHopcroft.h"
+#include "../MinimizationBrzozowski.h"
+#include "../Dfa.h"
+#include "../Nfa.h"
+#include "../DfaGenerator.h"
+#include "../FsmGraphVizWriter.h"
+#include "../FsaFormatReader.h"
+#include "../FsmPlainTextReader.h"
+#include "../FsmPlainTextWriter.h"
+#include "../Determinization.h"
+#include "../NfaGenerator.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
@@ -459,7 +459,7 @@ void test9()
 
 int main(int argc, char** argv)
 {	
-	int i = argv[1] - '0';
+	int i = stoi(argv[1]);
 	switch(i)
 	{
 		case 1: test1(); break;

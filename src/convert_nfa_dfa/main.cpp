@@ -1,15 +1,15 @@
 // August 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
-#include "MinimizationHopcroft.h"
-#include "MinimizationBrzozowski.h"
-#include "Dfa.h"
-#include "Nfa.h"
-#include "DfaGenerator.h"
-#include "FsmGraphVizWriter.h"
-#include "FsaFormatReader.h"
-#include "FsmPlainTextReader.h"
-#include "FsmPlainTextWriter.h"
-#include "Determinization.h"
-#include "NfaGenerator.h"
+#include "../MinimizationHopcroft.h"
+#include "../MinimizationBrzozowski.h"
+#include "../Dfa.h"
+#include "../Nfa.h"
+#include "../DfaGenerator.h"
+#include "../FsmGraphVizWriter.h"
+#include "../FsaFormatReader.h"
+#include "../FsmPlainTextReader.h"
+#include "../FsmPlainTextWriter.h"
+#include "../Determinization.h"
+#include "../NfaGenerator.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
@@ -18,7 +18,7 @@
 using namespace std;
 using boost::format;
 
-class options_t 
+class Options 
 {
 public:
 	string input_file;
@@ -31,7 +31,7 @@ public:
 };
 
 
-void parse_command_line(int argc, char** argv, options_t& options)
+void ParseCommandLine(int argc, char** argv, Options& opt)
 {	
 	for(int i=1; i<argc; i++)
 	{
@@ -61,25 +61,26 @@ void parse_command_line(int argc, char** argv, options_t& options)
 		else if(arg == "-h" || arg == "-?")
 		{
 			opt.show_help = true;
+			break;
 		}
 	}
 }
 
-void convert(options_t opt)
+void Convert(Options opt)
 {
-
+	
 }
 
 int main(int argc, char** argv)
 {	
-	options_t opt;
+	Options opt;
 
-	parse_command_line(argc, argv, opt);
+	ParseCommandLine(argc, argv, opt);
 
-	if(show_help)
+	if(opt.show_help)
 	{
-		cout << "Usage: " endl;
-		<< argv[0] << "-i infile -o outfile -dot-in dotinfile -dot-out dotoutfile" << endl
+		cout << "Usage: " << endl
+			<< argv[0] << "-i infile -o outfile -dot-in dotinfile -dot-out dotoutfile" << endl
 			<< endl
 			<< "\t-i        infile      Input FSA file" << endl
 			<< "\t-o        outfile     Output FSA file" << endl
@@ -91,7 +92,7 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-	covert(opt);
+	Convert(opt);
 
 	return 0;
 }
