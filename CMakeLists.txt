@@ -27,6 +27,12 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_IS_CLANG)
 endif()
 	
 install(TARGETS FastHopcroftExecutable DESTINATION bin)
+add_subdirectory(src/convert_nfa_dfa)
+add_subdirectory(src/generate_dfa)
+add_subdirectory(src/generate_nfa)
+add_subdirectory(src/minimize_brzozowski)
+add_subdirectory(src/minimize_hopcroft)
+add_subdirectory(src/test)
 
 export(PACKAGE FastHopcroftExecutable)
 # build a CPack driven installer package
