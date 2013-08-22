@@ -28,6 +28,10 @@ public:
 	bool EmitDotInputFile;
 	bool ShowHelp;
 	bool Verbose;
+
+	Options() : EmitDotOutputFile(false), EmitDotInputFile(false), ShowHelp(false), Verbose(false)
+	{
+	}
 };
 
 

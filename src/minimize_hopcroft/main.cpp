@@ -26,8 +26,13 @@ public:
 	string DotOutputFile;
 	bool EmitDotOutputFile;
 	bool EmitDotInputFile;
+	bool SkipSynthOutput;
 	bool ShowHelp;
 	bool Verbose;
+
+	Options() : EmitDotOutputFile(false), EmitDotInputFile(false), SkipSynthOutput(true), ShowHelp(false), Verbose(false)
+	{
+	}
 };
 
 
@@ -43,6 +48,7 @@ void ParseCommandLine(int argc, char** argv, Options& opt)
 		}
 		else if(arg == "-o")
 		{
+			opt.SkipSynthOutput = false;
 			opt.OutputFile = argv[i+1];
 			i++;
 		}
@@ -77,30 +83,38 @@ void Minimization(Options opt)
 		cout << "Found DFA with " << dfa.GetStates() << " states and " << dfa.GetAlphabetLength() << " symbols" << endl;
 	}
 		
+	TDfa min_dfa(0,0);
 	MinimizationHopcroft<TDfa> min;
 	MinimizationHopcroft<TDfa>::TPartitionVector partitions;
 	MinimizationHopcroft<TDfa>::TStateToPartition state_to_partition;
 	min.Minimize(dfa, partitions, state_to_partition);
-	TDfa min_dfa = min.Synthetize(dfa, partitions, state_to_partition);
-
-	if(opt.Verbose)
-	{		
-		cout << "Brzozowski Minimization done, FSA with " << min_dfa.GetStates() << " states and " << min_dfa.GetAlphabetLength() << " symbols" << endl;
+	if(!opt.SkipSynthOutput)
+	{
+		min_dfa = min.Synthetize(dfa, partitions, state_to_partition);
 	}
-
-	ofstream ofs(opt.OutputFile);
-	writer.Write(min_dfa, ofs);
-	ofs.close();
 
 	if(opt.Verbose)
 	{
-		cout << "Written " << opt.OutputFile << endl;
- 	}
+		cout << "Hopcroft Minimization done, FSA with " << partitions.size() << " states" << endl;
+	}
+
+	if(!opt.SkipSynthOutput)
+	{
+		ofstream ofs(opt.OutputFile);
+		writer.Write(min_dfa, ofs);
+		ofs.close();
+	
+		if(opt.Verbose)
+		{
+			cout << "Written " << opt.OutputFile << endl;
+ 		}
+	}
 
 	if(opt.EmitDotInputFile)
 	{
+		ofstream ofs(opt.DotInputFile);
 		FsmGraphVizWriter<TDfa> wnfa;
-		ofs.open(opt.DotInputFile);
+		
 		wnfa.Write(dfa, ofs, false);
 		ofs.close();
 		if(opt.Verbose)
@@ -108,9 +122,9 @@ void Minimization(Options opt)
 			cout << "Written DOT " << opt.DotInputFile << endl;
  		}
 	}
-	if(opt.EmitDotOutputFile)
+	if(opt.EmitDotOutputFile && !opt.SkipSynthOutput)
 	{
-		ofs.open(opt.DotOutputFile);
+		ofstream ofs(opt.DotOutputFile);
 		FsmGraphVizWriter<TDfa> wdfa;
 		wdfa.Write(min_dfa, ofs, false);
 		ofs.close();
@@ -134,7 +148,7 @@ int main(int argc, char** argv)
 	if(opt.ShowHelp)
 	{
 		cout << "Usage:" << endl 
-			<< argv[0] << " -i <infile> -o <outfile> [-dot-in <dotinfile>] [-dot-out <dotoutfile>] [-h|-?] [-v]" << endl
+			<< argv[0] << " -i <infile> [-o <outfile>] [-dot-in <dotinfile>] [-dot-out <dotoutfile>] [-h|-?] [-v]" << endl
 			<< endl
 			<< "\t-i <infile>            Input filename" << endl
 			<< "\t-o <outfile>           Output filename" << endl
