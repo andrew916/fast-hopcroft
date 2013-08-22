@@ -61,32 +61,35 @@ void Minimization(Options opt)
 {
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;	
-	typedef Nfa<TState, TSymbol> TNfa;
+	typedef Dfa<TState, TSymbol> TDfa;
 		
-	FsmPlainTextReader<TNfa> reader;
-	FsmPlainTextWriter<TNfa> writer;
+	FsmPlainTextReader<TDfa> reader;
+	FsmPlainTextWriter<TDfa> writer;
 
 
 	ifstream ifs(opt.InputFile);
-	TNfa nfa = reader.Read(ifs);
+	TDfa dfa = reader.Read(ifs);
 	ifs.close();
 
 	if(opt.Verbose) 
 	{
 		cout << "Read " << opt.InputFile << endl;
-		cout << "Found FSA with " << nfa.GetStates() << " states and " << nfa.GetAlphabetLength() << " symbols" << endl;
+		cout << "Found DFA with " << dfa.GetStates() << " states and " << dfa.GetAlphabetLength() << " symbols" << endl;
 	}
 		
-	MinimizationHopcroft<TNfa> min;
-	min.Minimize(nfa);
+	MinimizationHopcroft<TDfa> min;
+	MinimizationHopcroft<TDfa>::TPartitionVector partitions;
+	MinimizationHopcroft<TDfa>::TStateToPartition state_to_partition;
+	min.Minimize(dfa, partitions, state_to_partition);
+	TDfa min_dfa = min.Synthetize(dfa, partitions, state_to_partition);
 
 	if(opt.Verbose)
 	{		
-		cout << "Brzozowski Minimization done, FSA with " << nfa.GetStates() << " states and " << nfa.GetAlphabetLength() << " symbols" << endl;
+		cout << "Brzozowski Minimization done, FSA with " << min_dfa.GetStates() << " states and " << min_dfa.GetAlphabetLength() << " symbols" << endl;
 	}
 
 	ofstream ofs(opt.OutputFile);
-	//writer.Write(min_nfa, ofs);
+	writer.Write(min_dfa, ofs);
 	ofs.close();
 
 	if(opt.Verbose)
@@ -96,9 +99,9 @@ void Minimization(Options opt)
 
 	if(opt.EmitDotInputFile)
 	{
-		FsmGraphVizWriter<TNfa> wnfa;
+		FsmGraphVizWriter<TDfa> wnfa;
 		ofs.open(opt.DotInputFile);
-		wnfa.Write(nfa, ofs, false);
+		wnfa.Write(dfa, ofs, false);
 		ofs.close();
 		if(opt.Verbose)
 		{
@@ -108,8 +111,8 @@ void Minimization(Options opt)
 	if(opt.EmitDotOutputFile)
 	{
 		ofs.open(opt.DotOutputFile);
-		FsmGraphVizWriter<TNfa> wdfa;
-		//wdfa.Write(min_nfa, ofs, false);
+		FsmGraphVizWriter<TDfa> wdfa;
+		wdfa.Write(min_dfa, ofs, false);
 		ofs.close();
 		if(opt.Verbose)
 		{
