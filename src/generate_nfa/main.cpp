@@ -39,7 +39,7 @@ void ParseCommandLine(int argc, char** argv, Options& opt)
 	for(int i=1; i<argc; i++)
 	{
 		string arg = argv[i];
-		if(arg == "-i")
+		if(arg == "-o")
 		{
 			opt.OutputFile = argv[i+1];
 			i++;				

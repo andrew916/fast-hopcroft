@@ -81,13 +81,15 @@ void Convert(Options opt)
 	
 	FsmPlainTextReader<TNfa> reader;
 	FsmPlainTextWriter<TDfa> writer;
-
+		
 	ifstream ifs(opt.InputFile);
 	TNfa nfa = reader.Read(ifs);
 	ifs.close();
 
+	// TODO: Error checking
+
 	if(opt.Verbose) 
-	{
+	{		
 		cout << "Read " << opt.InputFile << endl;
 		cout << "Found NFA with " << nfa.GetStates() << " states and " << nfa.GetAlphabetLength() << " symbols" << endl;
 	}
@@ -132,6 +134,7 @@ void Convert(Options opt)
  		}
 	}
 }
+
 }
 
 using namespace convert_nfa_dfa;
