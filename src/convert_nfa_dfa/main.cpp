@@ -74,7 +74,7 @@ void ParseCommandLine(int argc, char** argv, Options& opt)
 
 void Convert(Options opt)
 {
-	typedef uint16_t TState;
+	typedef uint64_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
@@ -91,7 +91,7 @@ void Convert(Options opt)
 	if(opt.Verbose) 
 	{		
 		cout << "Read " << opt.InputFile << endl;
-		cout << "Found NFA with " << nfa.GetStates() << " states and " << nfa.GetAlphabetLength() << " symbols" << endl;
+		cout << "Found FSA with " << nfa.GetStates() << " states and " << nfa.GetAlphabetLength() << " symbols" << endl;
 	}
 		
 	Determinization<TDfa, TNfa> det;
@@ -150,12 +150,12 @@ int main(int argc, char** argv)
 		cout 
 			<< "Apply determinization algorithm to a NFA" << endl
 			<< "Usage: " << endl
-			<< argv[0] << "-i <infile> -o <outfile> [-dot-in <dotinfile>] [-dot-out <dotoutfile>] [-h|-?] [-v]" << endl
+			<< argv[0] << " -i <infile> -o <outfile> [-dot-in <dotinfile>] [-dot-out <dotoutfile>] [-h|-?] [-v]" << endl
 			<< endl
 			<< "\t-i        <infile>      Input FSA file" << endl
-			<< "\t-o        <outfile>     Output FSA file" << endl
+			<< "\t-o        <outfile>     Output DFA file" << endl
 			<< "\t-dot-in   <dotinfile>   Filename to write DOT file from input FSA" << endl
-			<< "\t-dot-out  <dotoutfile>  Filename to write DOT file from output FSA" << endl
+			<< "\t-dot-out  <dotoutfile>  Filename to write DOT file from output DFA" << endl
 			<< "\t-h                      Show this help message" << endl
 			<< "\t-v                      Verbose mode" << endl
 			;

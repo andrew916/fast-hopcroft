@@ -133,7 +133,7 @@ int main(int argc, char** argv)
 			<< "Generates a new NFA using a specified seed and transition function density." << endl
 			<< "Use the same seed to get the same automata" << endl
 			<< "Usage: " << endl
-			<< argv[0] << "-o <outfile> -s <states> -a <symbols> -d <density> [-dot-out <dotoutfile>] [-s <seed>] [-h|-?] [-v]" << endl
+			<< argv[0] << " -o <outfile> -s <states> -a <symbols> -d <density> [-dot-out <dotoutfile>] [-s <seed>] [-h|-?] [-v]" << endl
 			<< endl	
 			<< "\t-o        outfile     Output FSA file" << endl
 			<< "\t-dot-out  dotoutfile  Filename to write DOT file from output FSA" << endl
