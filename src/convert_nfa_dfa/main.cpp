@@ -83,29 +83,38 @@ void Convert(Options opt)
 	FsmPlainTextWriter<TDfa> writer;
 		
 	ifstream ifs(opt.InputFile);
-	TNfa nfa = reader.Read(ifs);
-	ifs.close();
+	if(!ifs.is_open()) 
+	{
+		cout << "Error opening file " << opt.InputFile << endl;
+		return;
+	}
 
-	// TODO: Error checking
+	TNfa nfa = reader.Read(ifs);
 
 	if(opt.Verbose) 
 	{		
 		cout << "Read " << opt.InputFile << endl;
 		cout << "Found FSA with " << nfa.GetStates() << " states and " << nfa.GetAlphabetLength() << " symbols" << endl;
 	}
+	ifs.close();
 		
 	Determinization<TDfa, TNfa> det;
 	TDfa dfa = det.Determinize(nfa);
 
 	if(opt.Verbose)
-	{		
+	{
 		cout << "Determinization done, DFA with " << dfa.GetStates() << " states and " << dfa.GetAlphabetLength() << " symbols" << endl;
 	}
 	
 	ofstream ofs(opt.OutputFile);
+	if(!ofs.is_open()) 
+	{
+		cout << "Error opening file " << opt.OutputFile << endl;
+		return;
+	}
 	writer.Write(dfa, ofs);
 	ofs.close();
-
+	
 	if(opt.Verbose)
 	{
 		cout << "Written " << opt.OutputFile << endl;
@@ -115,6 +124,11 @@ void Convert(Options opt)
 	{
 		FsmGraphVizWriter<TNfa> wnfa;
 		ofs.open(opt.DotInputFile);
+		if(!ofs.is_open())
+		{
+			cout << "Error opening file " << opt.DotInputFile << endl;
+			return;
+		}
 		wnfa.Write(nfa, ofs, false);
 		ofs.close();
 		if(opt.Verbose)
@@ -125,6 +139,11 @@ void Convert(Options opt)
 	if(opt.EmitDotOutputFile)
 	{
 		ofs.open(opt.DotOutputFile);
+		if(!ofs.is_open())
+		{
+			cout << "Error opening file " << opt.DotOutputFile << endl;
+			return;
+		}
 		FsmGraphVizWriter<TDfa> wdfa;
 		wdfa.Write(dfa, ofs, false);
 		ofs.close();

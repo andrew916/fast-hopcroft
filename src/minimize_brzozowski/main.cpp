@@ -69,9 +69,13 @@ void Minimization(Options opt)
 		
 	FsmPlainTextReader<TNfa> reader;
 	FsmPlainTextWriter<TNfa> writer;
-
-
+	
 	ifstream ifs(opt.InputFile);
+	if(!ifs.is_open())
+	{
+		cout << "Error opening file " << opt.InputFile << endl;
+		return;
+	}
 	TNfa nfa = reader.Read(ifs);
 	ifs.close();
 
@@ -90,6 +94,11 @@ void Minimization(Options opt)
 	}
 
 	ofstream ofs(opt.OutputFile);
+	if(!ofs.is_open())
+	{
+		cout << "Error opening file " << opt.OutputFile << endl;
+		return;
+	}
 	writer.Write(min_nfa, ofs);
 	ofs.close();
 
@@ -99,9 +108,14 @@ void Minimization(Options opt)
  	}
 
 	if(opt.EmitDotInputFile)
-	{
-		FsmGraphVizWriter<TNfa> wnfa;
+	{		
 		ofs.open(opt.DotInputFile);
+		if(!ofs.is_open())
+		{
+			cout << "Error opening file " << opt.DotInputFile << endl;
+			return;
+		}
+		FsmGraphVizWriter<TNfa> wnfa;
 		wnfa.Write(nfa, ofs, false);
 		ofs.close();
 		if(opt.Verbose)
@@ -112,6 +126,11 @@ void Minimization(Options opt)
 	if(opt.EmitDotOutputFile)
 	{
 		ofs.open(opt.DotOutputFile);
+		if(!ofs.is_open())
+		{
+			cout << "Error opening file " << opt.DotOutputFile << endl;
+			return;
+		}
 		FsmGraphVizWriter<TNfa> wdfa;
 		wdfa.Write(min_nfa, ofs, false);
 		ofs.close();

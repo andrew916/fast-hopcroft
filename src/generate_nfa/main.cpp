@@ -100,6 +100,11 @@ void GenerateNfa(Options opt)
 	}
 
 	ofstream ofs(opt.OutputFile);
+	if(!ofs.is_open())
+	{
+		cout << "Error opening " << opt.OutputFile << endl;
+		return;
+	}
 	writer.Write(nfa, ofs);
 	ofs.close();
 
@@ -111,10 +116,18 @@ void GenerateNfa(Options opt)
 	if(opt.EmitDotOutputFile)
 	{
 		ofs.open(opt.DotOutputFile);
+		if(!ofs.is_open())
+		{
+			cout << "Error opening " << opt.DotOutputFile << endl;
+			return;
+		}
 		FsmGraphVizWriter<TNfa> wnfa;
-		wnfa.Write(nfa, ofs, false);
+		wnfa.Write(nfa, ofs, false);		
 		ofs.close();
-		cout << "Written " << opt.DotOutputFile << endl;
+		if(opt.Verbose) 
+		{
+			cout << "Written " << opt.DotOutputFile << endl;
+		}
 	}
 }
 
