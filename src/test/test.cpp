@@ -496,27 +496,16 @@ int test9()
 	NfaGenerator<TNfa, mt19937> nfagen;
 	boost::timer::cpu_timer timer;	
 
-	mt19937 rgen;	
-	int states = 50;
+	long seed = 5000;
+	mt19937 rgen(seed);	
+	int states = 80;
 	int symbols = 2;
 	float density = 0.005f;
 	TNfa nfa = nfagen.Generate(states, symbols, 1, 1, density, rgen);
 
 	cout << "Generado NFA con " << nfa.GetStates() << " estados, " << nfa.GetAlphabetLength() << " simbolos, d=" << density << endl;
 	write_dot(nfa, "nfa\\t9_nfa_org.dot");	
-
-	Determinization<TNfa, TNfa> determb;
-	auto nfab = determb.Determinize(nfa);
-	cout << "Determinizado con " << nfab.GetStates() << " estados, " << nfab.GetAlphabetLength() << " simbolos" << endl;
-	write_dot(nfab, "nfa\\t9_dfa.dot");	
-	
-	MinimizationBrzozowski<TNfa> minb;	
-	timer.start();
-	auto nfa_minb = minb.Minimize(nfab);	
-	timer.stop();
-	cout << "Minimizado Brzozowski con " << nfa_minb.GetStates() << " estados, " << nfa_minb.GetAlphabetLength() << " simbolos" << endl;
-	cout << "Minimizacion tomo " << timer.format(3) << endl;
-	write_dot(nfa_minb, "nfa\\t9_dfa_min_b.dot");
+		
 
 	Determinization<TDfa, TNfa> determh;
 	auto dfa = determh.Determinize(nfa);
@@ -533,6 +522,20 @@ int test9()
 	cout << "Minimizado Hopcroft con " << hpartitions.size() << " estados, " << dfa.GetAlphabetLength() << " simbolos" << endl;
 	cout << "Minimizacion tomo " << timer.format(5) << endl;
 	//write_dot(dfa_minh, "nfa\\t9_dfa_min_h.dot");
+
+
+	Determinization<TNfa, TNfa> determb;
+	auto nfab = determb.Determinize(nfa);
+	cout << "Determinizado con " << nfab.GetStates() << " estados, " << nfab.GetAlphabetLength() << " simbolos" << endl;
+	write_dot(nfab, "nfa\\t9_dfa.dot");	
+	
+	MinimizationBrzozowski<TNfa> minb;	
+	timer.start();
+	auto nfa_minb = minb.Minimize(nfab);	
+	timer.stop();
+	cout << "Minimizado Brzozowski con " << nfa_minb.GetStates() << " estados, " << nfa_minb.GetAlphabetLength() << " simbolos" << endl;
+	cout << "Minimizacion tomo " << timer.format(5) << endl;
+	write_dot(nfa_minb, "nfa\\t9_dfa_min_b.dot");
 
 	return 0;
 }

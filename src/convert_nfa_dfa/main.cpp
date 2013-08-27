@@ -74,7 +74,7 @@ void ParseCommandLine(int argc, char** argv, Options& opt)
 
 void Convert(Options opt)
 {
-	typedef uint64_t TState;
+	typedef uint32_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
