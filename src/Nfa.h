@@ -94,7 +94,7 @@ public:
 	
 	/// Get the target state transitioned from <param ref="source" /> consuming <param ref="symbol" />
 	/// O(1)
-	TSet GetSuccessors(TState source, TSymbol symbol) const
+	const TSet& GetSuccessors(TState source, TSymbol symbol) const
 	{
 		assert(source < States);		
 		assert(symbol < Alphabet);
@@ -117,7 +117,7 @@ public:
 		
 	/// Get the source state transitioned to <param ref="target" /> consuming <param ref="symbol"/>
 	/// O(1)
-	TSet GetPredecessors(TState target, TSymbol symbol) const
+	const TSet& GetPredecessors(TState target, TSymbol symbol) const
 	{
 		assert(target < States);
 		assert(symbol < Alphabet);

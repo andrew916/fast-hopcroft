@@ -6,7 +6,7 @@
 #include "../FsmPlainTextReader.h"
 #include "../FsmPlainTextWriter.h"
 #include <fstream>
-#include <boost/timer/timer.hpp>
+#include <chrono>
 #include <boost/format.hpp>
 #include <string>
 
@@ -89,8 +89,16 @@ void GenerateNfa(Options opt)
 	typedef Nfa<TState, TSymbol> TNfa;
 	typedef mt19937 TRandGen;
 	
+	// Si la semilla es cero, usamos como semilla un valor derivado del temporizador
+	if(opt.Seed == 0)
+	{
+		chrono::steady_clock::time_point p = chrono::steady_clock::now();
+		chrono::steady_clock::duration d = p.time_since_epoch();
+		opt.Seed = static_cast<long>(d.count());
+	}
+
 	NfaGenerator<TNfa, TRandGen> gen;
-	TRandGen rgen;
+	TRandGen rgen(opt.Seed);
 	FsmPlainTextWriter<TNfa> writer;
 
 	TNfa nfa = gen.Generate(opt.States, opt.Symbols, 1, 1, opt.Density, rgen);

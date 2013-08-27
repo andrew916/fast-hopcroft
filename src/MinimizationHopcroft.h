@@ -110,7 +110,7 @@ public:
 			}
 			new_states = temp - reachable;
 			reachable |= new_states;
-		} while(!new_states.none());
+		} while(new_states.any());
 		return reachable;
 	}
 

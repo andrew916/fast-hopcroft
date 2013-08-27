@@ -16,21 +16,21 @@ TNfa Invert(const TNfa& nfa)
 
 
 /// Brzozowski's FSM Minimization Algorithm.
-template<typename TFsm>
+template<typename TFsa>
 class MinimizationBrzozowski
 {
 public:	
-	typedef TFsm TFsm;
-	typedef typename TFsm::TState TState;
-	typedef typename TFsm::TSymbol TSymbol;
+	typedef TFsa TFsa;
+	typedef typename TFsa::TState TState;
+	typedef typename TFsa::TSymbol TSymbol;
 		
-	typedef Determinization<TFsm, TFsm> TDeterminization;
+	typedef Determinization<TFsa, TFsa> TDeterminization;
 private:
 
 
 public:
 
-	TFsm Minimize(const TFsm& fsm)
+	TFsa Minimize(const TFsa& fsm)
 	{
 		TDeterminization determinizer;
 		auto p1 = Invert(fsm);

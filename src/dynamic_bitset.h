@@ -10,6 +10,19 @@
 
 #include <stdint.h>
 
+template<typename Block>
+size_t hash_seq(const std::vector<Block>& vc, size_t bits)
+{
+	size_t bits_per_block = sizeof(Block)*8;
+	size_t n = bits / bits_per_block;
+	size_t o = bits % bits_per_block;
+	// el tamano es n porque no queremos tomar el ultimo item
+	size_t h = _Hash_seq((const unsigned char*)vc.data(), n*sizeof(Block));
+	Block mask = (Block(1) << o) - 1;
+	h ^= vc[n] & mask;
+	return h;
+}
+
 template<typename Block, typename Allocator = std::allocator<Block>>
 class dynamic_bitset : public boost::dynamic_bitset<Block, Allocator>
 {
@@ -22,6 +35,15 @@ public:
 	dynamic_bitset& reset(size_type n) { __base::reset(n); return *this; }
 	dynamic_bitset& set() { __base::set(); return *this; }
 	dynamic_bitset& reset() { __base::reset(); return *this; }
+	
+	struct hash
+	{
+		size_t operator()(const dynamic_bitset<Block>& _Keyval) const
+		{	
+			return hash_seq(_Keyval.m_bits, _Keyval.m_num_bits);
+		}
+	};
+
 
 	dynamic_bitset& operator-=(const dynamic_bitset& b)
 	{
@@ -65,6 +87,15 @@ public:
 		: __base(num_bits, value, alloc)
 	{
 	}
+
+	
+	struct hash
+	{
+		size_t operator()(const typename dynamic_bitset<uint64_t, Allocator>& _Keyval) const
+		{	
+			return hash_seq(_Keyval.m_bits, _Keyval.m_num_bits);
+		}
+	};
 
 	dynamic_bitset& operator-=(const dynamic_bitset& b)
 	{

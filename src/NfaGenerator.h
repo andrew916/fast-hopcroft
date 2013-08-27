@@ -37,6 +37,7 @@ public:
 
 		TNfa nfa(alpha, states);
 		
+		// Determina estados iniciales
 		for(size_t i=0; i<initials;)
 		{
 			TState qi = state_dist(gen);
@@ -48,6 +49,7 @@ public:
 			i++;
 		}
 		
+		// Determina estados finales
 		for(size_t i=0; i<finals;)
 		{
 			TState qi = state_dist(gen);
