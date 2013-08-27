@@ -494,24 +494,45 @@ int test9()
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
 	NfaGenerator<TNfa, mt19937> nfagen;
-	MinimizationBrzozowski<TNfa> min;
+	boost::timer::cpu_timer timer;	
+
 	mt19937 rgen;	
 	int states = 50;
 	int symbols = 2;
-	float density = 0.01f;
+	float density = 0.005f;
 	TNfa nfa = nfagen.Generate(states, symbols, 1, 1, density, rgen);
 
 	cout << "Generado NFA con " << nfa.GetStates() << " estados, " << nfa.GetAlphabetLength() << " simbolos, d=" << density << endl;
 	write_dot(nfa, "nfa\\t9_nfa_org.dot");	
 
-	Determinization<TNfa, TNfa> determ;
-	nfa = determ.Determinize(nfa);
-	cout << "Determinizado con " << nfa.GetStates() << " estados, " << nfa.GetAlphabetLength() << " simbolos" << endl;
-	write_dot(nfa, "nfa\\t9_dfa.dot");	
+	Determinization<TNfa, TNfa> determb;
+	auto nfab = determb.Determinize(nfa);
+	cout << "Determinizado con " << nfab.GetStates() << " estados, " << nfab.GetAlphabetLength() << " simbolos" << endl;
+	write_dot(nfab, "nfa\\t9_dfa.dot");	
 	
-	auto nfa_min = min.Minimize(nfa);	
-	cout << "Minimizado con " << nfa_min.GetStates() << " estados, " << nfa_min.GetAlphabetLength() << " simbolos" << endl;
-	write_dot(nfa_min, "nfa\\t9_dfa_min.dot");
+	MinimizationBrzozowski<TNfa> minb;	
+	timer.start();
+	auto nfa_minb = minb.Minimize(nfab);	
+	timer.stop();
+	cout << "Minimizado Brzozowski con " << nfa_minb.GetStates() << " estados, " << nfa_minb.GetAlphabetLength() << " simbolos" << endl;
+	cout << "Minimizacion tomo " << timer.format(3) << endl;
+	write_dot(nfa_minb, "nfa\\t9_dfa_min_b.dot");
+
+	Determinization<TDfa, TNfa> determh;
+	auto dfa = determh.Determinize(nfa);
+	cout << "Determinizado con " << dfa.GetStates() << " estados, " << dfa.GetAlphabetLength() << " simbolos" << endl;
+	write_dot(dfa, "nfa\\t9_dfa.dot");	
+
+	MinimizationHopcroft<TDfa> minh;
+	MinimizationHopcroft<TDfa>::TPartitionVector hpartitions;
+	minh.ShowConfiguration = false;
+		
+	timer.start();
+	minh.Minimize(dfa, hpartitions);	
+	timer.stop();
+	cout << "Minimizado Hopcroft con " << hpartitions.size() << " estados, " << dfa.GetAlphabetLength() << " simbolos" << endl;
+	cout << "Minimizacion tomo " << timer.format(5) << endl;
+	//write_dot(dfa_minh, "nfa\\t9_dfa_min_h.dot");
 
 	return 0;
 }

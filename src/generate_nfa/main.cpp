@@ -9,6 +9,7 @@
 #include <chrono>
 #include <boost/format.hpp>
 #include <string>
+#include <iostream>
 
 namespace generate_nfa
 {

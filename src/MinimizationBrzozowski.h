@@ -5,17 +5,17 @@
 #include "Nfa.h"
 #include "Determinization.h"
 
-template<typename TNfa>
-TNfa Invert(const TNfa& nfa)
+template<typename TFsa>
+TFsa Invert(const TFsa& nfa)
 {
-	TNfa r(nfa);
+	TFsa r(nfa);
 	std::swap(r.Initial, r.Final);
 	std::swap(r.Predecessors, r.Succesors);
 	return r;
 }
 
 
-/// Brzozowski's FSM Minimization Algorithm.
+/// Brzozowski's FSA Minimization Algorithm.
 template<typename TFsa>
 class MinimizationBrzozowski
 {
