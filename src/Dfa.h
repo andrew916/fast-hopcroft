@@ -14,7 +14,7 @@
 /// Represenation:
 /// Each state is a zero-based integer index.
 /// Each symbol is a zero-based integer index.
-template<class TState, class TSymbol, class TToken = uint64_t>
+template<typename TState, typename TSymbol, typename TToken = uint64_t>
 class Dfa
 {
 public:	
