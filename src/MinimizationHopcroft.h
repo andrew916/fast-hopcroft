@@ -38,7 +38,7 @@ private:
 		for(TStateSize j=P.first, cnt=0; cnt<P.second; j++, cnt++)
 		{
 			if(cnt > 0) str += ", ";
-			str.append(std::to_string((uint64_t)Pcontent[j]));
+			str.append(std::to_string((size_t)Pcontent[j]));
 		}
 		str.append("}");
 		return str;
@@ -94,39 +94,39 @@ public:
 	TSet ComputeReachable(const TDfa& dfa)
 	{
 		using namespace std;		
-		TSet reachable = dfa.Initial;
+		TSet reachable = dfa.GetInitials();
 		TSet new_states = reachable;
 		TSet temp(dfa.GetStates());
 		do
 		{
-			temp.reset();
-			for(auto q=new_states.find_first(); q!=new_states.npos; q=new_states.find_next(q))
+			temp.Clear();
+			for(auto q=new_states.GetIterator(); !q.IsEnd(); q.MoveNext())
 			{
 				for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
 				{
-					TState qd = dfa.GetSuccessor(static_cast<TState>(q), c);
-					temp.set(qd);
+					TState qd = dfa.GetSuccessor(q.GetCurrent(), c);
+					temp.Add(qd);
 				}
 			}
-			new_states = temp - reachable;
-			reachable |= new_states;
-		} while(new_states.any());
+			new_states = TSet::Difference(temp, reachable);
+			reachable.UnionWith(new_states);
+		} while(!new_states.IsEmpty());
 		return reachable;
 	}
 
 	TDfa CleanUnreachable(const TDfa& dfa)
 	{		
 		TSet reach = ComputeReachable(dfa);		
-		TDfa ndfa(dfa.GetAlphabetLength(), static_cast<unsigned>(reach.count()));
+		TDfa ndfa(dfa.GetAlphabetLength(), reach.Count());
 		vector<TState> table(dfa.GetStates());
 		for(TState q=0, qn=0; q<dfa.GetStates(); q++)
 		{
-			if(!reach.test(q)) continue;
+			if(!reach.Contains(q)) continue;
 			table[q] = qn++;
 		}
 		for(TState q=0; q<dfa.GetStates(); q++)
 		{
-			if(!reach.test(q)) continue;
+			if(!reach.Contains(q)) continue;
 			TState qn = table[q];
 			ndfa.SetInitial(qn, dfa.IsInitial(q));
 			ndfa.SetFinal(qn, dfa.IsFinal(q));
@@ -143,7 +143,7 @@ public:
 	{
 		using namespace std;
 
-		TStateSize final_states_count = (TStateSize)dfa.Final.count();
+		TStateSize final_states_count = (TStateSize)dfa.GetFinals().Count();
 		TStateSize non_final_states_count = (TStateSize)dfa.GetStates() - final_states_count;
 
 		// Un automata sin estado final?
@@ -182,7 +182,7 @@ public:
 
 		// set containing the next partitions to be processed
 		TSet wait_set_membership(dfa.GetStates());
-		wait_set_membership.set(min_initial_partition_index);
+		wait_set_membership.Add(min_initial_partition_index);
 
 		// set containing the already processed partitions
 		TSet partitions_to_split(dfa.GetStates());
@@ -191,15 +191,15 @@ public:
 		TSet predecessors(dfa.GetStates());
 
 		// worst case is when WaitSet has one entry per state
-		for(auto splitter_set=wait_set_membership.find_first(); splitter_set!=TSet::npos; splitter_set=wait_set_membership.find_first())
+		for(auto splitter_set=wait_set_membership.GetIterator(); !splitter_set.IsEnd(); splitter_set.MoveNext())
 		{
 			assert(new_index <= dfa.GetStates());
 
 			// remove current
-			wait_set_membership.reset(splitter_set);
+			wait_set_membership.Remove(splitter_set.GetCurrent());
 
 			// current splitter partition
-			const auto& splitter_partition = P[splitter_set];
+			const auto& splitter_partition = P[splitter_set.GetCurrent()];
 
 			if(ShowConfiguration)
 			{				
@@ -209,7 +209,7 @@ public:
 			// Per symbol loop
 			for(TSymbol splitter_letter=0; splitter_letter<dfa.GetAlphabetLength(); splitter_letter++)
 			{								
-				predecessors.reset();
+				predecessors.Clear();
 
 				// recorre elementos de la particion
 				auto partition_it_begin = Pcontent.begin() + splitter_partition.first;
@@ -217,21 +217,21 @@ public:
 				for(; partition_it_begin != partition_it_end; partition_it_begin++)
 				{
 					TState state = *partition_it_begin;
-					predecessors |= dfa.GetPredecessors(state, splitter_letter);
+					predecessors.UnionWith(dfa.GetPredecessors(state, splitter_letter));
 				}
 
-				partitions_to_split.reset();
+				partitions_to_split.Clear();
 
 				// let a=splitter_letter, B belongs P
 				// O(card(a^{-1}.B))				
-				for(auto ss=predecessors.find_first(); ss!=TSet::npos; ss=predecessors.find_next(ss))
+				for(auto ss=predecessors.GetIterator(); !ss.IsEnd(); ss.MoveNext())
 				{
 					// state ss belongs to partition indicated with partition_index
-					TStateSize partition_index = state_to_partition[ss];
+					TStateSize partition_index = state_to_partition[ss.GetCurrent()];
 
 					// Is this partition already processed?
-					if(partitions_to_split.test(partition_index)) continue;
-					partitions_to_split.set(partition_index);
+					if(partitions_to_split.Contains(partition_index)) continue;
+					partitions_to_split.Add(partition_index);
 
 					TPartition& partition_desc = P[partition_index];
 
@@ -248,7 +248,7 @@ public:
 					do
 					{
 						TState state = *partition_it_begin;
-						if(predecessors.test(state))
+						if(predecessors.Contains(state))
 						{
 							partition_it_begin++;
 						}
@@ -262,7 +262,7 @@ public:
 					// last element remains without class, assign it
 					{ 
 						TState state = *partition_it_begin;
-						if(predecessors.test(state))
+						if(predecessors.Contains(state))
 						{
 							partition_it_begin++;							
 						}
@@ -280,9 +280,9 @@ public:
 
 					if(ShowConfiguration)
 					{
-						cout << "symbol=" << (uint64_t)splitter_letter << endl;
-						cout << "pred state=" << (uint64_t)ss << " in partition " << partition_index << endl;						
-					}	
+						cout << "symbol=" << (size_t)splitter_letter << endl;
+						cout << "pred state=" << (size_t)ss.GetCurrent() << " in partition " << partition_index << endl;
+					}
 
 					// new parition size
 					TStateSize split_complement_size = partition_size - split_size;
@@ -293,14 +293,14 @@ public:
 					P[new_index].first = partition_desc.first + split_size;
 					P[new_index].second = split_complement_size;
 
-					if(wait_set_membership.test(partition_index)) 
+					if(wait_set_membership.Contains(partition_index)) 
 					{
-						wait_set_membership.set(new_index);
+						wait_set_membership.Add(new_index);
 					} 
 					else 
 					{
 						auto add_index = split_size < split_complement_size ? partition_index : new_index;
-						wait_set_membership.set(add_index);
+						wait_set_membership.Add(add_index);
 					}
 
 					// If we are here, split was done

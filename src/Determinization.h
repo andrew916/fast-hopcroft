@@ -18,7 +18,7 @@ private:
 public:
 	TDfa Determinize(TNfa nfa)
 	{	
-		assert(nfa.Initial.any());
+		assert(!nfa.GetInitials().IsEmpty());
 
 		using namespace std;
 
@@ -38,10 +38,10 @@ public:
 		
 		// inserta los estados iniciales en ambas colecciones
 		// como un solo conjunto de estados
-		new_states_map.insert(TStatesMap::value_type(nfa.Initial, 0));
-		new_states_vec.push_back(nfa.Initial);
+		new_states_map.insert(TStatesMap::value_type(nfa.GetInitials(), 0));
+		new_states_vec.push_back(nfa.GetInitials());
 
-		if((nfa.Initial & nfa.Final).any()) 
+		if(!TNfa::TSet::Intersect(nfa.GetInitials(), nfa.GetFinals()).IsEmpty()) 
 		{
 			// si alguno de los estados iniciales es tambien final
 			// este primer estado es final
@@ -57,11 +57,11 @@ public:
 			const auto current = new_states_vec[current_state_index];
 			for(TSymbol c=0; c<nfa.GetAlphabetLength(); c++)
 			{
-				next.reset();				
-				for(auto s=current.find_first(); s!=current.npos; s=current.find_next(s))
+				next.Clear();				
+				for(auto s=current.GetIterator(); !s.IsEnd(); s.MoveNext())
 				{
-					TNfaState qs = static_cast<TNfaState>(s);
-					next |= nfa.GetSuccessors(qs, c);
+					TNfaState qs = s.GetCurrent();
+					next.UnionWith(nfa.GetSuccessors(qs, c));
 				}
 				TDfaState target_state_index;
 				target_state_index = static_cast<TDfaState>(new_states_vec.size());
@@ -72,8 +72,8 @@ public:
 				{
 					new_states_vec.push_back(next);
 					// detecta si contiene un final, para marcarlo como final
-					auto finalMask = nfa.Final & next;
-					if(finalMask.any())
+					next.IntersectWith(nfa.GetFinals());					
+					if(!next.IsEmpty())
 					{
 						final_states.push_back(target_state_index);
 					}					

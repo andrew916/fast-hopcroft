@@ -3,7 +3,8 @@
 #include "../MinimizationBrzozowski.h"
 #include "../Dfa.h"
 #include "../Nfa.h"
-#include "../DfaGenerator.h"
+#include "../Fsa.h"
+#include "../Set.h"
 #include "../FsmGraphVizWriter.h"
 #include "../FsaFormatReader.h"
 #include "../FsmPlainTextReader.h"
@@ -339,81 +340,15 @@ int test5()
 	return 0;
 }
 
-int test6()
-{
-	cout << "Prueba la generacion de DFA experimental" << endl;
-
-	typedef uint16_t TState;
-	typedef uint8_t TSymbol;
-	typedef Dfa<TState, TSymbol> TDfa;
-	typedef MinimizationHopcroft<TDfa> TMinimizer;
-
-	FsmGraphVizWriter<TDfa> exporter;		
-	DfaBridgeGenerator<TState, TSymbol> gen;
-	TMinimizer mini;
-
-	for(int a=2; a!=5; a++)
-	{
-		for(int n=2; n!=10; n++) 
-		{
-			auto rnd = mt19937();
-			rnd.seed(1);
-			auto dfa = gen.Generate(a, n, 1, 1, n/2, rnd);
-			string filename = string("test6_a") + to_string((size_t)a) + "_n" + to_string((size_t)n);
-
-			ofstream generated_stream(filename + ".dot");
-			exporter.Write(dfa, generated_stream, false);
-			generated_stream.close();
-
-			TMinimizer::TDfa urdfa = mini.CleanUnreachable(dfa);
-
-			ofstream clean_stream(filename + "_clean.dot");
-			exporter.Write(urdfa, clean_stream, false);
-			clean_stream.close();
-
-			TMinimizer::TPartitionVector partitions;
-			TMinimizer::TStateToPartition state_to_partition;
-			mini.Minimize(urdfa, partitions, state_to_partition);
-			TMinimizer::TDfa ndfa = mini.Synthetize(urdfa, partitions, state_to_partition);
-
-			ofstream minimized_stream(filename + "_min.dot");
-			exporter.Write(ndfa, minimized_stream, false);
-			minimized_stream.close();
-		}
-	}
-	return 0;
-}
-
-int test7()
-{
-	cout << "Prueba la generacion de DFA experimental con un solo automata" << endl;
-
-	typedef uint16_t TState;
-	typedef uint8_t TSymbol;				
-	typedef DfaBridgeGenerator<TState, TSymbol> TGenerator;
-	typedef TGenerator::TDfa TDfa;
-	TGenerator gen;
-	FsmPlainTextWriter<TDfa> exporter;
-	FsmPlainTextReader<TDfa> reader;
-
-	ofstream output("dfa_plain_text.txt");
-	mt19937 rgen;
-	TDfa dfa = gen.Generate(5, 10, 2, 2, 3, rgen);
-	exporter.Write(dfa, output);
-	output.close();	
-
-	ifstream input("dfa_plain_text.txt");
-	TDfa dfa2 = reader.Read(input);
-	input.close();
-	return 0;
-}
-
 template<typename TFsm>
 void write_dot(TFsm fsm, string filename)
 {
 	FsmGraphVizWriter<TFsm> writer;
 	ofstream s(filename);
-	if(!s.is_open()) throw exception("El archivo no pudo ser abierto");
+	if(!s.is_open()) 
+	{
+		throw exception("El archivo no pudo ser abierto");
+	}
 	writer.Write(fsm, s);
 	s.close();
 }
@@ -504,13 +439,13 @@ int test9()
 	TNfa nfa = nfagen.Generate(states, symbols, 1, 1, density, rgen);
 
 	cout << "Generado NFA con " << nfa.GetStates() << " estados, " << nfa.GetAlphabetLength() << " simbolos, d=" << density << endl;
-	write_dot(nfa, "nfa\\t9_nfa_org.dot");	
+	//write_dot(nfa, "nfa\\t9_nfa_org.dot");	
 		
 
 	Determinization<TDfa, TNfa> determh;
 	auto dfa = determh.Determinize(nfa);
 	cout << "Determinizado con " << dfa.GetStates() << " estados, " << dfa.GetAlphabetLength() << " simbolos" << endl;
-	write_dot(dfa, "nfa\\t9_dfa.dot");	
+	//write_dot(dfa, "nfa\\t9_dfa.dot");	
 
 	MinimizationHopcroft<TDfa> minh;
 	MinimizationHopcroft<TDfa>::TPartitionVector hpartitions;
@@ -527,7 +462,7 @@ int test9()
 	Determinization<TNfa, TNfa> determb;
 	auto nfab = determb.Determinize(nfa);
 	cout << "Determinizado con " << nfab.GetStates() << " estados, " << nfab.GetAlphabetLength() << " simbolos" << endl;
-	write_dot(nfab, "nfa\\t9_dfa.dot");	
+	//write_dot(nfab, "nfa\\t9_dfa.dot");	
 	
 	MinimizationBrzozowski<TNfa> minb;	
 	timer.start();
@@ -535,9 +470,70 @@ int test9()
 	timer.stop();
 	cout << "Minimizado Brzozowski con " << nfa_minb.GetStates() << " estados, " << nfa_minb.GetAlphabetLength() << " simbolos" << endl;
 	cout << "Minimizacion tomo " << timer.format(5) << endl;
-	write_dot(nfa_minb, "nfa\\t9_dfa_min_b.dot");
+	//write_dot(nfa_minb, "nfa\\t9_dfa_min_b.dot");
 
 	return 0;
+}
+
+void test10()
+{
+	cout << "Prueba de Set" << endl;
+	Set<int> s(3);
+	s.Add(0);
+	s.Add(3);
+	assert(s.Contains(0));
+	assert(!s.Contains(1));
+	assert(!s.Contains(2));
+	assert(s.Contains(3));
+
+	auto r = s.GetIterator();
+	assert(!r.IsEnd());
+	assert(r.GetCurrent() == 0);
+	r.MoveNext();
+	
+	assert(!r.IsEnd());
+	assert(r.GetCurrent() == 3);
+	r.MoveNext();
+
+	assert(r.IsEnd());
+
+	cout << "Prueba de BitSet" << endl;
+	BitSet<int> s2(10);
+	s2.Add(0);
+	s2.Add(3);
+	assert(s2.Contains(0));
+	assert(!s2.Contains(1));
+	assert(!s2.Contains(2));
+	assert(s2.Contains(3));
+		
+	auto r2 = s2.GetIterator();
+	assert(!r2.IsEnd());
+	assert(r2.GetCurrent() == 0);
+	r2.MoveNext();
+	
+	assert(!r2.IsEnd());
+	assert(r2.GetCurrent() == 3);
+	r2.MoveNext();
+
+	assert(r2.IsEnd());
+}
+
+void test11()
+{
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	typedef Fsa<TState, TSymbol> TNfa;
+	NfaGenerator<TNfa, mt19937> nfagen;
+	boost::timer::cpu_timer timer;	
+
+	long seed = 5000;
+	mt19937 rgen(seed);	
+	int states = 80;
+	int symbols = 2;
+	float density = 0.005f;
+	TNfa nfa = nfagen.Generate(states, symbols, 1, 1, density, rgen);
+
 }
 
 int main(int argc, char** argv)
@@ -550,10 +546,11 @@ int main(int argc, char** argv)
 		case 3: test3(); break;
 		case 4: test4(); break;
 		case 5: test5(); break;
-		case 6: test6(); break;
-		case 7: test7(); break;
+		
 		case 8: test8(); break;
 		case 9: test9(); break;
+		case 10: test10(); break;
+		case 11: test11(); break;
 	};
 	
 	return 0;

@@ -12,7 +12,6 @@ class FsmPlainTextReader
 public:
 	typedef typename TFsm::TState TState;
 	typedef typename TFsm::TSymbol TSymbol;
-	typedef typename TFsm::TToken TToken;
 
 protected:	
 

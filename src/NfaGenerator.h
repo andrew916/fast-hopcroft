@@ -15,30 +15,29 @@ private:
 
 public:
 	
-	template<typename TDist>
-	TState RandomChoice(const TSet& reach, TRandGen& gen, TDist& state_dist)
+	TState RandomChoice(const TSet& reach, TRandGen& gen, std::uniform_int<TState>& state_dist)
 	{
-		size_t q;
+		TState q;
 		do
 		{
 			q = state_dist(gen);
-			if(reach.test(q)) break;
-			q = reach.find_next(q);
-		} while(q==reach.npos);
-		return static_cast<TState>(q);
+			if(reach.Contains(q)) break;
+			//q = reach.find_next(q);
+		} while(true); //while(q==reach.npos);
+		return q;
 	}
 
-	TNfa Generate(size_t states, size_t alpha, size_t initials, size_t finals, float density, TRandGen& gen)
+	TNfa Generate(TState states, TSymbol alpha, TState initials, TState finals, float density, TRandGen& gen)
 	{
 		using namespace std;
-		uniform_int_distribution<TState> state_dist(0, static_cast<TState>(states-1));
-		uniform_int_distribution<TSymbol> sym_dist(0, static_cast<TSymbol>(alpha-1));
+		uniform_int_distribution<TState> state_dist(0, states-1);
+		uniform_int_distribution<TSymbol> sym_dist(0, alpha-1);
 		uniform_real_distribution<float> p_dist;
 
 		TNfa nfa(alpha, states);
 		
 		// Determina estados iniciales
-		for(size_t i=0; i<initials;)
+		for(TState i=0; i<initials;)
 		{
 			TState qi = state_dist(gen);
 			if(nfa.IsInitial(qi))
@@ -50,7 +49,7 @@ public:
 		}
 		
 		// Determina estados finales
-		for(size_t i=0; i<finals;)
+		for(TState i=0; i<finals;)
 		{
 			TState qi = state_dist(gen);
 			if(nfa.IsFinal(qi))
@@ -61,21 +60,21 @@ public:
 			i++;
 		}
 
-		TSet reach = nfa.Initial;
-		TSet nreach = nfa.Final;
+		TSet reach = nfa.GetInitials();
+		TSet nreach = nfa.GetFinals();
 		for(TState i=0; i<states; i++)
 		{
-			if(!reach.test(i))
+			if(!reach.Contains(i))
 			{
 				TState qs = RandomChoice(reach, gen, state_dist);
-				reach.set(i);
+				reach.Add(i);
 				TSymbol c = sym_dist(gen);
 				nfa.SetTransition(qs, c, i);
 			}
-			if(!nreach.test(i))
+			if(!nreach.Contains(i))
 			{
 				TState qt = RandomChoice(nreach, gen, state_dist);
-				nreach.set(i);
+				nreach.Add(i);
 				TSymbol c = sym_dist(gen);
 				nfa.SetTransition(i, c, qt);
 			}

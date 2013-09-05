@@ -1,7 +1,7 @@
 // June 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #pragma once
 
-#include "dynamic_bitset.h"
+#include "Set.h"
 #include <vector>
 #include <limits>
 #include <cassert>
@@ -18,17 +18,23 @@ template<typename TState, typename TSymbol, typename TToken = uint64_t>
 class Dfa
 {
 public:	
-	typedef dynamic_bitset<TToken> TSet;
+	typedef BitSet<TToken> TSet;
 	typedef TState TState;
 	typedef TSymbol TSymbol;
 	typedef TToken TToken;
 
 private:
 	/// number of symbols in alphabet
-	size_t Alphabet;	
+	TSymbol Alphabet;	
 
 	/// states back field
-	size_t States;
+	TState States;
+
+	/// Initial states set
+	TSet Initial;
+
+	/// Final states set
+	TSet Final;	
 
 public:
 	/// Function to calculate next state
@@ -37,30 +43,40 @@ public:
 	/// Inverse function
 	std::vector<TSet> Predecessors;
 
-	/// Initial states set
-	TSet Initial;
+	const TSet& GetInitials() const 
+	{
+		return Initial;
+	}
 
-	/// Final states set
-	TSet Final;	
+	const TSet& GetFinals() const 
+	{
+		return Final;
+	}
 
 	/// <param ref="alpha" /> is the number of symbols in alphabet.	
-	Dfa(size_t alpha, size_t states)
+	Dfa(TSymbol alpha, TState states)
 		: States(states), Alphabet(alpha), Succesors(alpha*states), Predecessors(alpha * states, TSet(states)), Initial(states), Final(states)
 	{
+		assert(states < std::numeric_limits<TState>::max());
+		assert(alpha < std::numeric_limits<TSymbol>::max());
+
 		// At boot, each state go to state zero with every symbol
 		for(TSymbol sym=0; sym<alpha; sym++)
 		{
-			Predecessors[sym].set();
-		}		
+			for(TState qs=0; qs<states; qs++)
+			{
+				Predecessors[sym].Add(qs);
+			}
+		}
 	}
 		
 	/// Get the number of symbols in alphabet
 	/// O(1)
-	size_t GetAlphabetLength() const { return Alphabet; }
+	TSymbol GetAlphabetLength() const { return Alphabet; }
 
 	/// Get maximum number of states of this DFA
 	/// O(1)
-	size_t GetStates() const { return States; }
+	TState GetStates() const { return States; }
 
 	/// Set or unset one state as Final
 	/// O(1)
@@ -68,8 +84,8 @@ public:
 	{
 		assert(state < States);
 
-		if(st) Final.set(state);
-		else Final.reset(state);
+		if(st) Final.Add(state);
+		else Final.Remove(state);
 	}
 
 	/// Set or unset one state as Initial
@@ -78,8 +94,8 @@ public:
 	{
 		assert(state < States);
 
-		if(st) Initial.set(state);
-		else Initial.reset(state);
+		if(st) Initial.Add(state);
+		else Initial.Remove(state);
 	}
 
 	/// Adjust the transition from <param ref="source_state" /> consuming <param ref="symbol" /> to <param ref="target_state" />
@@ -95,10 +111,10 @@ public:
 		Succesors[index1] = target_state;
 		
 		auto index2 = Alphabet * prev_target + symbol;
-		Predecessors[index2].reset(source_state);
+		Predecessors[index2].Remove(source_state);
 
 		auto index3 = Alphabet * target_state + symbol;				
-		Predecessors[index3].set(source_state);
+		Predecessors[index3].Add(source_state);
 	}
 	
 	/// Get the target state transitioned from <param ref="source" /> consuming <param ref="symbol" />
@@ -141,7 +157,7 @@ public:
 	{ 
 		assert(state < States);
 
-		return Final.test(state); 
+		return Final.Contains(state); 
 	}
 
 	/// Indicates if <param ref="state" /> is an Initial State
@@ -150,7 +166,7 @@ public:
 	{
 		assert(state < States);
 
-		return Initial.test(state); 
+		return Initial.Contains(state); 
 	}
 };
 

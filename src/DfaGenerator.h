@@ -141,9 +141,9 @@ protected:
 
 	void GenerateIntialBranches(TRandomGen& gen)
 	{
-		for(auto qi=dfa.Initial.find_first(); qi!=dfa.Initial.npos; qi=dfa.Initial.find_next(qi))
+		for(auto qi=dfa.GetInitials().GetIterator(); !qi.IsEnd(); qi.MoveNext())
 		{
-			GenerateBranch(gen, static_cast<TState>(qi));
+			GenerateBranch(gen, static_cast<TState>(qi.GetCurrent()));
 		}
 	}
 
@@ -176,7 +176,8 @@ public:
 
 		dfa = TDfa(alpha, states);
 		reach = TSet(states);
-		edges_unused = TSet(states * alpha, ~(unsigned long)0);
+		edges_unused = TSet(states * alpha);
+		for(int state=0; state<states; state++) edges_unused.Add(state);
 
 		state_distribution = TDState(0, states-1);
 		final_state_distribution = TDState(0, final_states-1);

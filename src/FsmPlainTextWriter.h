@@ -28,20 +28,20 @@ public:
 		output << dfa.GetAlphabetLength() << endl;
 		
 		output << "# Iniciales" << endl;		
-		auto first = dfa.Initial.find_first();
-		for(auto i=first; i!=dfa.Initial.npos; i=dfa.Initial.find_next(i))
+		auto first = dfa.GetInitials().GetIterator();
+		for(auto i=first; !i.IsEnd(); i.MoveNext())
 		{
 			if(i!=first) output << " ";
-			output << i;
+			output << i.GetCurrent();
 		}
 		output << endl;
 
 		output << "# Finales" << endl;
-		first = dfa.Final.find_first();
-		for(auto i=first; i!=dfa.Final.npos; i=dfa.Final.find_next(i))
+		first = dfa.GetFinals().GetIterator();
+		for(auto i=first; !i.IsEnd(); i.MoveNext())
 		{
 			if(i!=first) output << " ";
-			output << i;
+			output << i.GetCurrent();
 		}
 		output << endl;
 

@@ -5,16 +5,6 @@
 #include "Nfa.h"
 #include "Determinization.h"
 
-template<typename TFsa>
-TFsa Invert(const TFsa& nfa)
-{
-	TFsa r(nfa);
-	std::swap(r.Initial, r.Final);
-	std::swap(r.Predecessors, r.Succesors);
-	return r;
-}
-
-
 /// Brzozowski's FSA Minimization Algorithm.
 template<typename TFsa>
 class MinimizationBrzozowski
@@ -33,10 +23,11 @@ public:
 	TFsa Minimize(const TFsa& fsm)
 	{
 		TDeterminization determinizer;
-		auto p1 = Invert(fsm);
+		TFsa p1 = fsm;
+		p1.Invert();
 		auto p2 = determinizer.Determinize(p1);
-		auto p3 = Invert(p2);
-		auto p4 = determinizer.Determinize(p3);
-		return p4;
+		p2.Invert();
+		auto p3 = determinizer.Determinize(p2);
+		return p3;
 	}
 };
