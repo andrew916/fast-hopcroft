@@ -34,7 +34,7 @@ private:
 	TSet Final;
 
 	/// Function to calculate next state
-	TEdgeSet Succesors;
+	TEdgeSet Successors;
 
 	/// Inverse function
 	TEdgeSet Predecessors;
@@ -51,14 +51,14 @@ public:
 		return Final;
 	}
 
-	Fsa(size_t alpha, size_t states)
-		: States(states), Alphabet(alpha), Initial(states), Final(states), Succesors(states*states*alpha), Predecessors(states*states*alpha)
+	Fsa(TSymbol alpha, TState states)
+		: States(states), Alphabet(alpha), Initial(states), Final(states), Successors(states*states*alpha), Predecessors(states*states*alpha)
 	{
 	}
 
-	Fsa(size_t alpha, size_t states, const TSet& initials, const TSet& finals, const TEdgeSet& succesors, const TEdgeSet& predecessors)
+	Fsa(TSymbol alpha, TState states, const TSet& initials, const TSet& finals, const TEdgeSet& succesors, const TEdgeSet& predecessors)
 		: States(states), Alphabet(alpha), Initial(initials), Final(finals), 
-		Succesors(succesors), Predecessors(predecessors)
+		Successors(succesors), Predecessors(predecessors)
 	{
 		assert(states >= initials.Count());
 		assert(states >= finals.Count());
@@ -66,11 +66,11 @@ public:
 
 	/// Get the number of symbols in alphabet
 	/// O(1)
-	virtual size_t GetAlphabetLength() const { return Alphabet; }
+	virtual TSymbol GetAlphabetLength() const { return Alphabet; }
 
 	/// Get maximum number of states of this DFA
 	/// O(1)
-	virtual size_t GetStates() const { return States; }
+	virtual TState GetStates() const { return States; }
 
 	/// Set or unset one state as Final
 	/// O(1)
@@ -102,9 +102,9 @@ public:
 
 		
 		if(add)
-			Succesors.Add(TEdge(source_state, symbol, target_state));
+			Successors.Add(TEdge(source_state, symbol, target_state));
 		else 
-			Succesors.Remove(TEdge(source_state, symbol, target_state));
+			Successors.Remove(TEdge(source_state, symbol, target_state));
 		
 		
 		if(add)
@@ -121,7 +121,7 @@ public:
 		assert(target < States);
 		assert(symbol < Alphabet);
 		
-		auto r = Succesors.Contains(TEdge(source, symbol, target));
+		auto r = Successors.Contains(TEdge(source, symbol, target));
 		return r;
 	}
 
@@ -150,13 +150,13 @@ public:
 	virtual void Invert()
 	{
 		std::swap(Initial, Final);
-		std::swap(Succesors, Predecessors);
+		std::swap(Successors, Predecessors);
 	}
 
-	virtual TSet GetSuccesors(TState source, TSymbol sym) const
+	virtual TSet GetSuccessors(TState source, TSymbol sym) const
 	{
-		auto rb = Succesors.FindLower(TEdge(source, sym, 0));
-		auto re = Succesors.FindUpper(TEdge(source, sym, GetStates()-1));
+		auto rb = Successors.FindLower(TEdge(source, sym, 0));
+		auto re = Successors.FindUpper(TEdge(source, sym, GetStates()-1));
 		TSet s(0);
 		while(rb != re)
 		{
@@ -185,6 +185,6 @@ public:
 
 	virtual typename TEdgeSet::Iterator GetEdgeIterator() const
 	{
-		return Succesors.GetIterator();
+		return Successors.GetIterator();
 	}
 };

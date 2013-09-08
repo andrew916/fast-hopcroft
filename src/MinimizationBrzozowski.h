@@ -15,19 +15,42 @@ public:
 	typedef typename TFsa::TSymbol TSymbol;
 		
 	typedef Determinization<TFsa, TFsa> TDeterminization;
+	typedef typename TDeterminization::TDfaState TDfaState;
+	typedef typename TDeterminization::TVectorDfaState TVectorDfaState;
+	typedef typename TDeterminization::TVectorDfaEdge TVectorDfaEdge;
+
 private:
 
 
 public:
 
-	TFsa Minimize(const TFsa& fsm)
+	void Minimize(const TFsa& fsa, TDfaState* states, TVectorDfaState& vfinalstates, TVectorDfaEdge& vedges)
 	{
-		TDeterminization determinizer;
-		TFsa p1 = fsm;
+		TDeterminization det;
+		TFsa p1 = fsa;
+
 		p1.Invert();
-		auto p2 = determinizer.Determinize(p1);
+		det.Determinize(p1, states, vfinalstates, vedges);
+		TFsa p2 = det.BuildDfa(fsa.GetAlphabetLength(), *states, vfinalstates, vedges);
+
 		p2.Invert();
-		auto p3 = determinizer.Determinize(p2);
-		return p3;
+		det.Determinize(p2, states, vfinalstates, vedges);		
+	}
+
+	TFsa BuildDfa(TSymbol alpha, TDfaState states, const TVectorDfaState& final_states, const TVectorDfaEdge& edges)
+	{
+		TDeterminization det;
+		TFsa dfa = det.BuildDfa(alpha, states, final_states, edges);
+		return dfa;
+	}
+
+	TFsa Minimize(const TFsa& fsa)
+	{
+		TDfaState states;
+		TVectorDfaState fstates;
+		TVectorDfaEdge edges;
+		Minimize(fsa, &states, fstates, edges);
+		TFsa min_fsa = BuildDfa(fsa.GetAlphabetLength(), states, fstates, edges);
+		return min_fsa;
 	}
 };

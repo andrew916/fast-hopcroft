@@ -18,7 +18,7 @@ template<typename TState, typename TSymbol, typename TToken = uint64_t>
 class Dfa
 {
 public:	
-	typedef BitSet<TToken> TSet;
+	typedef BitSet<TState, TToken> TSet;
 	typedef TState TState;
 	typedef TSymbol TSymbol;
 	typedef TToken TToken;

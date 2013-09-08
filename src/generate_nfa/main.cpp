@@ -102,7 +102,7 @@ void GenerateNfa(Options opt)
 	TRandGen rgen(opt.Seed);
 	FsmPlainTextWriter<TNfa> writer;
 
-	TNfa nfa = gen.Generate(opt.States, opt.Symbols, 1, 1, opt.Density, rgen);
+	TNfa nfa = gen.Generate(static_cast<TState>(opt.States), static_cast<TSymbol>(opt.Symbols), 1, 1, opt.Density, rgen);
 	if(opt.Verbose) 
 	{		
 		cout << "Generated NFA with " << nfa.GetStates() << " states and " << nfa.GetAlphabetLength() << " symbols" << endl;

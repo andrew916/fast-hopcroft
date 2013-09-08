@@ -2,7 +2,7 @@
 
 #include <string>
 #include <istream>
-#include "Dfa.h"
+#include <limits>
 #include <boost\algorithm\string\split.hpp>
 #include <boost\algorithm\string\trim.hpp>
 
@@ -29,24 +29,32 @@ public:
 
 		// states
 		getline(str, line);		
-		if(line[0] != '#') throw exception();
+		if(line[0] != '#') throw exception("Formato invalido");
 
 		getline(str, line);
-		long states = stol(line);
+		unsigned long states = stoul(line);
+		if(states >= numeric_limits<TState>::max())
+		{
+			throw exception("El numero de estados supera el maximo representable");
+		}
 
 		// alpha
 		getline(str, line);
-		if(line[0] != '#') throw exception();
+		if(line[0] != '#') throw exception("Formato invalido");
 
 		getline(str, line);
-		long alpha = stol(line);
+		unsigned long alpha = stoul(line);
+		if(alpha >= numeric_limits<TSymbol>::max())
+		{
+			throw exception("El numero de simbolos supera el maximo representable");
+		}
 
 		// initialization
-		TFsm dfa(alpha, states);
+		TFsm dfa(static_cast<TSymbol>(alpha), static_cast<TState>(states));
 
 		// initial
 		getline(str, line);
-		if(line[0] != '#') throw exception();
+		if(line[0] != '#') throw exception("Formato invalido");
 
 		col.clear();
 		getline(str, line);
@@ -60,7 +68,7 @@ public:
 
 		// final
 		getline(str, line);
-		if(line[0] != '#') throw exception();
+		if(line[0] != '#') throw exception("Formato invalido");
 
 		col.clear();
 		getline(str, line);	
@@ -74,7 +82,7 @@ public:
 
 		// transitions
 		getline(str, line);
-		if(line[0] != '#') throw exception();
+		if(line[0] != '#') throw exception("Formato invalido");
 				
 		size_t transitionsRead=0;
 		while(!str.eof())
@@ -86,7 +94,7 @@ public:
 			col.clear();
 			trim(line);
 			split(col, line, isspace);
-			if(col.size() != 3) throw exception();
+			if(col.size() != 3) throw exception("Formato invalido");
 
 			TState qs = (TState)stol(col[0]);
 			TSymbol c = (TSymbol)stol(col[1]);

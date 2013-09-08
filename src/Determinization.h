@@ -4,6 +4,8 @@
 #include <vector>
 #include <algorithm>
 #include <unordered_map>
+#include <map>
+#include <tuple>
 
 template<typename TDfa, typename TNfa, typename TSet=typename TNfa::TSet, typename TSetHash=typename TSet::hash>
 class Determinization
@@ -12,18 +14,21 @@ public:
 	typedef typename TNfa::TState TNfaState;
 	typedef typename TDfa::TState TDfaState;
 	typedef typename TNfa::TSymbol TSymbol;	
+	typedef std::tuple<TDfaState,TSymbol,TDfaState> TEdge;
 
+	typedef std::vector<TDfaState> TVectorDfaState;
+	typedef std::vector<TEdge> TVectorDfaEdge;
 private:
 
 public:
-	TDfa Determinize(TNfa nfa)
+	void Determinize(const TNfa& nfa, TDfaState* new_states_count, TVectorDfaState& final_states, TVectorDfaEdge& new_edges)
 	{	
 		assert(!nfa.GetInitials().IsEmpty());
 
 		using namespace std;
-
-		typedef tuple<TDfaState,TSymbol,TDfaState> TEdge;
+		
 		typedef unordered_map<TSet, TDfaState, TSetHash> TStatesMap;
+		//typedef map<TSet, TDfaState> TStatesMap;
 		
 		// hash map para almacenar como llave cada conjunto de estados diferente
 		// y como valor el indice que lo identifica como estado unico.
@@ -31,15 +36,15 @@ public:
 		TStatesMap new_states_map;
 		// Vector para almacenar con orden cada conjunto de estados.
 		// Sirve para convertir un indice en un conjunto de estados.
-		vector<TSet> new_states_vec;
+		list<TSet> new_states_lst;
 
-		vector<TEdge> new_edges;
-		vector<TDfaState> final_states;
+		final_states.clear();
+		new_edges.clear();
 		
 		// inserta los estados iniciales en ambas colecciones
 		// como un solo conjunto de estados
-		new_states_map.insert(TStatesMap::value_type(nfa.GetInitials(), 0));
-		new_states_vec.push_back(nfa.GetInitials());
+		new_states_map.insert(make_pair(nfa.GetInitials(), 0));
+		new_states_lst.push_back(nfa.GetInitials());
 
 		if(!TNfa::TSet::Intersect(nfa.GetInitials(), nfa.GetFinals()).IsEmpty()) 
 		{
@@ -51,33 +56,30 @@ public:
 		TSet next(nfa.GetStates());
 		
 		TDfaState current_state_index = 0;
-		
-		while(current_state_index < new_states_vec.size())
-		{
-			const auto current = new_states_vec[current_state_index];
+		for(auto current_it=new_states_lst.cbegin(); current_it != new_states_lst.cend(); current_it++)
+		{			
 			for(TSymbol c=0; c<nfa.GetAlphabetLength(); c++)
-			{
-				next.Clear();				
-				for(auto s=current.GetIterator(); !s.IsEnd(); s.MoveNext())
+			{				
+				next.Clear();
+				for(auto s=current_it->GetIterator(); !s.IsEnd(); s.MoveNext())
 				{
 					TNfaState qs = s.GetCurrent();
 					next.UnionWith(nfa.GetSuccessors(qs, c));
 				}
-				TDfaState target_state_index;
-				target_state_index = static_cast<TDfaState>(new_states_vec.size());
+				TDfaState target_state_index = static_cast<TDfaState>(new_states_lst.size());
 				// intenta insertar el conjunto de estados, si ya lo contiene no hace nada
 				auto fn = new_states_map.insert(TStatesMap::value_type(next, target_state_index));
 				auto was_inserted = fn.second;
 				if(was_inserted)
-				{
-					new_states_vec.push_back(next);
+				{					
+					new_states_lst.push_back(next);
 					// detecta si contiene un final, para marcarlo como final
 					next.IntersectWith(nfa.GetFinals());					
 					if(!next.IsEmpty())
 					{
 						final_states.push_back(target_state_index);
 					}					
-				} 
+				}
 				else
 				{
 					target_state_index = fn.first->second;
@@ -86,9 +88,15 @@ public:
 			}
 			current_state_index++;
 		}
+		assert(current_state_index == new_states_lst.size());	
+		*new_states_count = current_state_index;
+	}
 
+	TDfa BuildDfa(TSymbol symbols, TDfaState states, const TVectorDfaState& final_states, const TVectorDfaEdge& new_edges)
+	{
+		using namespace std;
 		// el dfa solo puede ser creado aqui porque no es mutable
-		TDfa dfa(nfa.GetAlphabetLength(), new_states_vec.size());
+		TDfa dfa(symbols, states);
 		dfa.SetInitial(0);
 		for(auto f : final_states)
 		{
@@ -96,11 +104,21 @@ public:
 		}
 		for(auto edge : new_edges)
 		{
-			TDfaState qs = get<0>(edge);
-			TSymbol c = get<1>(edge);
-			TDfaState qt = get<2>(edge);
+			TDfaState qs, qt;
+			TSymbol c;
+			tie(qs, c, qt) = edge;
 			dfa.SetTransition(qs, c, qt);
 		}
+		return dfa;
+	}
+
+	TDfa Determinize(TNfa nfa)
+	{
+		TDfaState states;
+		TVectorDfaState fstates;
+		TVectorDfaEdge edges;
+		Determinize(nfa, &states, fstates, edges);
+		TDfa dfa = BuildDfa(nfa.GetAlphabetLength(), states, fstates, edges);
 		return dfa;
 	}
 };

@@ -28,7 +28,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_IS_CLANG)
 endif()
 	
 add_subdirectory(src/convert_nfa_dfa)
-add_subdirectory(src/generate_dfa)
 add_subdirectory(src/generate_nfa)
 add_subdirectory(src/minimize_brzozowski)
 add_subdirectory(src/minimize_hopcroft)

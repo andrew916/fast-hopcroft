@@ -71,7 +71,7 @@ public:
 
 	TDfa Synthetize(const TDfa& dfa, const TPartitionVector& partitions, const TStateToPartition& state_to_partition)
 	{
-		TDfa ndfa(dfa.GetAlphabetLength(), (unsigned int)partitions.size());
+		TDfa ndfa(dfa.GetAlphabetLength(), static_cast<TState>(partitions.size()));
 		int pidx = 0;
 		for(auto p : partitions)
 		{
@@ -330,6 +330,6 @@ public:
 			{
 				it1->push_back(*it2);
 			}
-		}		
+		}
 	}
 };

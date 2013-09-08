@@ -12,12 +12,12 @@
 /// Represenation:
 /// Each state is a zero-based integer index.
 /// Each symbol is a zero-based integer index.
-template<typename TState, typename TSymbol, typename TSet = BitSet<uint64_t>>
+template<typename TState, typename TSymbol, typename TToken = uint64_t>
 class Nfa
 {
 public:	
-	typedef Nfa<TState,TSymbol,TSet> TNfa;
-	typedef TSet TSet;
+	typedef Nfa<TState,TSymbol,TToken> TNfa;
+	typedef BitSet<TState, TToken> TSet;
 	typedef TState TState;
 	typedef TSymbol TSymbol;
 	typedef std::tuple<TState,TSymbol,TState> TEdge;
