@@ -3,6 +3,7 @@
 
 #include "dynamic_bitset.h"
 #include <algorithm>
+#include <string>
 
 template<typename TElement, typename TBlock = uint64_t>
 class BitSet
@@ -182,6 +183,20 @@ public:
 	bool operator>(const TSet& rh) const
 	{
 		return store > rh.store;
+	}
+
+	std::string to_string()
+	{
+		std::string str("{");
+		bool b = false;
+		for(auto i=GetIterator(); !i.IsEnd(); i.MoveNext())
+		{			
+			if(b) str.append(", ");
+			b = true;
+			str.append(std::to_string(static_cast<size_t>(i.GetCurrent())));			
+		}
+		str.append("}");
+		return str;
 	}
 };
 
@@ -427,4 +442,18 @@ public:
 			return (_Val);
 		}
 	};
+
+	std::string to_string()
+	{
+		std::string str("{");
+		bool b = false;
+		for(auto i=GetIterator(); !i.IsEnd(); i.MoveNext())
+		{			
+			if(b) str.append(", ");
+			b = true;
+			str.append(std::to_string(static_cast<size_t>(i.GetCurrent())));			
+		}
+		str.append("}");
+		return str;
+	}
 };

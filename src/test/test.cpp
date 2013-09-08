@@ -629,19 +629,19 @@ int test9()
 	long seed = 5000;
 	mt19937 rgen(seed);	
 	//int states = 80;
-	int states = 20;
+	int states = 5;
 	int symbols = 2;
-	float density = 0.02f;
+	float density = 0.1f;
 	TNfa nfa = nfagen.Generate(states, symbols, 1, 1, density, rgen);
 
 	cout << "Generado NFA con " << (size_t)nfa.GetStates() << " estados, " << (size_t)nfa.GetAlphabetLength() << " simbolos, d=" << density << endl;
-	//write_dot(nfa, "nfa\\t9_nfa_org.dot");	
+	write_dot(nfa, "nfa\\t9_nfa_org.dot");	
 	write_text(nfa, "nfa\\t9_nfa_org.txt");
 
 	Determinization<TDfa, TNfa> determh;
 	auto dfa = determh.Determinize(nfa);
 	cout << "Determinizado con " << (size_t)dfa.GetStates() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
-	//write_dot(dfa, "nfa\\t9_dfa.dot");
+	write_dot(dfa, "nfa\\t9_dfa.dot");
 	write_text(dfa, "nfa\\t9_dfa_h.txt");
 
 	MinimizationHopcroft<TDfa> minh;
@@ -659,7 +659,7 @@ int test9()
 	Determinization<TNfa, TNfa> determb;
 	auto nfab = determb.Determinize(nfa);
 	cout << "Determinizado con " << (size_t)nfab.GetStates() << " estados, " << (size_t)nfab.GetAlphabetLength() << " simbolos" << endl;
-	//write_dot(nfab, "nfa\\t9_dfa.dot");	
+	write_dot(nfab, "nfa\\t9_dfa.dot");	
 	write_text(nfab, "nfa\\t9_dfa_b.txt");
 	
 	MinimizationBrzozowski<TNfa> minb;	
@@ -673,11 +673,12 @@ int test9()
 
 	cout << "Minimizado Brzozowski con " << (size_t)nfa_minb.GetStates() << " estados, " << (size_t)nfa_minb.GetAlphabetLength() << " simbolos" << endl;
 	cout << "Minimizacion tomo " << timer.format(5) << endl;
-	//write_dot(nfa_minb, "nfa\\t9_dfa_min_b.dot");
+	write_dot(nfa_minb, "nfa\\t9_dfa_min_b.dot");
 	write_text(nfa_minb, "nfa\\t9_dfa_min_b.txt");
 
 	MinimizationIncremental<TDfa> mini;
 	MinimizationIncremental<TDfa>::NumericPartition part;
+	mini.ShowConfiguration = false;
 	timer.start();
 	mini.Minimize(dfa, part);
 	timer.stop();
@@ -685,7 +686,7 @@ int test9()
 
 	cout << "Minimizado Incremental con " << (size_t)part.GetSize() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
 	cout << "Minimizacion tomo " << timer.format(5) << endl;
-	//write_dot(dfa_mini, "nfa\\t9_dfa_min_i.dot");
+	write_dot(dfa_mini, "nfa\\t9_dfa_min_i.dot");
 	write_text(dfa_mini, "nfa\\t9_dfa_min_i.txt");
 
 	return 0;

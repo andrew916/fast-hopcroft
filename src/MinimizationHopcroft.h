@@ -191,7 +191,7 @@ public:
 		TSet predecessors(dfa.GetStates());
 
 		// worst case is when WaitSet has one entry per state
-		for(auto splitter_set=wait_set_membership.GetIterator(); !splitter_set.IsEnd(); splitter_set.MoveNext())
+		for(auto splitter_set=wait_set_membership.GetIterator(); !splitter_set.IsEnd(); splitter_set=wait_set_membership.GetIterator())
 		{
 			assert(new_index <= dfa.GetStates());
 
@@ -313,11 +313,11 @@ public:
 					}		
 				}
 			}
-		}
-		cout << "Finished, " << new_index << " states of " << dfa.GetStates() << endl;
+		}		
 		if(ShowConfiguration)
 		{
 			cout << "Final P=" << to_string(P, new_index, Pcontent) << endl;
+			cout << "Finished, " << new_index << " states of " << dfa.GetStates() << endl;
 		}
 
 		// synth new

@@ -13,6 +13,7 @@ public:
 	typedef TDfa TDfa;
 	typedef typename TDfa::TState TState;
 	typedef typename TDfa::TSymbol TSymbol;
+	typedef uint64_t TPairIndex;
 	
 	class NumericPartition
 	{
@@ -27,7 +28,7 @@ public:
 
 	public:
 		NumericPartition(TElement size_)
-			: size(size_), membership(size_), storage(size_)
+			: membership(size_), storage(size_)
 		{
 			Clear(size);
 		}
@@ -37,9 +38,10 @@ public:
 		{
 		}
 
-		void Clear(TElement size)
+		void Clear(TElement size_)
 		{
 			using namespace std;
+			size = size_;
 			membership.resize(size);
 			storage.resize(size);
 			for(TElement i=0; i<size; i++)
@@ -47,7 +49,7 @@ public:
 				membership[i] = i;
 				storage[i].clear();
 				storage[i].emplace_back(i);
-			}
+			}			
 		}
 
 		TElement Find(TElement e) const
@@ -58,12 +60,40 @@ public:
 		TElement Union(TElement i, TElement j)
 		{
 			using namespace std;
+			i = Find(i);
+			j = Find(j);
+			if(i == j) return i;
+			assert(!storage[i].empty());
+			assert(!storage[j].empty());
 			// concatenate list j into i
 			storage[i].splice(storage[i].begin(), storage[j]);
 			// replace i using j
-			replace(membership.begin(), membership.end(), i, j);			
+			replace(membership.begin(), membership.end(), j, i);			
 			size--;
 			return i;
+		}
+
+		void Compact()
+		{
+			// start scan from begin
+			auto empty_it=storage.begin();
+			while(empty_it != storage.end())
+			{
+				// find empty place
+				while(empty_it != storage.end() && !empty_it->empty()) empty_it++;
+				if(empty_it == storage.end()) break;
+				auto empty_idx = distance(storage.begin(), empty_it);
+				// find non-empty
+				auto non_empty_it = next(empty_it);
+				while(non_empty_it != storage.end() && non_empty_it->empty()) non_empty_it++;
+				if(non_empty_it == storage.end()) break;
+				auto non_empty_idx = distance(storage.begin(), non_empty_it);
+				// move non-empty to empty place
+				iter_swap(empty_it, non_empty_it);
+				replace(membership.begin(), membership.end(), non_empty_idx, empty_idx);
+				// advance search
+				empty_it++;
+			}
 		}
 
 		const TStore& GetStore() const
@@ -79,27 +109,43 @@ public:
 
 	typedef typename NumericPartition::TStore TNumericPartitionStore;
 private:
-	
-	template<typename TPairIndex>
-	bool EquivP(TState p, TState q, const TDfa& dfa, const NumericPartition& part, BitSet<TPairIndex>& equiv, BitSet<TPairIndex>& path)
+		
+	TPairIndex GetPairIndex(TState states, TState p, TState q) const
 	{
+		return states*p + q;
+	}
+
+	std::tuple<TState,TState> GetPairFromIndex(TState states, TPairIndex index) const
+	{
+		return make_tuple
+		(
+			static_cast<TState>(index / states), 
+			static_cast<TState>(index % states)
+		);
+	}
+
+	bool EquivP(TState p, TState q, const TDfa& dfa, const NumericPartition& part, BitSet<TPairIndex>& neq, BitSet<TPairIndex>& equiv, BitSet<TPairIndex>& path)
+	{
+		using namespace std;
+		if(ShowConfiguration) {
+			cout << "Test equiv (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ")" << endl;
+		}
 		TState states = dfa.GetStates();
-		TPairIndex root_pair = p*states+q;
+		TPairIndex root_pair = GetPairIndex(states, p,q);
+		if(neq.Contains(root_pair)) return false;
 		if(path.Contains(root_pair)) return true;
 		path.Add(root_pair);
 		for(TSymbol a=0; a<dfa.GetAlphabetLength(); a++)
 		{
 			TState sp = dfa.GetSuccessor(p,a);
 			TState sq = dfa.GetSuccessor(q,a);
-			sp = part.Find(sp);
-			sq = part.Find(sq);
-			if(sp == sq) continue;
+			if(part.Find(sp) == part.Find(sq)) continue;
 			if(sp > sq) std::swap(sp, sq);
-			TPairIndex pair = sp*states+sq;
+			TPairIndex pair = GetPairIndex(states, sp,sq);
 			if(!equiv.Contains(pair))
 			{
 				equiv.Add(pair);
-				if(!EquivP(sp,sq, dfa, part, equiv, path))
+				if(!EquivP(sp,sq, dfa, part, neq, equiv, path))
 				{
 					return false;
 				}
@@ -112,9 +158,15 @@ private:
 
 public:
 
+	bool ShowConfiguration;
+
+	MinimizationIncremental() : ShowConfiguration(false)
+	{
+	}
+
 	void Minimize(const TDfa& dfa, NumericPartition& part)
 	{
-		typedef uint64_t TPairIndex;
+		using namespace std;
 		TState states = dfa.GetStates();
 		part.Clear(states);
 		BitSet<TPairIndex> neq(states*states);
@@ -127,41 +179,59 @@ public:
 				bool fp = dfa.IsFinal(p);
 				if((fp && !fq) || (!fp && fq))
 				{
-					neq.Add(p*states+q);
+					neq.Add(GetPairIndex(states, p,q));
+					if(ShowConfiguration) {
+						cout << "neq add (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ") -> " << static_cast<size_t>(GetPairIndex(states, p,q)) << endl;
+					}
 				}
 			}
 		}
+		cout << neq.to_string() << endl;
 		BitSet<TPairIndex> equiv(states*states);
 		BitSet<TPairIndex> path(states*states);
 		for(TState p=0; p<states; p++)
 		{		
 			for(TState q=p+1; q<states; q++)
 			{
-				if(neq.Contains(p*states+q)) continue;
+				if(ShowConfiguration) {
+					cout << "test (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ") -> " << static_cast<size_t>(GetPairIndex(states, p,q)) << endl;
+				}
+				if(neq.Contains(GetPairIndex(states, p,q))) continue;
 				if(part.Find(p) == part.Find(q)) continue;
 				equiv.Clear();
 				path.Clear();
-				assert(!neq.Contains(p*states+q));
-				bool isEquiv = EquivP(p, q, dfa, part, equiv, path);
+				
+				const bool isEquiv = EquivP(p, q, dfa, part, neq, equiv, path);
 				auto it = isEquiv ? equiv.GetIterator() : path.GetIterator();
+				if(ShowConfiguration) {
+					cout << (isEquiv ? "YES" : "NO") << endl;
+				}
 				for(; !it.IsEnd(); it.MoveNext())
 				{
 					TPairIndex idx = it.GetCurrent();
-					TState q_prime = idx % states;
-					TState p_prime = idx / states;
+					TState p_prime, q_prime;
+					tie(p_prime, q_prime) = GetPairFromIndex(states, idx);
+					assert(p_prime < q_prime);
 					if(isEquiv) 
 					{
+						if(ShowConfiguration) {
+							cout << "union (" << static_cast<size_t>(p_prime) << ", " << static_cast<size_t>(q_prime) << ")" << endl;
+						}
 						part.Union(p_prime, q_prime);
 					} else {
-						neq.Add(p_prime*states+q_prime);
+						if(ShowConfiguration) {
+							cout << "neq (" << static_cast<size_t>(p_prime) << ", " << static_cast<size_t>(q_prime) << ")" << endl;
+						}
+						neq.Add(idx); // p_prime, q_prime
 					}
 				}
 			}
 		}
 	}
 
-	TDfa BuildDfa(const TDfa& dfa, const NumericPartition& seq)
+	TDfa BuildDfa(const TDfa& dfa, NumericPartition& seq)
 	{
+		seq.Compact();
 		TDfa dfa_min(dfa.GetAlphabetLength(), seq.GetSize());
 		for(auto k=dfa.GetInitials().GetIterator(); !k.IsEnd(); k.MoveNext())
 		{
