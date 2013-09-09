@@ -19,7 +19,49 @@
 using namespace std;
 using boost::format;
 
-int test1()
+// Utilities
+
+template<typename TFsa>
+void write_dot(TFsa fsa, string filename)
+{
+	FsmGraphVizWriter<TFsa> writer;
+	ofstream s(filename);
+	if(!s.is_open()) 
+	{
+		throw exception("El archivo no pudo ser abierto");
+	}
+	writer.Write(fsa, s);
+	s.close();
+}
+
+template<typename TFsa>
+void write_text(TFsa fsa, string filename)
+{
+	FsmPlainTextWriter<TFsa> writer;
+	ofstream s(filename);
+	if(!s.is_open()) 
+	{
+		throw exception("El archivo no pudo ser abierto");
+	}
+	writer.Write(fsa, s);
+	s.close();
+}
+
+template<typename TFsa>
+TFsa read_text(string filename)
+{
+	FsmPlainTextReader<TFsa> reader;
+	ifstream fsa_input(filename);
+	if(!fsa_input.is_open()) throw exception("El archivo no pudo ser abierto");
+	auto fsa = reader.Read(fsa_input);
+	fsa_input.close();
+	return fsa;
+}
+
+
+// Tests Hopcroft 100-199
+
+int test100()
 {	
 	cout << "Esta prueba minimiza un automata sencillo usando Hopcroft y escribe el resultado en un archivo test1.dot" << endl;
 
@@ -27,7 +69,6 @@ int test1()
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	MinimizationHopcroft<TDfa> mini;	
-	FsmGraphVizWriter<TDfa> exporter;	
 	TDfa dfa(2, 4);
 
 	//   / 2 \
@@ -54,13 +95,12 @@ int test1()
 	assert(out_partitions.size() < dfa.GetStates());
 	assert(out_partitions.size() == 3);
 
-	exporter.Write(dfa, ofstream("test1.dot"));
 	cout << endl;
 	
 	return 0;
 }
 
-int test2()
+int test101()
 {
 	cout << "Esta prueba minimiza un automata sencillo usando Hopcroft y escribe el resultado en un archivo test2.dot" << endl;
 
@@ -68,7 +108,6 @@ int test2()
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState,TSymbol> TDfa;
 	MinimizationHopcroft<TDfa> mini;	
-	FsmGraphVizWriter<TDfa> exporter;
 	//    / 1 - 3
 	//  0
 	//    \ 2 - 4
@@ -99,13 +138,12 @@ int test2()
 	// asegura que la cantidad de estados al final es menor
 	assert(out_partitions.size() < dfa.GetStates());
 
-	exporter.Write(dfa, ofstream("test2.dot"));
 	cout << endl;
 
 	return 0;
 }
 
-int test3()
+int test102()
 {
 	cout << "Esta prueba minimiza un automata sencillo usando Hopcroft y escribe el resultado en un archivo test3.dot" << endl;
 
@@ -113,7 +151,6 @@ int test3()
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	MinimizationHopcroft<TDfa> mini;	
-	FsmGraphVizWriter<TDfa> exporter;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /
@@ -150,13 +187,12 @@ int test3()
 	assert(out_partitions.size() < dfa.GetStates());
 	assert(out_partitions.size() == 12);
 
-	exporter.Write(dfa, ofstream("test3.dot"), false);		
 	cout << endl;
 
 	return 0;
 }
 
-int test4()
+int test103()
 {
 	cout << "Esta prueba minimiza un automata sencillo usando Hopcroft y escribe el resultado en un archivo test4.dot" << endl;
 
@@ -164,7 +200,6 @@ int test4()
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	MinimizationHopcroft<TDfa> mini;	
-	FsmGraphVizWriter<TDfa> exporter;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /       \   /
@@ -217,13 +252,12 @@ int test4()
 	assert(out_partitions.size() < dfa.GetStates());
 	assert(out_partitions.size() == 6);
 
-	exporter.Write(dfa, ofstream("test4.dot"), false);		
 	cout << endl;
 
 	return 0;
 }
 
-int test5()
+int test104()
 {
 	cout << "Esta prueba minimiza diferentes automatas desde archivos en la carpeta AFD usando Hopcroft. Se omite la reconstruccion del DFA minimo" << endl;
 
@@ -344,54 +378,18 @@ int test5()
 	return 0;
 }
 
-template<typename TFsa>
-void write_dot(TFsa fsa, string filename)
-{
-	FsmGraphVizWriter<TFsa> writer;
-	ofstream s(filename);
-	if(!s.is_open()) 
-	{
-		throw exception("El archivo no pudo ser abierto");
-	}
-	writer.Write(fsa, s);
-	s.close();
-}
 
-template<typename TFsa>
-void write_text(TFsa fsa, string filename)
-{
-	FsmPlainTextWriter<TFsa> writer;
-	ofstream s(filename);
-	if(!s.is_open()) 
-	{
-		throw exception("El archivo no pudo ser abierto");
-	}
-	writer.Write(fsa, s);
-	s.close();
-}
+// Tests Brzozowski 200-299
 
-template<typename TFsa>
-TFsa read_text(string filename)
-{
-	FsmPlainTextReader<TFsa> reader;
-	ifstream fsa_input(filename);
-	if(!fsa_input.is_open()) throw exception("El archivo no pudo ser abierto");
-	auto fsa = reader.Read(fsa_input);
-	fsa_input.close();
-	return fsa;
-}
-
-
-int test6()
+int test200()
 {	
 	cout << "Esta prueba minimiza un automata sencillo usando Brzozowski y escribe el resultado en un archivo test6.dot" << endl;
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	typedef Nfa<TState, TSymbol> TNfa;
-	MinimizationBrzozowski<TNfa> mini;	
-	FsmGraphVizWriter<TNfa> exporter;	
-	TNfa dfa(2, 4);
+	typedef Nfa<TState, TSymbol> TDfa;
+	MinimizationBrzozowski<TDfa> mini;	
+	TDfa dfa(2, 4);
 
 	//   / 2 \
 	// 0 - 1 - 3
@@ -416,22 +414,19 @@ int test6()
 	assert(dfa_min.GetStates() < dfa.GetStates());
 	assert(dfa_min.GetStates() == 3);
 
-	exporter.Write(dfa, ofstream("test6.dot"));
-	exporter.Write(dfa_min, ofstream("test6_min_brzozowski.dot"));
 	cout << endl;
 	
 	return 0;
 }
 
-int test7()
+int test201()
 {
-	cout << "Esta prueba minimiza un automata sencillo usando Hopcroft y escribe el resultado en un archivo test3.dot" << endl;
+	cout << "Esta prueba minimiza un automata sencillo usando Brzozowski y escribe el resultado en un archivo test3.dot" << endl;
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Nfa<TState, TSymbol> TDfa;
 	MinimizationBrzozowski<TDfa> mini;	
-	FsmGraphVizWriter<TDfa> exporter;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /
@@ -467,22 +462,19 @@ int test7()
 	assert(dfa_min.GetStates() < dfa.GetStates());
 	assert(dfa_min.GetStates() == 12);
 
-	exporter.Write(dfa, ofstream("test7.dot"), false);
-	exporter.Write(dfa_min, ofstream("test7_min_brzozowski.dot"), false);
 	cout << endl;
 
 	return 0;
 }
 
-int test7b()
+int test202()
 {
-	cout << "Esta prueba minimiza un automata sencillo usando Hopcroft y escribe el resultado en un archivo test4.dot" << endl;
+	cout << "Esta prueba minimiza un automata sencillo usando Brzozowski y escribe el resultado en un archivo test4.dot" << endl;
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Nfa<TState, TSymbol> TDfa;
 	MinimizationBrzozowski<TDfa> mini;	
-	FsmGraphVizWriter<TDfa> exporter;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /       \   /
@@ -535,14 +527,296 @@ int test7b()
 	assert(dfa_min.GetStates() < dfa.GetStates());
 	assert(dfa_min.GetStates() == 6);
 
-	exporter.Write(dfa, ofstream("test7b.dot"), false);		
-	exporter.Write(dfa_min, ofstream("test7b_min_brzozowski.dot"), false);		
 	cout << endl;
 
 	return 0;
 }
 
-int test8()
+int test203()
+{
+	cout << "Esta prueba minimiza un automata sencillo usando Brzozowski y escribe el resultado en un archivo test4.dot" << endl;
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Nfa<TState, TSymbol> TDfa;
+	MinimizationBrzozowski<TDfa> mini;	
+	// uses zero as invisible null-sink state
+	//      2 - 5 - 8  - 11
+	//    /       \   /
+	//   1 -3 - 6 - 9  - 12
+	//    \       \   \
+	//      4 - 7 - 10 - 13
+	TDfa dfa(3, 14);
+
+	dfa.SetInitial(1);
+	dfa.SetFinal(11);
+	dfa.SetFinal(12);
+	dfa.SetFinal(13);
+
+	dfa.SetTransition(1, 0, 2);
+	dfa.SetTransition(1, 1, 3);
+	dfa.SetTransition(1, 2, 4);
+
+	dfa.SetTransition(2, 0, 5);
+	dfa.SetTransition(3, 0, 6);
+	dfa.SetTransition(4, 0, 7);
+
+	dfa.SetTransition(5, 0, 8);		
+	dfa.SetTransition(5, 1, 9);		
+	dfa.SetTransition(5, 2, 9);		
+
+	dfa.SetTransition(6, 1, 9);
+	dfa.SetTransition(6, 0, 10);
+	dfa.SetTransition(6, 2, 10);
+
+	dfa.SetTransition(7, 0, 10);
+	dfa.SetTransition(7, 1, 10);
+	dfa.SetTransition(7, 2, 10);
+
+	dfa.SetTransition(8, 0, 11);
+	dfa.SetTransition(8, 1, 11);
+	dfa.SetTransition(8, 2, 11);
+
+	dfa.SetTransition(9, 0, 11);
+	dfa.SetTransition(9, 1, 12);
+	dfa.SetTransition(9, 2, 13);
+
+	dfa.SetTransition(10, 0, 13);
+	dfa.SetTransition(10, 1, 13);
+	dfa.SetTransition(10, 2, 13);
+
+	auto dfa_min = mini.Minimize(dfa);
+
+	// asegura que la cantidad de estados al final es menor
+	assert(out_partitions.size() < dfa.GetStates());
+	assert(out_partitions.size() == 6);
+
+	cout << endl;
+
+	return 0;
+}
+
+// Tests Incremental 300-399
+
+int test300()
+{	
+	cout << "Esta prueba minimiza un automata sencillo usando Incremental y escribe el resultado en un archivo test6.dot" << endl;
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationIncremental<TDfa> mini;	
+	TDfa dfa(2, 4);
+
+	//   / 2 \
+	// 0 - 1 - 3
+	dfa.SetInitial(0);
+	dfa.SetFinal(3);
+
+	dfa.SetTransition(0, 0, 1);
+	dfa.SetTransition(0, 1, 2);
+
+	dfa.SetTransition(1, 0, 3);
+	dfa.SetTransition(1, 1, 1);
+
+	dfa.SetTransition(2, 0, 3);
+	dfa.SetTransition(2, 1, 2);
+
+	dfa.SetTransition(3, 0, 3);
+	dfa.SetTransition(3, 1, 3);
+	
+	auto dfa_min = mini.Minimize(dfa);
+
+	// asegura que la cantidad de estados al final es menor
+	assert(dfa_min.GetStates() < dfa.GetStates());
+	assert(dfa_min.GetStates() == 3);
+
+	cout << endl;
+	
+	return 0;
+}
+
+int test301()
+{
+	cout << "Esta prueba minimiza un automata sencillo usando Incremental y escribe el resultado en un archivo test3.dot" << endl;
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationIncremental<TDfa> mini;	
+	// uses zero as invisible null-sink state
+	//      2 - 5 - 8  - 11
+	//    /
+	//   1 -3 - 6 - 9  - 12
+	//    \
+	//      4 - 7 - 10 - 13
+	TDfa dfa(3, 14);
+
+	dfa.SetInitial(1);
+	dfa.SetFinal(11);
+	dfa.SetFinal(12);
+	dfa.SetFinal(13);
+
+	dfa.SetTransition(1, 0, 2);
+	dfa.SetTransition(1, 1, 3);
+	dfa.SetTransition(1, 2, 4);
+
+	dfa.SetTransition(2, 0, 5);
+	dfa.SetTransition(3, 0, 6);
+	dfa.SetTransition(4, 0, 7);
+
+	dfa.SetTransition(5, 0, 8);
+	dfa.SetTransition(6, 1, 9);
+	dfa.SetTransition(7, 2, 10);
+
+	dfa.SetTransition(8, 0, 11);
+	dfa.SetTransition(9, 1, 12);
+	dfa.SetTransition(10, 2, 13);
+
+	auto dfa_min = mini.Minimize(dfa);
+
+	// asegura que la cantidad de estados al final es menor
+	assert(dfa_min.GetStates() < dfa.GetStates());
+	assert(dfa_min.GetStates() == 12);
+
+	cout << endl;
+
+	return 0;
+}
+
+int test302()
+{
+	cout << "Esta prueba minimiza un automata sencillo usando Incremental y escribe el resultado en un archivo test4.dot" << endl;
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationIncremental<TDfa> mini;	
+	// uses zero as invisible null-sink state
+	//      2 - 5 - 8  - 11
+	//    /       \   /
+	//   1 -3 - 6 - 9  - 12
+	//    \       \   \
+	//      4 - 7 - 10 - 13
+	TDfa dfa(3, 14);
+
+	dfa.SetInitial(1);
+	dfa.SetFinal(11);
+	dfa.SetFinal(12);
+	dfa.SetFinal(13);
+
+	dfa.SetTransition(1, 0, 2);
+	dfa.SetTransition(1, 1, 3);
+	dfa.SetTransition(1, 2, 4);
+
+	dfa.SetTransition(2, 0, 5);
+	dfa.SetTransition(3, 0, 6);
+	dfa.SetTransition(4, 0, 7);
+
+	dfa.SetTransition(5, 0, 8);		
+	dfa.SetTransition(5, 1, 9);		
+	dfa.SetTransition(5, 2, 9);		
+
+	dfa.SetTransition(6, 1, 9);
+	dfa.SetTransition(6, 0, 10);
+	dfa.SetTransition(6, 2, 10);
+
+	dfa.SetTransition(7, 0, 10);
+	dfa.SetTransition(7, 1, 10);
+	dfa.SetTransition(7, 2, 10);
+
+	dfa.SetTransition(8, 0, 11);
+	dfa.SetTransition(8, 1, 11);
+	dfa.SetTransition(8, 2, 11);
+
+	dfa.SetTransition(9, 0, 11);
+	dfa.SetTransition(9, 1, 12);
+	dfa.SetTransition(9, 2, 13);
+
+	dfa.SetTransition(10, 0, 13);
+	dfa.SetTransition(10, 1, 13);
+	dfa.SetTransition(10, 2, 13);
+
+	
+	auto dfa_min = mini.Minimize(dfa);
+
+	// asegura que la cantidad de estados al final es menor
+	assert(dfa_min.GetStates() < dfa.GetStates());
+	assert(dfa_min.GetStates() == 6);
+
+	cout << endl;
+
+	return 0;
+}
+
+int test303()
+{
+	cout << "Esta prueba minimiza un automata sencillo usando Incremental y escribe el resultado en un archivo test4.dot" << endl;
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationIncremental<TDfa> mini;	
+	// uses zero as invisible null-sink state
+	//      2 - 5 - 8  - 11
+	//    /       \   /
+	//   1 -3 - 6 - 9  - 12
+	//    \       \   \
+	//      4 - 7 - 10 - 13
+	TDfa dfa(3, 14);
+
+	dfa.SetInitial(1);
+	dfa.SetFinal(11);
+	dfa.SetFinal(12);
+	dfa.SetFinal(13);
+
+	dfa.SetTransition(1, 0, 2);
+	dfa.SetTransition(1, 1, 3);
+	dfa.SetTransition(1, 2, 4);
+
+	dfa.SetTransition(2, 0, 5);
+	dfa.SetTransition(3, 0, 6);
+	dfa.SetTransition(4, 0, 7);
+
+	dfa.SetTransition(5, 0, 8);		
+	dfa.SetTransition(5, 1, 9);		
+	dfa.SetTransition(5, 2, 9);		
+
+	dfa.SetTransition(6, 1, 9);
+	dfa.SetTransition(6, 0, 10);
+	dfa.SetTransition(6, 2, 10);
+
+	dfa.SetTransition(7, 0, 10);
+	dfa.SetTransition(7, 1, 10);
+	dfa.SetTransition(7, 2, 10);
+
+	dfa.SetTransition(8, 0, 11);
+	dfa.SetTransition(8, 1, 11);
+	dfa.SetTransition(8, 2, 11);
+
+	dfa.SetTransition(9, 0, 11);
+	dfa.SetTransition(9, 1, 12);
+	dfa.SetTransition(9, 2, 13);
+
+	dfa.SetTransition(10, 0, 13);
+	dfa.SetTransition(10, 1, 13);
+	dfa.SetTransition(10, 2, 13);
+
+	auto dfa_min = mini.Minimize(dfa);
+
+	// asegura que la cantidad de estados al final es menor
+	assert(out_partitions.size() < dfa.GetStates());
+	assert(out_partitions.size() == 6);
+
+	cout << endl;
+
+	return 0;
+}
+
+
+// Test automata generation 400-499
+
+int test400()
 {
 	cout << "Genera multiples NFA con diferentes numeros de estados y simbolos, los minimiza, los guarda y escribe un reporte." << endl;
 
@@ -553,7 +827,7 @@ int test8()
 	typedef MinimizationHopcroft<TDfa> TMinimizer;
 
 	mt19937 rgen(5000);
-	ofstream report("report_test8.txt");
+	ofstream report("report_test_400.txt");
 	report << "nfa_nQ,dfa_nQ,min_nQ,alpha,density,filename,t_wall,t_user,t_system" << endl;
 	
 	
@@ -615,7 +889,9 @@ int test8()
 	return 0;
 }
 
-int test9()
+// Test performance 500-599
+
+int test500()
 {
 	cout << "Prueba la determinizacion y la minimizacion Hopcroft, Brzozowski e Incremental" << endl;
 
@@ -635,14 +911,14 @@ int test9()
 	TNfa nfa = nfagen.Generate(states, symbols, 1, 1, density, rgen);
 
 	cout << "Generado NFA con " << (size_t)nfa.GetStates() << " estados, " << (size_t)nfa.GetAlphabetLength() << " simbolos, d=" << density << endl;
-	write_dot(nfa, "nfa\\t9_nfa_org.dot");	
-	write_text(nfa, "nfa\\t9_nfa_org.txt");
+	write_dot(nfa, "nfa\\t500_nfa_org.dot");	
+	write_text(nfa, "nfa\\t500_nfa_org.txt");
 
 	Determinization<TDfa, TNfa> determh;
 	auto dfa = determh.Determinize(nfa);
 	cout << "Determinizado con " << (size_t)dfa.GetStates() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
-	write_dot(dfa, "nfa\\t9_dfa.dot");
-	write_text(dfa, "nfa\\t9_dfa_h.txt");
+	write_dot(dfa, "nfa\\t500_dfa.dot");
+	write_text(dfa, "nfa\\t500_dfa_h.txt");
 
 	MinimizationHopcroft<TDfa> minh;
 	MinimizationHopcroft<TDfa>::TPartitionVector hpartitions;
@@ -652,15 +928,15 @@ int test9()
 	timer.stop();
 	cout << "Minimizado Hopcroft con " << hpartitions.size() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
 	cout << "Minimizacion tomo " << timer.format(5) << endl;
-	//write_dot(dfa_minh, "nfa\\t9_dfa_min_h.dot");
-	//write_text(dfa_minh, "nfa\\t9_dfa_min_h.txt");
+	//write_dot(dfa_minh, "nfa\\t500_dfa_min_h.dot");
+	//write_text(dfa_minh, "nfa\\t500_dfa_min_h.txt");
 
 	typedef Fsa<TState,TSymbol> TFsa;
 	Determinization<TNfa, TNfa> determb;
 	auto nfab = determb.Determinize(nfa);
 	cout << "Determinizado con " << (size_t)nfab.GetStates() << " estados, " << (size_t)nfab.GetAlphabetLength() << " simbolos" << endl;
-	write_dot(nfab, "nfa\\t9_dfa.dot");	
-	write_text(nfab, "nfa\\t9_dfa_b.txt");
+	write_dot(nfab, "nfa\\t500_dfa.dot");	
+	write_text(nfab, "nfa\\t500_dfa_b.txt");
 	
 	MinimizationBrzozowski<TNfa> minb;	
 	MinimizationBrzozowski<TNfa>::TVectorDfaEdge edges;
@@ -673,8 +949,8 @@ int test9()
 
 	cout << "Minimizado Brzozowski con " << (size_t)nfa_minb.GetStates() << " estados, " << (size_t)nfa_minb.GetAlphabetLength() << " simbolos" << endl;
 	cout << "Minimizacion tomo " << timer.format(5) << endl;
-	write_dot(nfa_minb, "nfa\\t9_dfa_min_b.dot");
-	write_text(nfa_minb, "nfa\\t9_dfa_min_b.txt");
+	write_dot(nfa_minb, "nfa\\t500_dfa_min_b.dot");
+	write_text(nfa_minb, "nfa\\t500_dfa_min_b.txt");
 
 	MinimizationIncremental<TDfa> mini;
 	MinimizationIncremental<TDfa>::NumericPartition part;
@@ -686,13 +962,15 @@ int test9()
 
 	cout << "Minimizado Incremental con " << (size_t)part.GetSize() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
 	cout << "Minimizacion tomo " << timer.format(5) << endl;
-	write_dot(dfa_mini, "nfa\\t9_dfa_min_i.dot");
-	write_text(dfa_mini, "nfa\\t9_dfa_min_i.txt");
+	write_dot(dfa_mini, "nfa\\t500_dfa_min_i.dot");
+	write_text(dfa_mini, "nfa\\t500_dfa_min_i.txt");
 
 	return 0;
 }
 
-void test10()
+// Test Set 50-60
+
+void test50()
 {
 	cout << "Prueba de Set" << endl;
 	Set<int> s(3);
@@ -735,42 +1013,37 @@ void test10()
 	assert(r2.IsEnd());
 }
 
-void test11()
-{
-	typedef uint16_t TState;
-	typedef uint8_t TSymbol;
-	typedef Dfa<TState, TSymbol> TDfa;
-	typedef Fsa<TState, TSymbol> TNfa;
-	NfaGenerator<TNfa, mt19937> nfagen;
-	boost::timer::cpu_timer timer;	
-
-	long seed = 5000;
-	mt19937 rgen(seed);	
-	int states = 80;
-	int symbols = 2;
-	float density = 0.005f;
-	TNfa nfa = nfagen.Generate(states, symbols, 1, 1, density, rgen);
-
-}
 
 int main(int argc, char** argv)
 {	
 	int i = stoi(argv[1]);
+
+	#define MACRO_TEST(N) case N: test##N(); break
 	switch(i)
 	{
-		case 1: test1(); break;
-		case 2: test2(); break;
-		case 3: test3(); break;
-		case 4: test4(); break;
-		case 5: test5(); break;
-		case 6: test6(); break;
-		case 7: test7(); break;
-		case 8: test8(); break;
-		case 9: test9(); break;
-		case 10: test10(); break;
-		case 11: test11(); break;
-		case 12: test7b(); break;
+		MACRO_TEST(50);
+
+		MACRO_TEST(100);
+		MACRO_TEST(101);
+		MACRO_TEST(102);
+		MACRO_TEST(103);
+		MACRO_TEST(104);
+
+		MACRO_TEST(200);
+		MACRO_TEST(201);
+		MACRO_TEST(202);
+		MACRO_TEST(203);
+
+		MACRO_TEST(300);
+		MACRO_TEST(301);
+		MACRO_TEST(302);
+		MACRO_TEST(303);
+		
+		MACRO_TEST(400);
+
+		MACRO_TEST(500);
 	};
-	
+	#undef MACRO_TEST
+
 	return 0;
 }

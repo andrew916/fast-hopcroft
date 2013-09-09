@@ -265,7 +265,7 @@ public:
 	{
 		NumericPartition part;
 		Minimize(dfa, part);
-		TDfa dfa_min = BuildDfa(dfa, seq);
+		TDfa dfa_min = BuildDfa(dfa, part);
 		return dfa_min;
 	}
 };
