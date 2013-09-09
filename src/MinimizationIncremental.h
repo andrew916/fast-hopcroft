@@ -171,10 +171,10 @@ public:
 		part.Clear(states);
 		BitSet<TPairIndex> neq(states*states);
 		
-		for(TState q=0; q<states; q++)
+		for(TState q=1; q<states; q++)
 		{
 			bool fq = dfa.IsFinal(q);
-			for(TState p=1; p<q; p++)
+			for(TState p=0; p<q; p++)
 			{
 				bool fp = dfa.IsFinal(p);
 				if((fp && !fq) || (!fp && fq))
@@ -186,7 +186,6 @@ public:
 				}
 			}
 		}
-		cout << neq.to_string() << endl;
 		BitSet<TPairIndex> equiv(states*states);
 		BitSet<TPairIndex> path(states*states);
 		for(TState p=0; p<states; p++)
