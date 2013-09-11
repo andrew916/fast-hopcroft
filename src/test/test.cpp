@@ -922,6 +922,7 @@ int test401()
 	
 	mt19937 rgen(5000);
 	ofstream report("report_401.csv");
+	if(!report.is_open()) throw exception("No se pudo abrir el archivo");
 
 	report << "states, alpha, d, states_dfa, states_dfa_min" << endl;
 
@@ -931,14 +932,15 @@ int test401()
 	for(float d=0.000f; d<0.2f; d+=0.002f)
 	for(int i=0; i<50; i++)
 	{
+		float den = d;
 		cout << "states: "<< states << " alpha: " << alpha << " i:" << i << endl;
-		auto nfa = nfagen.Generate(states, alpha, 1, 1, d, rgen);
+		auto nfa = nfagen.Generate_v2(states, alpha, 1, 1, &den, rgen);
 		auto dfa = determ.Determinize(nfa);
 		/*auto dfam =*/ mini.Minimize(dfa, p);
 		auto fmt = format("%1%, %2%, %3%, %4%, %5%")
 			% states 
 			% alpha
-			% d
+			% den
 			% dfa.GetStates()
 			% p.GetSize() // dfam.GetStates()
 			;

@@ -11,6 +11,7 @@ class BitSet
 public:
 	typedef dynamic_bitset<TBlock> TStore;
 	typedef BitSet<TElement, TBlock> TSet;
+	typedef TElement TElement;
 
 private:
 	TStore store;
