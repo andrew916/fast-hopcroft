@@ -91,17 +91,16 @@ void Minimization(Options opt)
 		
 	TDfa min_dfa(0,0);
 	MinimizationHopcroft<TDfa> min;
-	MinimizationHopcroft<TDfa>::TPartitionVector partitions;
-	MinimizationHopcroft<TDfa>::TStateToPartition state_to_partition;
-	min.Minimize(dfa, partitions, state_to_partition);
+	MinimizationHopcroft<TDfa>::NumericPartition partitions;
+	min.Minimize(dfa, partitions);
 	if(!opt.SkipSynthOutput)
 	{
-		min_dfa = min.Synthetize(dfa, partitions, state_to_partition);
+		min_dfa = min.BuildDfa(dfa, partitions);
 	}
 
 	if(opt.Verbose)
 	{
-		cout << "Hopcroft Minimization done, FSA with " << partitions.size() << " states" << endl;
+		cout << "Hopcroft Minimization done, FSA with " << partitions.GetSize() << " states" << endl;
 	}
 
 	if(!opt.SkipSynthOutput)

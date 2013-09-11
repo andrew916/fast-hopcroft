@@ -15,6 +15,7 @@
 #include <fstream>
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
+#include <array>
 
 using namespace std;
 using boost::format;
@@ -88,13 +89,13 @@ int test100()
 	dfa.SetTransition(3, 0, 3);
 	dfa.SetTransition(3, 1, 3);
 	
-	MinimizationHopcroft<TDfa>::TPartitionVector out_partitions;
+	MinimizationHopcroft<TDfa>::NumericPartition out_partitions;
 	mini.ShowConfiguration=true;
 	mini.Minimize(dfa, out_partitions);
 
 	// asegura que la cantidad de estados al final es menor
-	assert(out_partitions.size() < dfa.GetStates());
-	assert(out_partitions.size() == 3);
+	assert(out_partitions.GetSize() < dfa.GetStates());
+	assert(out_partitions.GetSize() == 3);
 
 	cout << endl;
 	
@@ -133,13 +134,13 @@ int test101()
 	dfa.SetTransition(4, 0, 4);
 	dfa.SetTransition(4, 1, 4);
 
-	MinimizationHopcroft<TDfa>::TPartitionVector out_partitions;
+	MinimizationHopcroft<TDfa>::NumericPartition out_partitions;
 	mini.ShowConfiguration=true;
 	mini.Minimize(dfa, out_partitions);
 	
 	// asegura que la cantidad de estados al final es menor
-	assert(out_partitions.size() < dfa.GetStates());
-	assert(out_partitions.size() == 3);
+	assert(out_partitions.GetSize() < dfa.GetStates());
+	assert(out_partitions.GetSize() == 3);
 
 	cout << endl;
 
@@ -183,13 +184,13 @@ int test102()
 	dfa.SetTransition(9, 1, 12);
 	dfa.SetTransition(10, 2, 13);
 
-	MinimizationHopcroft<TDfa>::TPartitionVector out_partitions;
+	MinimizationHopcroft<TDfa>::NumericPartition out_partitions;
 	mini.ShowConfiguration=true;
 	mini.Minimize(dfa, out_partitions);
 
 	// asegura que la cantidad de estados al final es menor
-	assert(out_partitions.size() < dfa.GetStates());
-	assert(out_partitions.size() == 12);
+	assert(out_partitions.GetSize() < dfa.GetStates());
+	assert(out_partitions.GetSize() == 12);
 
 	cout << endl;
 
@@ -249,13 +250,13 @@ int test103()
 	dfa.SetTransition(10, 1, 13);
 	dfa.SetTransition(10, 2, 13);
 
-	MinimizationHopcroft<TDfa>::TPartitionVector out_partitions;
+	MinimizationHopcroft<TDfa>::NumericPartition out_partitions;
 	mini.ShowConfiguration=true;
 	mini.Minimize(dfa, out_partitions);
 
 	// asegura que la cantidad de estados al final es menor
-	assert(out_partitions.size() < dfa.GetStates());
-	assert(out_partitions.size() == 6);
+	assert(out_partitions.GetSize() < dfa.GetStates());
+	assert(out_partitions.GetSize() == 6);
 
 	cout << endl;
 
@@ -369,7 +370,7 @@ int test104()
 
 		boost::timer::cpu_timer timer;
 		timer.start();
-		mini.Minimize(dfa);
+		mini.Minimize(dfa, MinimizationHopcroft<TDfa>::NumericPartition());
 		timer.stop();
 
 		{
@@ -636,7 +637,7 @@ int test301()
 	dfa.SetInitial(0);
 	dfa.SetFinal(3);
 	dfa.SetFinal(4);
-
+	
 	dfa.SetTransition(0, 0, 1);
 	dfa.SetTransition(0, 1, 2);
 
@@ -660,6 +661,53 @@ int test301()
 	assert(dfa_min.GetStates() == 3);
 
 	cout << endl;
+
+	return 0;
+}
+
+int test310()
+{
+	
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState,TSymbol> TDfa;
+	MinimizationIncremental<TDfa> mini;	
+	TDfa dfa(2, 10);
+
+	dfa.SetInitial(0);
+
+	dfa.SetFinal(1);
+	dfa.SetFinal(2);
+	dfa.SetFinal(3);
+	dfa.SetFinal(5);
+	dfa.SetFinal(6);
+
+	dfa.SetTransition(0,0,1);
+	dfa.SetTransition(0,1,2);
+	dfa.SetTransition(1,0,3);
+	dfa.SetTransition(1,1,4);
+	dfa.SetTransition(2,0,5);
+	dfa.SetTransition(2,1,4);
+	dfa.SetTransition(3,0,3);
+	dfa.SetTransition(3,1,1);
+	dfa.SetTransition(4,0,6);
+	dfa.SetTransition(4,1,2);
+	dfa.SetTransition(5,0,7);
+	dfa.SetTransition(5,1,2);
+	dfa.SetTransition(6,0,3);
+	dfa.SetTransition(6,1,8);
+	dfa.SetTransition(7,0,7);
+	dfa.SetTransition(7,1,7);
+	dfa.SetTransition(8,0,6);
+	dfa.SetTransition(8,1,9);
+	dfa.SetTransition(9,0,7);
+	dfa.SetTransition(9,1,9);
+	
+	mini.ShowConfiguration=true;
+	auto dfa_min = mini.Minimize(dfa);
+
+	write_dot(dfa, "test_310.dot");
+	write_dot(dfa_min, "test_310_min.dot");
 
 	return 0;
 }
@@ -820,19 +868,18 @@ int test400()
 					cout << "Done." << endl;
 
 					TMinimizer mini;
-					TMinimizer::TPartitionVector part;
-					TMinimizer::TStateToPartition conv_table;
+					TMinimizer::NumericPartition part;
 					mini.ShowConfiguration = false;
 
 					boost::timer::cpu_timer timer;
 					timer.start();
-					mini.Minimize(dfa, part, conv_table);
+					mini.Minimize(dfa, part);
 					timer.stop();
 			
 					auto fmt = format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%") 
 						% states					// 1
 						% dfa.GetStates()			// 2
-						% part.size()				// 3
+						% part.GetSize()			// 3
 						% symbols					// 4
 						% density					// 5
 						% filename					// 6
@@ -842,7 +889,7 @@ int test400()
 						;
 					report << fmt.str() << endl;
 
-					auto dfa2 = mini.Synthetize(dfa, part, conv_table);
+					auto dfa2 = mini.BuildDfa(dfa, part);
 
 					//write_dot(nfa, filename + ".dot");
 					//write_dot(dfa, filename + "_dfa.dot");
@@ -854,6 +901,50 @@ int test400()
 			}
 		}
 	}
+	return 0;
+}
+
+int test401()
+{
+	using namespace std;
+
+	typedef uint32_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	typedef Nfa<TState, TSymbol> TNfa;
+	typedef MinimizationHopcroft<TDfa> TMinimizer;
+	
+	Determinization<TDfa, TNfa> determ;
+	NfaGenerator<TNfa, mt19937> nfagen;
+	TMinimizer mini;
+	TMinimizer::NumericPartition p;
+	mini.ShowConfiguration = false;
+	
+	mt19937 rgen(5000);
+	ofstream report("report_401.csv");
+
+	report << "states, alpha, d, states_dfa, states_dfa_min" << endl;
+
+	array<int,5> alphas = { 2, 5, 10, 20, 30};
+	for(int alpha : alphas)
+	for(int states=4; states<=30; states+=2)
+	for(float d=0.000f; d<0.2f; d+=0.002f)
+	for(int i=0; i<50; i++)
+	{
+		cout << "states: "<< states << " alpha: " << alpha << " i:" << i << endl;
+		auto nfa = nfagen.Generate(states, alpha, 1, 1, d, rgen);
+		auto dfa = determ.Determinize(nfa);
+		/*auto dfam =*/ mini.Minimize(dfa, p);
+		auto fmt = format("%1%, %2%, %3%, %4%, %5%")
+			% states 
+			% alpha
+			% d
+			% dfa.GetStates()
+			% p.GetSize() // dfam.GetStates()
+			;
+		report << fmt.str() << endl;
+	}
+
 	return 0;
 }
 
@@ -889,12 +980,12 @@ int test500()
 	write_text(dfa, "nfa\\t500_dfa_h.txt");
 
 	MinimizationHopcroft<TDfa> minh;
-	MinimizationHopcroft<TDfa>::TPartitionVector hpartitions;
+	MinimizationHopcroft<TDfa>::NumericPartition hpartitions;
 	minh.ShowConfiguration = false;
 	timer.start();
 	minh.Minimize(dfa, hpartitions);	
 	timer.stop();
-	cout << "Minimizado Hopcroft con " << hpartitions.size() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
+	cout << "Minimizado Hopcroft con " << hpartitions.GetSize() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
 	cout << "Minimizacion tomo " << timer.format(5) << endl;
 	//write_dot(dfa_minh, "nfa\\t500_dfa_min_h.dot");
 	//write_text(dfa_minh, "nfa\\t500_dfa_min_h.txt");
@@ -1006,8 +1097,10 @@ int main(int argc, char** argv)
 		MACRO_TEST(301);
 		MACRO_TEST(302);
 		MACRO_TEST(303);
+		MACRO_TEST(310);
 		
 		MACRO_TEST(400);
+		MACRO_TEST(401);
 
 		MACRO_TEST(500);
 	default:

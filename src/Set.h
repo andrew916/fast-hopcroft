@@ -225,6 +225,10 @@ public:
 		// cannot use the capacity hint
 	}
 
+	Set()
+	{
+	}
+
 	void Clear()
 	{
 		store.clear();
@@ -455,5 +459,13 @@ public:
 		}
 		str.append("}");
 		return str;
+	}
+
+	bool operator ==(const TSet& rh) const
+	{
+		using namespace std;
+		if(rh.store.size() != store.size()) return false;
+		if(rh.store.empty()) return true;
+		return equal(store.begin(), store.end(), rh.store.begin());
 	}
 };

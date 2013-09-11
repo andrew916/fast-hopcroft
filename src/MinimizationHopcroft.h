@@ -28,6 +28,7 @@ public:
 
 	typedef std::vector<std::vector<TState>> TPartitionVector;
 	typedef std::vector<TStateSize> TStateToPartition;
+	
 private:
 
 	std::string to_string(const TPartition& P, const std::vector<TState>& Pcontent)
@@ -61,6 +62,17 @@ private:
 
 public:
 
+	class NumericPartition
+	{
+	public:
+		std::vector<TState> Pcontent;
+		TStateToPartition state_to_partition;
+		TPartitionSet P;
+		TState new_index;
+
+		TState GetSize() const { return new_index; }
+	};
+
 	/// Controls the debugging info output
 	bool ShowConfiguration;
 
@@ -69,18 +81,22 @@ public:
 	{
 	}
 
-	TDfa Synthetize(const TDfa& dfa, const TPartitionVector& partitions, const TStateToPartition& state_to_partition)
+	TDfa BuildDfa(const TDfa& dfa, const NumericPartition& partitions)
 	{
-		TDfa ndfa(dfa.GetAlphabetLength(), static_cast<TState>(partitions.size()));
+		TDfa ndfa(dfa.GetAlphabetLength(), partitions.GetSize());
 		int pidx = 0;
-		for(auto p : partitions)
+		for(auto p : partitions.P)
 		{
-			for(auto s : p)
+			auto begin = partitions.Pcontent.begin()+p.first;
+			auto end = begin + p.second;
+			if(begin == end) continue;
+			for(auto is=begin; is!=end; is++)
 			{
+				auto s = *is;
 				for(TSymbol sym=0; sym<dfa.GetAlphabetLength(); sym++)
 				{
 					TState tgt = dfa.GetSuccessor(s, sym);
-					TState ptgt = state_to_partition[tgt];
+					TState ptgt = partitions.state_to_partition[tgt];
 					ndfa.SetTransition(pidx, sym, ptgt);
 				}
 				if(dfa.IsInitial(s)) ndfa.SetInitial(pidx);
@@ -89,57 +105,9 @@ public:
 			pidx++;
 		}
 		return ndfa;
-	}		
-
-	TSet ComputeReachable(const TDfa& dfa)
-	{
-		using namespace std;		
-		TSet reachable = dfa.GetInitials();
-		TSet new_states = reachable;
-		TSet temp(dfa.GetStates());
-		do
-		{
-			temp.Clear();
-			for(auto q=new_states.GetIterator(); !q.IsEnd(); q.MoveNext())
-			{
-				for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
-				{
-					TState qd = dfa.GetSuccessor(q.GetCurrent(), c);
-					temp.Add(qd);
-				}
-			}
-			new_states = TSet::Difference(temp, reachable);
-			reachable.UnionWith(new_states);
-		} while(!new_states.IsEmpty());
-		return reachable;
 	}
 
-	TDfa CleanUnreachable(const TDfa& dfa)
-	{		
-		TSet reach = ComputeReachable(dfa);		
-		TDfa ndfa(dfa.GetAlphabetLength(), reach.Count());
-		vector<TState> table(dfa.GetStates());
-		for(TState q=0, qn=0; q<dfa.GetStates(); q++)
-		{
-			if(!reach.Contains(q)) continue;
-			table[q] = qn++;
-		}
-		for(TState q=0; q<dfa.GetStates(); q++)
-		{
-			if(!reach.Contains(q)) continue;
-			TState qn = table[q];
-			ndfa.SetInitial(qn, dfa.IsInitial(q));
-			ndfa.SetFinal(qn, dfa.IsFinal(q));
-			for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
-			{
-				TState qd = dfa.GetSuccessor(q, c);
-				ndfa.SetTransition(qn, c, table[qd]);
-			}
-		}
-		return ndfa;
-	}
-
-	void Minimize(const TDfa& dfa, TPartitionVector& out_partitions = TPartitionVector(), TStateToPartition& state_to_partition = TStateToPartition())
+	void Minimize(const TDfa& dfa, NumericPartition& np)
 	{
 		using namespace std;
 
@@ -151,32 +119,32 @@ public:
 
 		// cantidad de estados en la particion y particion
 		// Maximo puede exisitir una particion por cada estado, por ello reservamos de esta forma
-		vector<TState> Pcontent(dfa.GetStates());
+		np.Pcontent.resize(dfa.GetStates());
+		
 		// vector de parejas que indican en el vector de contenido cada particion
 		// Cada pareja contiene el indice donde inicia una particion y su longitud
-		TPartitionSet P(dfa.GetStates());
+		np.P.resize(dfa.GetStates());
 
-		P[0].first = 0;
-		P[0].second = final_states_count;
+		np.P[0].first = 0;
+		np.P[0].second = final_states_count;
 
-		P[1].first = final_states_count;
-		P[1].second = non_final_states_count;
+		np.P[1].first = final_states_count;
+		np.P[1].second = non_final_states_count;
 
 		// Inicializa funcion inversa para obtener la particion a la que pertenece un estado
-		state_to_partition.clear();
-		state_to_partition.resize(dfa.GetStates());
+		np.state_to_partition.resize(dfa.GetStates());
 
-		auto it_f = Pcontent.begin();
-		auto it_nf = Pcontent.rbegin();
+		auto it_f = np.Pcontent.begin();
+		auto it_nf = np.Pcontent.rbegin();
 		for(TState st=0; st<dfa.GetStates(); st++)
 		{
 			if(dfa.IsFinal(st)) *it_f++ = st;
 			else *it_nf++ = st;
-			state_to_partition[st] = dfa.IsFinal(st) ? 0 : 1;
+			np.state_to_partition[st] = dfa.IsFinal(st) ? 0 : 1;
 		}
 
 		// partitions count
-		TStateSize new_index = 2;
+		np.new_index = 2;
 
 		TStateSize min_initial_partition_index = final_states_count < non_final_states_count ? 0 : 1;
 
@@ -193,17 +161,17 @@ public:
 		// worst case is when WaitSet has one entry per state
 		for(auto splitter_set=wait_set_membership.GetIterator(); !splitter_set.IsEnd(); splitter_set=wait_set_membership.GetIterator())
 		{
-			assert(new_index <= dfa.GetStates());
+			assert(np.new_index <= dfa.GetStates());
 
 			// remove current
 			wait_set_membership.Remove(splitter_set.GetCurrent());
 
 			// current splitter partition
-			const auto& splitter_partition = P[splitter_set.GetCurrent()];
+			const auto& splitter_partition = np.P[splitter_set.GetCurrent()];
 
 			if(ShowConfiguration)
 			{				
-				cout << "Spliter=" << to_string(splitter_partition, Pcontent) << endl;
+				cout << "Spliter=" << to_string(splitter_partition, np.Pcontent) << endl;
 			}
 
 			// Per symbol loop
@@ -212,7 +180,7 @@ public:
 				predecessors.Clear();
 
 				// recorre elementos de la particion
-				auto partition_it_begin = Pcontent.begin() + splitter_partition.first;
+				auto partition_it_begin = np.Pcontent.begin() + splitter_partition.first;
 				auto partition_it_end = partition_it_begin + splitter_partition.second;
 				for(; partition_it_begin != partition_it_end; partition_it_begin++)
 				{
@@ -227,20 +195,20 @@ public:
 				for(auto ss=predecessors.GetIterator(); !ss.IsEnd(); ss.MoveNext())
 				{
 					// state ss belongs to partition indicated with partition_index
-					TStateSize partition_index = state_to_partition[ss.GetCurrent()];
+					TStateSize partition_index = np.state_to_partition[ss.GetCurrent()];
 
 					// Is this partition already processed?
 					if(partitions_to_split.Contains(partition_index)) continue;
 					partitions_to_split.Add(partition_index);
 
-					TPartition& partition_desc = P[partition_index];
+					TPartition& partition_desc = np.P[partition_index];
 
 					// Imposible to divide a single state partition
 					const TStateSize partition_size = partition_desc.second;
 					if(partition_size == 1) continue;
 
 					// Partition start point
-					const auto partition_it_original_begin = Pcontent.begin() + partition_desc.first;
+					const auto partition_it_original_begin = np.Pcontent.begin() + partition_desc.first;
 
 					partition_it_begin = partition_it_original_begin;					
 					partition_it_end = partition_it_begin + partition_desc.second - 1;
@@ -255,7 +223,7 @@ public:
 						else 
 						{
 							iter_swap(partition_it_begin, partition_it_end);
-							state_to_partition[state] = new_index;
+							np.state_to_partition[state] = np.new_index;
 							partition_it_end--;
 						}
 					} while(partition_it_begin != partition_it_end);					
@@ -268,7 +236,7 @@ public:
 						}
 						else 
 						{							
-							state_to_partition[state] = new_index;						
+							np.state_to_partition[state] = np.new_index;						
 						}
 					}
 
@@ -290,46 +258,41 @@ public:
 					partition_desc.second = split_size;
 
 					// confirm descriptor for new partition
-					P[new_index].first = partition_desc.first + split_size;
-					P[new_index].second = split_complement_size;
+					np.P[np.new_index].first = partition_desc.first + split_size;
+					np.P[np.new_index].second = split_complement_size;
 
 					if(wait_set_membership.Contains(partition_index)) 
 					{
-						wait_set_membership.Add(new_index);
+						wait_set_membership.Add(np.new_index);
 					} 
 					else 
 					{
-						auto add_index = split_size < split_complement_size ? partition_index : new_index;
+						auto add_index = split_size < split_complement_size ? partition_index : np.new_index;
 						wait_set_membership.Add(add_index);
 					}
 
 					// If we are here, split was done
 					// new partition index must increment
-					new_index++;
+					np.new_index++;
 
 					if(ShowConfiguration)
 					{
-						cout << "P=" << to_string(P, new_index, Pcontent) << endl;
+						cout << "P=" << to_string(np.P, np.new_index, np.Pcontent) << endl;
 					}		
 				}
 			}
 		}		
 		if(ShowConfiguration)
 		{
-			cout << "Final P=" << to_string(P, new_index, Pcontent) << endl;
-			cout << "Finished, " << new_index << " states of " << dfa.GetStates() << endl;
+			cout << "Final P=" << to_string(np.P, np.new_index, np.Pcontent) << endl;
+			cout << "Finished, " << np.new_index << " states of " << dfa.GetStates() << endl;
 		}
+	}
 
-		// synth new
-		out_partitions.clear();
-		out_partitions.resize(new_index);
-		auto p = P.begin();
-		for(auto it1=out_partitions.begin(); it1 != out_partitions.end(); it1++, p++)
-		{
-			for(auto it2=Pcontent.begin()+p->first; it2 != Pcontent.begin()+p->first+p->second; it2++)
-			{
-				it1->push_back(*it2);
-			}
-		}
+	TDfa Minimize(const TDfa& dfa)
+	{
+		NumericPartition p;
+		Minimize(dfa, p);
+		return BuildDfa(dfa, p);
 	}
 };

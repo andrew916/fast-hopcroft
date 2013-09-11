@@ -226,6 +226,10 @@ public:
 				}
 			}
 		}
+		if(ShowConfiguration)
+		{
+			cout << "Finished " << part.GetSize() << " states of " << dfa.GetStates() << endl;
+		}
 	}
 
 	TDfa BuildDfa(const TDfa& dfa, NumericPartition& seq)
