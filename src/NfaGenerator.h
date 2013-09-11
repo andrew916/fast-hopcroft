@@ -103,7 +103,7 @@ public:
 		auto i = remaining.begin();
 		for(TState qs=0; qs<states; qs++)
 			for(TState qt=0; qt<states; qt++)
-				for(TSymbol s=0; s<states; s++)
+				for(TSymbol s=0; s<alpha; s++)
 					*i++ = make_tuple(qs,s,qt);
 
 		shuffle(remaining.begin(), remaining.end(), gen);
