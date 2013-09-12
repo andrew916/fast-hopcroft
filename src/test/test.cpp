@@ -15,6 +15,7 @@
 #include <fstream>
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
+#include <boost/filesystem.hpp>
 #include <array>
 
 using namespace std;
@@ -59,6 +60,16 @@ TFsa read_text(string filename)
 	return fsa;
 }
 
+template<typename TFsa>
+TFsa read_text_one_based(string filename)
+{
+	FsmPlainTextReaderOneBased<TFsa> reader;
+	ifstream fsa_input(filename);
+	if(!fsa_input.is_open()) throw exception("El archivo no pudo ser abierto");
+	auto fsa = reader.Read(fsa_input);
+	fsa_input.close();
+	return fsa;
+}
 
 // Tests Hopcroft 100-199
 
@@ -88,7 +99,7 @@ int test100()
 
 	dfa.SetTransition(3, 0, 3);
 	dfa.SetTransition(3, 1, 3);
-	
+
 	MinimizationHopcroft<TDfa>::NumericPartition out_partitions;
 	mini.ShowConfiguration=true;
 	mini.Minimize(dfa, out_partitions);
@@ -98,7 +109,7 @@ int test100()
 	assert(out_partitions.GetSize() == 3);
 
 	cout << endl;
-	
+
 	return 0;
 }
 
@@ -137,7 +148,7 @@ int test101()
 	MinimizationHopcroft<TDfa>::NumericPartition out_partitions;
 	mini.ShowConfiguration=true;
 	mini.Minimize(dfa, out_partitions);
-	
+
 	// asegura que la cantidad de estados al final es menor
 	assert(out_partitions.GetSize() < dfa.GetStates());
 	assert(out_partitions.GetSize() == 3);
@@ -413,7 +424,7 @@ int test200()
 
 	dfa.SetTransition(3, 0, 3);
 	dfa.SetTransition(3, 1, 3);
-	
+
 	auto dfa_min = mini.Minimize(dfa);
 
 	// asegura que la cantidad de estados al final es menor
@@ -421,7 +432,7 @@ int test200()
 	assert(dfa_min.GetStates() == 3);
 
 	cout << endl;
-	
+
 	return 0;
 }
 
@@ -458,7 +469,7 @@ int test201()
 	dfa.SetTransition(4, 1, 4);
 
 	TDfa dfa_min = mini.Minimize(dfa);
-	
+
 	// asegura que la cantidad de estados al final es menor
 	assert(dfa_min.GetStates() < dfa.GetStates());
 	assert(dfa_min.GetStates() == 3);
@@ -608,7 +619,7 @@ int test300()
 
 	dfa.SetTransition(3, 0, 3);
 	dfa.SetTransition(3, 1, 3);
-	
+
 	mini.ShowConfiguration=true;
 	auto dfa_min = mini.Minimize(dfa);
 
@@ -617,7 +628,7 @@ int test300()
 	assert(dfa_min.GetStates() == 3);
 
 	cout << endl;
-	
+
 	return 0;
 }
 
@@ -637,7 +648,7 @@ int test301()
 	dfa.SetInitial(0);
 	dfa.SetFinal(3);
 	dfa.SetFinal(4);
-	
+
 	dfa.SetTransition(0, 0, 1);
 	dfa.SetTransition(0, 1, 2);
 
@@ -655,7 +666,7 @@ int test301()
 
 	mini.ShowConfiguration=true;
 	TDfa dfa_min = mini.Minimize(dfa);
-	
+
 	// asegura que la cantidad de estados al final es menor
 	assert(dfa_min.GetStates() < dfa.GetStates());
 	assert(dfa_min.GetStates() == 3);
@@ -667,7 +678,7 @@ int test301()
 
 int test310()
 {
-	
+
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState,TSymbol> TDfa;
@@ -702,7 +713,7 @@ int test310()
 	dfa.SetTransition(8,1,9);
 	dfa.SetTransition(9,0,7);
 	dfa.SetTransition(9,1,9);
-	
+
 	mini.ShowConfiguration=true;
 	auto dfa_min = mini.Minimize(dfa);
 
@@ -845,8 +856,8 @@ int test400()
 	mt19937 rgen(5000);
 	ofstream report("report_test_400.txt");
 	report << "nfa_nQ,dfa_nQ,min_nQ,alpha,density,filename,t_wall,t_user,t_system" << endl;
-	
-	
+
+
 	for(int states=10; states<30; states*=2)
 	{
 		for(int symbols=2; symbols<9; symbols*=2)
@@ -857,7 +868,7 @@ int test400()
 				{
 					auto filename1 = format("nfa\\nfa_n%1%_a%2%_d%3%_r%4%") % states % symbols % density % redundancy;
 					auto filename = filename1.str();
-						
+
 					cout << "Generando " << filename << "... " << endl;
 					NfaGenerator<TNfa, mt19937> nfagen;
 					TNfa nfa = nfagen.Generate(states, symbols, 1, 1, density, rgen);
@@ -875,7 +886,7 @@ int test400()
 					timer.start();
 					mini.Minimize(dfa, part);
 					timer.stop();
-			
+
 					auto fmt = format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%") 
 						% states					// 1
 						% dfa.GetStates()			// 2
@@ -913,41 +924,42 @@ int test401()
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
 	typedef MinimizationHopcroft<TDfa> TMinimizer;
-	
+
 	Determinization<TDfa, TNfa> determ;
 	NfaGenerator<TNfa, mt19937> nfagen;
 	TMinimizer mini;
 	TMinimizer::NumericPartition p;
 	mini.ShowConfiguration = false;
-	
+
 	mt19937 rgen(5000);
 	ofstream report("report_401.csv");
 	if(!report.is_open()) throw exception("No se pudo abrir el archivo");
 
 	report << "states, alpha, d, states_dfa, states_dfa_min" << endl;
 
-	array<int,5> alphas = { 2, 5, 10, 20, 30};
+	array<int,4> alphas = { 2, 5, 10, 20};
+	array<int,4> states_set = { 14, 16, 18, 20 };
 	for(int alpha : alphas)
-	for(int states=4; states<=30; states+=2)
-	for(float d=0.000f; d<0.2f; d+=0.002f)
-	for(int i=0; i<50; i++)
-	{
-		float den = d;
-		cout << "states: "<< states << " alpha: " << alpha << " i:" << i << endl;
-		auto nfa = nfagen.Generate_v2(states, alpha, 1, 1, &den, rgen);
-		auto dfa = determ.Determinize(nfa);
-		/*auto dfam =*/ mini.Minimize(dfa, p);
-		auto fmt = format("%1%, %2%, %3%, %4%, %5%")
-			% states 
-			% alpha
-			% den
-			% dfa.GetStates()
-			% p.GetSize() // dfam.GetStates()
-			;
-		report << fmt.str() << endl;
-	}
+		for(int states : states_set)
+			for(float d=0.05f; d<0.25f; d+=0.01f)
+				for(int i=0; i<50; i++)
+				{
+					float den = d;
+					cout << "states: "<< states << " alpha: " << alpha << " i:" << i << endl;
+					auto nfa = nfagen.Generate_v2(states, alpha, 1, 1, &den, rgen);
+					auto dfa = determ.Determinize(nfa);
+					/*auto dfam =*/ mini.Minimize(dfa, p);
+					auto fmt = format("%1%, %2%, %3%, %4%, %5%")
+						% states 
+						% alpha
+						% den
+						% dfa.GetStates()
+						% p.GetSize() // dfam.GetStates()
+						;
+					report << fmt.str() << endl;
+				}
 
-	return 0;
+				return 0;
 }
 
 // Test performance 500-599
@@ -998,7 +1010,7 @@ int test500()
 	cout << "Determinizado con " << (size_t)nfab.GetStates() << " estados, " << (size_t)nfab.GetAlphabetLength() << " simbolos" << endl;
 	write_dot(nfab, "nfa\\t500_dfa.dot");	
 	write_text(nfab, "nfa\\t500_dfa_b.txt");
-	
+
 	MinimizationBrzozowski<TNfa> minb;	
 	MinimizationBrzozowski<TNfa>::TVectorDfaEdge edges;
 	MinimizationBrzozowski<TNfa>::TVectorDfaState fstates;
@@ -1029,6 +1041,120 @@ int test500()
 	return 0;
 }
 
+int test501()
+{
+	using namespace boost::filesystem;
+	using namespace boost::timer;
+
+	cpu_timer timer;
+	path root_path("dfa_501");
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	typedef Nfa<TState, TSymbol> TNfa;
+
+	MinimizationBrzozowski<TNfa> min1;
+	MinimizationHopcroft<TDfa> min2;
+	MinimizationIncremental<TDfa> min3;
+
+	min2.ShowConfiguration = false;
+	min3.ShowConfiguration = false;
+
+	ofstream report("report_501.csv");
+	if(!report.is_open()) throw exception("No se pudo abrir el reporte");
+
+	vector<TState> vfinal;
+	vector<TNfa::TEdge> vedges;
+	MinimizationIncremental<TDfa>::NumericPartition part_i;
+	MinimizationHopcroft<TDfa>::NumericPartition part_h;
+
+	try 
+	{
+		for(auto root_path_iter=directory_iterator(root_path); root_path_iter != directory_iterator(); root_path_iter++)
+		{
+			uint64_t acum_time_b = 0;
+			uint64_t acum_time_h = 0;
+			uint64_t acum_time_i = 0;
+			uint64_t automata_count = 0;
+			if(!is_directory(root_path_iter->status())) continue;
+			cout << "Entering " << root_path_iter->path() << endl;
+			for(auto i=directory_iterator(root_path_iter->path()); i!=directory_iterator(); i++)
+			{
+				if(!is_regular_file(i->status())) continue;
+
+				auto dfa_filename = i->path().string();
+				auto nfa = read_text_one_based<TNfa>(dfa_filename);
+				auto dfa = read_text_one_based<TDfa>(dfa_filename);
+
+				size_t n = nfa.GetStates();
+				size_t k = nfa.GetAlphabetLength();
+
+				TState min_states;
+				timer.start();
+				min1.Minimize(nfa, &min_states, vfinal, vedges);
+				timer.stop();
+				//cout << "Brzozowski " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%, %2%, %3%, %4%, %5%") 
+					% "Brzozowski"
+					% n
+					% k
+					% timer.elapsed().wall
+					% dfa_filename
+					).str() << endl;
+				acum_time_b += timer.elapsed().wall;
+
+				timer.start();
+				min2.Minimize(dfa, part_h);
+				timer.stop();
+				//cout << "Hopcroft " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%, %2%, %3%, %4%, %5%") 
+					% "Hopcroft"
+					% n
+					% k
+					% timer.elapsed().wall
+					% dfa_filename
+					).str()	<< endl;
+				acum_time_h += timer.elapsed().wall;
+
+				timer.start();
+				min3.Minimize(dfa, part_i);
+				timer.stop();
+				//cout << "Incremental " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%, %2%, %3%, %4%, %5%") 
+					% "Incremental"
+					% n
+					% k
+					% timer.elapsed().wall
+					% dfa_filename
+					).str() << endl;
+				acum_time_i += timer.elapsed().wall;
+
+				automata_count++;
+			}
+			// skip empty folders
+			if(automata_count == 0) continue;
+			acum_time_b /= automata_count;
+			acum_time_h /= automata_count;
+			acum_time_i /= automata_count;
+			cout << (boost::format("folder: %1% | Promedios: B:%2% H:%3% I:%4%")
+				% root_path_iter->path().string()
+				% acum_time_b
+				% acum_time_h
+				% acum_time_i
+				).str() << endl;
+		}
+	}
+	catch(const filesystem_error& ex)
+	{
+		cout << "ERROR" << endl;
+		cout << ex.what() << endl;
+		return -1;
+	}
+
+	return 0;
+}
+
 // Test Set 50-60
 
 void test50()
@@ -1046,7 +1172,7 @@ void test50()
 	assert(!r.IsEnd());
 	assert(r.GetCurrent() == 0);
 	r.MoveNext();
-	
+
 	assert(!r.IsEnd());
 	assert(r.GetCurrent() == 3);
 	r.MoveNext();
@@ -1061,12 +1187,12 @@ void test50()
 	assert(!s2.Contains(1));
 	assert(!s2.Contains(2));
 	assert(s2.Contains(3));
-		
+
 	auto r2 = s2.GetIterator();
 	assert(!r2.IsEnd());
 	assert(r2.GetCurrent() == 0);
 	r2.MoveNext();
-	
+
 	assert(!r2.IsEnd());
 	assert(r2.GetCurrent() == 3);
 	r2.MoveNext();
@@ -1079,7 +1205,7 @@ int main(int argc, char** argv)
 {	
 	int i = stoi(argv[1]);
 
-	#define MACRO_TEST(N) case N: test##N(); break
+#define MACRO_TEST(N) case N: test##N(); break
 	switch(i)
 	{
 		MACRO_TEST(50);
@@ -1100,16 +1226,18 @@ int main(int argc, char** argv)
 		MACRO_TEST(302);
 		MACRO_TEST(303);
 		MACRO_TEST(310);
-		
+
 		MACRO_TEST(400);
 		MACRO_TEST(401);
 
 		MACRO_TEST(500);
+		MACRO_TEST(501);
 	default:
 		cout << "La prueba indicada no existe" << endl;
+		throw exception("La prueba no existe");
 		return -1;
 	};
-	#undef MACRO_TEST
+#undef MACRO_TEST
 
 	return 0;
 }
