@@ -1087,9 +1087,11 @@ int test501()
 				auto nfa = read_text_one_based<TNfa>(dfa_filename);
 				auto dfa = read_text_one_based<TDfa>(dfa_filename);
 
+				//cout << "Read " << dfa_filename << endl;
+
 				size_t n = nfa.GetStates();
 				size_t k = nfa.GetAlphabetLength();
-
+				/*
 				TState min_states;
 				timer.start();
 				min1.Minimize(nfa, &min_states, vfinal, vedges);
@@ -1103,7 +1105,7 @@ int test501()
 					% dfa_filename
 					).str() << endl;
 				acum_time_b += timer.elapsed().wall;
-
+				*/
 				timer.start();
 				min2.Minimize(dfa, part_h);
 				timer.stop();

@@ -145,7 +145,10 @@ public:
 		if(line[0] != '#') throw exception("Formato invalido");
 
 		getline(str, line);
-		unsigned long alpha = stoul(line);
+		vector<string> alpha_set_line;
+		trim(line);
+		boost::split(alpha_set_line, line, boost::is_any_of(" "));
+		size_t alpha = alpha_set_line.size();
 		if(alpha >= numeric_limits<TSymbol>::max())
 		{
 			throw exception("El numero de simbolos supera el maximo representable");
@@ -191,7 +194,7 @@ public:
 			TSymbol c = (TSymbol)stol(col[1]);
 			TState qt = (TState)stol(col[2]);
 			
-			dfa.SetTransition(qs-1, c, qt-1);
+			dfa.SetTransition(qs-1, c-1, qt-1);
 			transitionsRead++;
 		}
 
