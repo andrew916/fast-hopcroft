@@ -14,7 +14,7 @@ public:
 	typedef typename TDfa::TState TState;
 	typedef typename TDfa::TSymbol TSymbol;
 	typedef uint64_t TPairIndex;
-	
+
 	class NumericPartition
 	{
 	public:
@@ -109,19 +109,21 @@ public:
 
 	typedef typename NumericPartition::TStore TNumericPartitionStore;
 private:
-		
-	TPairIndex GetPairIndex(TState states, TState p, TState q) const
+
+	TPairIndex GetPairIndex(TState p, TState q) const
 	{
-		return states*p + q;
+		assert(p < q);
+		return (q*q-q)/2+p;
 	}
 
-	std::tuple<TState,TState> GetPairFromIndex(TState states, TPairIndex index) const
+	std::tuple<TState,TState> GetPairFromIndex(TPairIndex index) const
 	{
-		return make_tuple
-		(
-			static_cast<TState>(index / states), 
-			static_cast<TState>(index % states)
-		);
+		TState q = static_cast<TState>(sqrt((1 + 8*index)/4.0f) + 0.5f);
+		TState p = static_cast<TState>(index - (q*q-q)/2);
+		assert(p < q);
+		assert(index == GetPairIndex(p,q));
+
+		return make_tuple(p, q);
 	}
 
 	bool EquivP(TState p, TState q, const TDfa& dfa, const NumericPartition& part, BitSet<TPairIndex>& neq, BitSet<TPairIndex>& equiv, BitSet<TPairIndex>& path)
@@ -131,7 +133,8 @@ private:
 			cout << "Test equiv (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ")" << endl;
 		}
 		TState states = dfa.GetStates();
-		TPairIndex root_pair = GetPairIndex(states, p,q);
+		TPairIndex root_pair = GetPairIndex(p,q);
+		if(dfa.IsFinal(p) != dfa.IsFinal(q)) return false;
 		if(neq.Contains(root_pair)) return false;
 		if(path.Contains(root_pair)) return true;
 		path.Add(root_pair);
@@ -141,7 +144,7 @@ private:
 			TState sq = dfa.GetSuccessor(q,a);
 			if(part.Find(sp) == part.Find(sq)) continue;
 			if(sp > sq) std::swap(sp, sq);
-			TPairIndex pair = GetPairIndex(states, sp,sq);
+			TPairIndex pair = GetPairIndex(sp,sq);
 			if(!equiv.Contains(pair))
 			{
 				equiv.Add(pair);
@@ -169,61 +172,41 @@ public:
 		using namespace std;
 		TState states = dfa.GetStates();
 		part.Clear(states);
-		BitSet<TPairIndex> neq(states*states);
-		
-		for(TState q=1; q<states; q++)
-		{
-			bool fq = dfa.IsFinal(q);
-			for(TState p=0; p<q; p++)
-			{
-				bool fp = dfa.IsFinal(p);
-				if((fp && !fq) || (!fp && fq))
-				{
-					neq.Add(GetPairIndex(states, p,q));
-					if(ShowConfiguration) {
-						cout << "neq add (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ") -> " << static_cast<size_t>(GetPairIndex(states, p,q)) << endl;
-					}
-				}
-			}
-		}
-		BitSet<TPairIndex> equiv(states*states);
-		BitSet<TPairIndex> path(states*states);
+
+		BitSet<TPairIndex> neq((states*states-states)/2);		
+		BitSet<TPairIndex> equiv((states*states-states)/2);
+		BitSet<TPairIndex> path((states*states-states)/2);
 		for(TState p=0; p<states; p++)
-		{		
+		{
 			for(TState q=p+1; q<states; q++)
 			{
-				if(ShowConfiguration) {
-					cout << "test (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ") -> " << static_cast<size_t>(GetPairIndex(states, p,q)) << endl;
+				if(ShowConfiguration) 
+				{
+					cout << "test (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ") -> " << static_cast<size_t>(GetPairIndex(p,q)) << endl;
 				}
-				if(neq.Contains(GetPairIndex(states, p,q))) continue;
+				if(dfa.IsFinal(p) != dfa.IsFinal(q)) continue;
+				if(neq.Contains(GetPairIndex(p,q))) continue;
 				if(part.Find(p) == part.Find(q)) continue;
 				equiv.Clear();
 				path.Clear();
-				
+
 				const bool isEquiv = EquivP(p, q, dfa, part, neq, equiv, path);
-				auto it = isEquiv ? equiv.GetIterator() : path.GetIterator();
-				if(ShowConfiguration) {
+				if(ShowConfiguration) 
+				{
 					cout << (isEquiv ? "YES" : "NO") << endl;
 				}
-				for(; !it.IsEnd(); it.MoveNext())
+				if(isEquiv) for(auto it=path.GetIterator(); !it.IsEnd(); it.MoveNext())
 				{
 					TPairIndex idx = it.GetCurrent();
 					TState p_prime, q_prime;
-					tie(p_prime, q_prime) = GetPairFromIndex(states, idx);
+					tie(p_prime, q_prime) = GetPairFromIndex(idx);
 					assert(p_prime < q_prime);
-					if(isEquiv) 
-					{
-						if(ShowConfiguration) {
-							cout << "union (" << static_cast<size_t>(p_prime) << ", " << static_cast<size_t>(q_prime) << ")" << endl;
-						}
-						part.Union(p_prime, q_prime);
-					} else {
-						if(ShowConfiguration) {
-							cout << "neq (" << static_cast<size_t>(p_prime) << ", " << static_cast<size_t>(q_prime) << ")" << endl;
-						}
-						neq.Add(idx); // p_prime, q_prime
+					if(ShowConfiguration) {
+						cout << "union (" << static_cast<size_t>(p_prime) << ", " << static_cast<size_t>(q_prime) << ")" << endl;
 					}
+					part.Union(p_prime, q_prime);
 				}
+				else neq.UnionWith(path);
 			}
 		}
 		if(ShowConfiguration)
@@ -248,7 +231,7 @@ public:
 			final_state = seq.Find(final_state);
 			dfa_min.SetFinal(final_state);
 		}
-		
+
 		for(auto i : seq.GetStore())
 		{
 			if(i.empty()) continue;

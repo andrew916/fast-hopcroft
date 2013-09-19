@@ -2,6 +2,7 @@
 #include "../MinimizationHopcroft.h"
 #include "../MinimizationBrzozowski.h"
 #include "../MinimizationIncremental.h"
+#include "../MinimizationHybrid.h"
 #include "../Dfa.h"
 #include "../Nfa.h"
 #include "../Fsa.h"
@@ -840,6 +841,253 @@ int test303()
 	return 0;
 }
 
+// Test Hybrid 600-699
+
+int test600()
+{	
+	cout << "Esta prueba minimiza un automata sencillo usando Incremental y escribe el resultado en un archivo test6.dot" << endl;
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;	
+	TDfa dfa(2, 4);
+
+	//   / 2 \
+	// 0 - 1 - 3
+	dfa.SetInitial(0);
+	dfa.SetFinal(3);
+
+	dfa.SetTransition(0, 0, 1);
+	dfa.SetTransition(0, 1, 2);
+
+	dfa.SetTransition(1, 0, 3);
+	dfa.SetTransition(1, 1, 1);
+
+	dfa.SetTransition(2, 0, 3);
+	dfa.SetTransition(2, 1, 2);
+
+	dfa.SetTransition(3, 0, 3);
+	dfa.SetTransition(3, 1, 3);
+
+	mini.ShowConfiguration=true;
+	auto dfa_min = mini.Minimize(dfa);
+
+	// asegura que la cantidad de estados al final es menor
+	assert(dfa_min.GetStates() < dfa.GetStates());
+	assert(dfa_min.GetStates() == 3);
+
+	cout << endl;
+
+	return 0;
+}
+
+int test601()
+{
+	cout << "Esta prueba minimiza un automata sencillo usando Brzozowski y escribe el resultado en un archivo test2.dot" << endl;
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState,TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;	
+	//    / 1 - 3
+	//  0
+	//    \ 2 - 4
+	TDfa dfa(2, 5);
+
+	dfa.SetInitial(0);
+	dfa.SetFinal(3);
+	dfa.SetFinal(4);
+
+	dfa.SetTransition(0, 0, 1);
+	dfa.SetTransition(0, 1, 2);
+
+	dfa.SetTransition(1, 0, 3);
+	dfa.SetTransition(1, 1, 1);
+
+	dfa.SetTransition(2, 0, 4);
+	dfa.SetTransition(2, 1, 2);
+
+	dfa.SetTransition(3, 0, 3);
+	dfa.SetTransition(3, 1, 3);
+
+	dfa.SetTransition(4, 0, 4);
+	dfa.SetTransition(4, 1, 4);
+
+	mini.ShowConfiguration=true;
+	TDfa dfa_min = mini.Minimize(dfa);
+
+	// asegura que la cantidad de estados al final es menor
+	assert(dfa_min.GetStates() < dfa.GetStates());
+	assert(dfa_min.GetStates() == 3);
+
+	cout << endl;
+
+	return 0;
+}
+
+int test610()
+{
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState,TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;	
+	TDfa dfa(2, 10);
+
+	dfa.SetInitial(0);
+
+	dfa.SetFinal(1);
+	dfa.SetFinal(2);
+	dfa.SetFinal(3);
+	dfa.SetFinal(5);
+	dfa.SetFinal(6);
+
+	dfa.SetTransition(0,0,1);
+	dfa.SetTransition(0,1,2);
+	dfa.SetTransition(1,0,3);
+	dfa.SetTransition(1,1,4);
+	dfa.SetTransition(2,0,5);
+	dfa.SetTransition(2,1,4);
+	dfa.SetTransition(3,0,3);
+	dfa.SetTransition(3,1,1);
+	dfa.SetTransition(4,0,6);
+	dfa.SetTransition(4,1,2);
+	dfa.SetTransition(5,0,7);
+	dfa.SetTransition(5,1,2);
+	dfa.SetTransition(6,0,3);
+	dfa.SetTransition(6,1,8);
+	dfa.SetTransition(7,0,7);
+	dfa.SetTransition(7,1,7);
+	dfa.SetTransition(8,0,6);
+	dfa.SetTransition(8,1,9);
+	dfa.SetTransition(9,0,7);
+	dfa.SetTransition(9,1,9);
+
+	mini.ShowConfiguration=true;
+	write_dot(dfa, "test_610.dot");
+	auto dfa_min = mini.Minimize(dfa);
+	write_dot(dfa_min, "test_610_min.dot");
+
+	return 0;
+}
+
+int test602()
+{
+	cout << "Esta prueba minimiza un automata sencillo usando Incremental y escribe el resultado en un archivo test3.dot" << endl;
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;	
+	// uses zero as invisible null-sink state
+	//      2 - 5 - 8  - 11
+	//    /
+	//   1 -3 - 6 - 9  - 12
+	//    \
+	//      4 - 7 - 10 - 13
+	TDfa dfa(3, 14);
+
+	dfa.SetInitial(1);
+	dfa.SetFinal(11);
+	dfa.SetFinal(12);
+	dfa.SetFinal(13);
+
+	dfa.SetTransition(1, 0, 2);
+	dfa.SetTransition(1, 1, 3);
+	dfa.SetTransition(1, 2, 4);
+
+	dfa.SetTransition(2, 0, 5);
+	dfa.SetTransition(3, 0, 6);
+	dfa.SetTransition(4, 0, 7);
+
+	dfa.SetTransition(5, 0, 8);
+	dfa.SetTransition(6, 1, 9);
+	dfa.SetTransition(7, 2, 10);
+
+	dfa.SetTransition(8, 0, 11);
+	dfa.SetTransition(9, 1, 12);
+	dfa.SetTransition(10, 2, 13);
+
+	mini.ShowConfiguration=true;
+	auto dfa_min = mini.Minimize(dfa);
+
+	write_dot(dfa, "test_302.dot");
+	write_dot(dfa_min, "test_302_min.dot");
+
+	// asegura que la cantidad de estados al final es menor
+	assert(dfa_min.GetStates() < dfa.GetStates());
+	assert(dfa_min.GetStates() == 12);
+
+	cout << endl;
+
+	return 0;
+}
+
+int test603()
+{
+	cout << "Esta prueba minimiza un automata sencillo usando Incremental y escribe el resultado en un archivo test4.dot" << endl;
+
+	typedef uint16_t TState;
+	typedef uint8_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;	
+	// uses zero as invisible null-sink state
+	//      2 - 5 - 8  - 11
+	//    /       \   /
+	//   1 -3 - 6 - 9  - 12
+	//    \       \   \
+	//      4 - 7 - 10 - 13
+	TDfa dfa(3, 14);
+
+	dfa.SetInitial(1);
+	dfa.SetFinal(11);
+	dfa.SetFinal(12);
+	dfa.SetFinal(13);
+
+	dfa.SetTransition(1, 0, 2);
+	dfa.SetTransition(1, 1, 3);
+	dfa.SetTransition(1, 2, 4);
+
+	dfa.SetTransition(2, 0, 5);
+	dfa.SetTransition(3, 0, 6);
+	dfa.SetTransition(4, 0, 7);
+
+	dfa.SetTransition(5, 0, 8);		
+	dfa.SetTransition(5, 1, 9);		
+	dfa.SetTransition(5, 2, 9);		
+
+	dfa.SetTransition(6, 1, 9);
+	dfa.SetTransition(6, 0, 10);
+	dfa.SetTransition(6, 2, 10);
+
+	dfa.SetTransition(7, 0, 10);
+	dfa.SetTransition(7, 1, 10);
+	dfa.SetTransition(7, 2, 10);
+
+	dfa.SetTransition(8, 0, 11);
+	dfa.SetTransition(8, 1, 11);
+	dfa.SetTransition(8, 2, 11);
+
+	dfa.SetTransition(9, 0, 11);
+	dfa.SetTransition(9, 1, 12);
+	dfa.SetTransition(9, 2, 13);
+
+	dfa.SetTransition(10, 0, 13);
+	dfa.SetTransition(10, 1, 13);
+	dfa.SetTransition(10, 2, 13);
+
+	mini.ShowConfiguration=true;
+	auto dfa_min = mini.Minimize(dfa);
+
+	// asegura que la cantidad de estados al final es menor
+	assert(dfa_min.GetStates() < dfa.GetStates());
+	assert(dfa_min.GetStates() == 6);
+
+	cout << endl;
+
+	return 0;
+}
 
 // Test automata generation 400-499
 
@@ -1229,6 +1477,12 @@ int main(int argc, char** argv)
 		MACRO_TEST(303);
 		MACRO_TEST(310);
 
+		MACRO_TEST(600);
+		MACRO_TEST(601);
+		MACRO_TEST(602);
+		MACRO_TEST(603);
+		MACRO_TEST(610);
+		
 		MACRO_TEST(400);
 		MACRO_TEST(401);
 

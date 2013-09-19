@@ -52,6 +52,16 @@ public:
 		store.reset(element);
 	}
 
+	bool TestAndAdd(const TElement& element)
+	{
+		return store.test_set(element);
+	}
+
+	bool TestAndRemove(const TElement& element)
+	{
+		return store.test_reset(element);
+	}
+
 	void UnionWith(const TSet& other)
 	{
 		store |= other.store;
@@ -82,9 +92,9 @@ public:
 		return store.none();
 	}
 
-	size_t Count() const 
+	TElement Count() const 
 	{
-		return store.count();
+		return static_cast<TElement>(store.count());
 	}
 
 	static TSet Union(const TSet& lh, const TSet& rh)

@@ -35,6 +35,8 @@ public:
 	dynamic_bitset& reset(size_type n) { __base::reset(n); return *this; }
 	dynamic_bitset& set() { __base::set(); return *this; }
 	dynamic_bitset& reset() { __base::reset(); return *this; }
+	bool test_set(size_type n) { bool i = __base::test(n); set(n); return i; }
+	bool test_reset(size_type n) { bool i = __base::test(n); reset(n); return i; }
 	
 	struct hash
 	{
@@ -128,6 +130,20 @@ public:
 		auto idx = n%bits_per_block;
 		_bittestandreset64(r, idx);
 		return *this;
+	}
+
+	bool test_set(size_type n) 
+	{ 
+		auto r = (int64_t*)&m_bits[n/bits_per_block];
+		auto idx = n%bits_per_block;
+		return _bittestandset64(r, idx) ? true : false;
+	}
+
+	bool test_reset(size_type n) 
+	{ 
+		auto r = (int64_t*)&m_bits[n/bits_per_block];
+		auto idx = n%bits_per_block;
+		return _bittestandreset64(r, idx) ? true : false;
 	}
 
 	size_type find_first() const
