@@ -1286,6 +1286,19 @@ int test500()
 	write_dot(dfa_mini, "nfa\\t500_dfa_min_i.dot");
 	write_text(dfa_mini, "nfa\\t500_dfa_min_i.txt");
 
+	MinimizationHybrid<TDfa> minhi;
+	MinimizationHybrid<TDfa>::NumericPartition parthi;
+	minhi.ShowConfiguration = false;
+	timer.start();
+	minhi.Minimize(dfa, parthi);
+	timer.stop();
+	auto dfa_minhi = mini.BuildDfa(dfa, part);
+
+	cout << "Minimizado Hybrido con " << (size_t)part.GetSize() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
+	cout << "Minimizacion tomo " << timer.format(5) << endl;
+	write_dot(dfa_minhi, "nfa\\t500_dfa_min_hi.dot");
+	write_text(dfa_minhi, "nfa\\t500_dfa_min_hi.txt");
+
 	return 0;
 }
 
@@ -1305,9 +1318,11 @@ int test501()
 	MinimizationBrzozowski<TNfa> min1;
 	MinimizationHopcroft<TDfa> min2;
 	MinimizationIncremental<TDfa> min3;
+	MinimizationHybrid<TDfa> min4;
 
 	min2.ShowConfiguration = false;
 	min3.ShowConfiguration = false;
+	min4.ShowConfiguration = false;
 
 	ofstream report("report_501.csv");
 	if(!report.is_open()) throw exception("No se pudo abrir el reporte");
@@ -1315,6 +1330,7 @@ int test501()
 	vector<TState> vfinal;
 	vector<TNfa::TEdge> vedges;
 	MinimizationIncremental<TDfa>::NumericPartition part_i;
+	MinimizationHybrid<TDfa>::NumericPartition part_hi;
 	MinimizationHopcroft<TDfa>::NumericPartition part_h;
 
 	try 
@@ -1373,6 +1389,19 @@ int test501()
 				//cout << "Incremental " << dfa_filename << ": " << timer.elapsed().wall << endl;
 				report << (boost::format("%1%, %2%, %3%, %4%, %5%") 
 					% "Incremental"
+					% n
+					% k
+					% timer.elapsed().wall
+					% dfa_filename
+					).str() << endl;
+				acum_time_i += timer.elapsed().wall;
+
+				timer.start();
+				min4.Minimize(dfa, part_hi);
+				timer.stop();
+				//cout << "Hybrid " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%, %2%, %3%, %4%, %5%") 
+					% "Hybrid"
 					% n
 					% k
 					% timer.elapsed().wall
