@@ -33,6 +33,7 @@ public:
 		{
 			state_to_partition.resize(states);
 			P.resize(states);
+			for(auto i=P.begin(); i!=P.end(); i++) i->clear();
 			new_index = 0;
 		}
 
