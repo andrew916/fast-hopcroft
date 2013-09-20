@@ -134,10 +134,11 @@ private:
 						else if(k == i_q)
 						{
 							i_q = j;
-							if(i_q == cur_part->end()) {
+							if(i_q == cur_part->end()) 
+							{
 								i_p++;
 								if(i_p == k) i_p = j;
-								else i_q = next(i_p, 1);
+								if(i_p != cur_part->end()) i_q = next(i_p, 1);
 							}
 						}
 					}
@@ -264,12 +265,14 @@ public:
 					cout << "pair: " << static_cast<size_t>(*i_p) << ", " << static_cast<size_t>(*i_q) << endl;
 				}
 
+				assert(distance(i_p, i_q) > 0);
+
 				TState p, q;
 				tie(p,q) = NormalizedPair(*i_p, *i_q);
 
 				assert(p < q);
 				assert(dfa.IsFinal(p) == dfa.IsFinal(q));
-				assert(part.Find(p) == part.Find(q));
+				assert(part.Find(p) == part.Find(q));				
 
 				path.Clear();
 				equiv.Clear();
@@ -281,7 +284,7 @@ public:
 					cout << (isEquiv ? "YES" : "NO") << endl;
 				}
 				if(isEquiv) 
-				{
+				{					
 					i_q++;
 					if(i_q == cur_part->end()) 
 					{
