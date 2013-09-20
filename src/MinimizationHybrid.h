@@ -16,21 +16,21 @@ public:
 	typedef uint64_t TPairIndex;
 	typedef std::tuple<TState,TState,TSymbol> TSplitter;
 	typedef std::vector<TState> TStateToPartition;
-	typedef std::vector<std::pair<TState,TState>> TPartitionSet;
+	typedef std::vector<std::list<TState>> TPartitionSet;
 
+	// TODO: More partition details isolated from algoritmhs
+	// in order to not expose internal members
 	class NumericPartition
 	{
 	public:
-		std::vector<TState> Pcontent;
 		TStateToPartition state_to_partition;
-		TPartitionSet P;
 		TState new_index;
+		TPartitionSet P;		
 
 		TState GetSize() const { return new_index; }
 
 		void Clear(TState states)
 		{
-			Pcontent.resize(states);
 			state_to_partition.resize(states);
 			P.resize(states);
 			new_index = 0;
@@ -39,6 +39,11 @@ public:
 		TState Find(TState st) const
 		{
 			return state_to_partition[st];
+		}
+
+		std::list<TState>& GetPartition(TState st)
+		{
+			return P[st];
 		}
 	};
 
@@ -65,21 +70,23 @@ private:
 		return make_pair(std::min(p,q), std::max(p,q));
 	}
 
-	void Split(const TDfa& dfa, NumericPartition& part, TState splitter_partition, TSymbol splitter_letter) const
+	// Try splits all partition using the splitter indicated by partition index and letter.
+	// If split is performed on specific partition, it modifies two iterators in order to be able to continue
+	// iteration on next item inside original partition
+	void Split(const TDfa& dfa, NumericPartition& part, TState splitter_partition_idx, TSymbol splitter_letter, typename std::vector<std::list<TState>>::iterator cur_part, typename std::list<TState>::iterator& i_p, typename std::list<TState>::iterator& i_q) const
 	{
 		using namespace std;
 
 		// calcula d_inverse para el conjunto de estados y letra indicado
 		BitSet<TState> pred_states(dfa.GetStates());
-		auto begin = next(part.Pcontent.begin(), part.P[splitter_partition].first);
-		auto end = next(begin, part.P[splitter_partition].second);
-		if(ShowConfiguration) cout << "(min){";
-		for(auto i=begin; i!=end; i++)
+		auto& splitter_part = part.GetPartition(splitter_partition_idx);
+		if(ShowConfiguration) cout << "{";
+		for(auto i=splitter_part.begin(); i!=splitter_part.end(); i++)
 		{
 			TState st = *i;
 			if(ShowConfiguration)
 			{
-				if(i!=begin) cout << ", ";
+				if(i!=splitter_part.begin()) cout << ", ";
 				cout << static_cast<size_t>(st);
 			}
 			const auto& pred_local = dfa.GetPredecessors(st, splitter_letter);
@@ -89,80 +96,63 @@ private:
 		{
 			cout << "} / " << static_cast<size_t>(splitter_letter) << " <- ";
 			cout << "{";
-			int cont = 0;
+			TState cont = 0;
 			for(auto bi=pred_states.GetIterator(); !bi.IsEnd(); bi.MoveNext())
 			{
 				if(cont++ > 0) cout << ", ";
 				cout << static_cast<size_t>(bi.GetCurrent());
 			}
 			cout << "}" << endl;
-		}		
+		}
 
-		auto part_desc_begin = part.P.begin();
-		auto part_desc_end = next(part_desc_begin, part.new_index);
+		auto old_part_begin = part.P.begin();
+		auto old_part_end = next(old_part_begin, part.new_index);
 		// we ignore new partitions (new ones created inside this loop)
-		for(auto i=part_desc_begin; i!=part_desc_end; i++)
+		for(auto i=old_part_begin; i!=old_part_end; i++)
 		{
-			auto& partition_desc = *i;
-			TState partition_size = partition_desc.second;
-			assert(partition_size > 0);
-			if(partition_size < 2) continue;
-			const auto part_begin_const = next(part.Pcontent.begin(), partition_desc.first);
-			auto part_begin = part_begin_const;
-			auto part_end = next(part_begin, partition_size - 1);
-			do
+			auto& old_part = *i;
+
+			assert(old_part.size() > 0);
+			if(old_part.size() < 2) continue;
+
+			auto& new_part = part.P[part.new_index];
+
+			for(auto j=old_part.begin(); j!=old_part.end(); )
 			{
-				TState state = *part_begin;
-				if(pred_states.Contains(state))
+				auto k = j++;
+				if(!pred_states.Contains(*k))
 				{
-					part_begin++;
-				} else {
-					iter_swap(part_begin, part_end);
-					part.state_to_partition[state] = part.new_index;
-					part_end--;
-				}
-			} while(part_begin != part_end);
-			// last element remains without class
-			{
-				TState state = *part_begin;
-				if(pred_states.Contains(state))
-				{
-					part_begin++;
-				} else {
-					part.state_to_partition[state] = part.new_index;
+					// Q necesita estar por delante de P
+					if(i == cur_part)
+					{
+						if(k == i_p)
+						{
+							i_p = j;
+							if(i_p != cur_part->end()) i_q = next(i_p, 1);
+						}
+						else if(k == i_q)
+						{
+							i_q = j;
+							if(i_q == cur_part->end()) {
+								i_p++;
+								if(i_p == k) i_p = j;
+								else i_q = next(i_p, 1);
+							}
+						}
+					}
+					new_part.splice(new_part.end(), old_part, k);
 				}
 			}
-
-			// old partition new size
-			TState split_size = static_cast<TState>(distance(part_begin_const, part_begin));
-
-			// continue if was not division
-			if(split_size == partition_size) continue;
-
-			// new parition size
-			TState split_complement_size = partition_size - split_size;
-
-			// restore partition indices
-			if(split_size == 0)
+			// si todo quedo en la nueva particion, no desperdiciar la vieja
+			if(old_part.size() == 0) old_part.splice(old_part.begin(), new_part);
+			else for(auto j=new_part.begin(); j!=new_part.end(); j++)
 			{
-				TState cur = static_cast<TState>(distance(part_desc_begin, i));
-				for(part_begin=part_begin_const; part_begin != part_end; part_begin++)
-				{
-					part.state_to_partition[*part_begin] = cur;
-				}
-				continue;
+				part.state_to_partition[*j] = part.new_index;
 			}
-
-			partition_desc.second = split_size;
-
-			// confirm descriptor for new partition
-			auto new_partition_desc_it = next(part.P.begin(), part.new_index);
-			new_partition_desc_it->first = partition_desc.first + split_size;
-			new_partition_desc_it->second = split_complement_size;
 
 			// If we are here, split was done
 			// new partition index must increment
-			part.new_index++;
+			if(new_part.size() > 0)	part.new_index++;
 		}
 	}
 
@@ -194,37 +184,38 @@ private:
 			splitter_stack.pop_back();
 			path.Remove(pair);
 		}
-		
+
 		return true;
 	}
 
 public:
 
-	std::string to_string(const typename TPartitionSet::value_type& P, const std::vector<TState>& Pcontent)
+	std::string to_string(std::list<TState> part)
 	{
 		using namespace std;
 		string str;
 		str.append("{");
-		for(TState j=P.first, cnt=0; cnt<P.second; j++, cnt++)
+		TState cnt = 0;
+		for(auto i : part)
 		{
-			if(cnt > 0) str += ", ";
-			str.append(std::to_string((size_t)Pcontent[j]));
+			if(cnt++ > 0) str += ", ";
+			str.append(std::to_string(static_cast<size_t>(i)));
 		}
 		str.append("}");
 		return str;
 	}
 
-	std::string to_string(const TPartitionSet& p, TState size, const std::vector<TState>& Pcontent)
+	std::string to_string(const NumericPartition& P)
 	{
 		using namespace std;
 		string str;
-		int cnt = 0;
+		TState cnt = 0;
 		str.append("{");
-		for_each(p.cbegin(), p.cbegin()+size, [&](const typename TPartitionSet::value_type& x)
+		for(auto i=P.P.begin(); i!=P.P.end(); i++)
 		{
 			if(cnt++ > 0) str.append(", ");
-			str.append(to_string(x, Pcontent));
-		});
+			str.append(to_string(*i));
+		}
 		str.append("}");
 		return str;
 	}
@@ -238,25 +229,17 @@ public:
 	void Minimize(const TDfa& dfa, NumericPartition& part)
 	{
 		using namespace std;
-		TState final_states_count = dfa.GetFinals().Count();
-		TState non_final_states_count = dfa.GetStates() - final_states_count;
+
 		TState states = dfa.GetStates();
 		part.Clear(states);
 
-		part.P[0].first = 0;
-		part.P[0].second = final_states_count;
-
-		part.P[1].first = final_states_count;
-		part.P[1].second = non_final_states_count;
-
 		// Inicializa funcion inversa para obtener la particion a la que pertenece un estado
-		auto it_f = part.Pcontent.begin();
-		auto it_nf = part.Pcontent.rbegin();
+		auto it_f = back_inserter(part.P[0]), it_nf = back_inserter(part.P[1]);
 		for(TState st=0; st<dfa.GetStates(); st++)
 		{
-			if(dfa.IsFinal(st)) *it_f++ = st;
-			else *it_nf++ = st;
-			part.state_to_partition[st] = dfa.IsFinal(st) ? 0 : 1;
+			auto f = dfa.IsFinal(st);
+			if(f) *it_f++ = st;	else *it_nf++ = st;
+			part.state_to_partition[st] = f ? 0 : 1;
 		}
 		// partitions count
 		part.new_index = 2;
@@ -266,65 +249,71 @@ public:
 		BitSet<TPairIndex> equiv((states*states-states)/2);
 		vector<TSplitter> splitter_stack;
 
-		for(TState current_part_idx=0; current_part_idx!=part.GetSize(); current_part_idx++)
+		for(auto cur_part=part.P.begin(); cur_part!=next(part.P.begin(), part.new_index); cur_part++)
 		{
-			auto& current_part_desc = part.P[current_part_idx];
-			if(current_part_desc.second < 2) continue;
-			for(TState i_p=0; i_p<current_part_desc.second; i_p++)
-			{		
-				for(TState i_q=i_p+1; i_q<current_part_desc.second; i_q++)
+			assert(cur_part->size() > 0);
+			if(cur_part->size() < 2) continue;
+
+			auto i_p = cur_part->begin();
+			auto i_q = next(i_p, 1);
+			while(i_p != cur_part->end() && i_q != cur_part->end())
+			{
+				if(ShowConfiguration)
 				{
-					TState p, q;
-					p = part.Pcontent[i_p + current_part_desc.first];
-					q = part.Pcontent[i_q + current_part_desc.first];
-					tie(p,q) = NormalizedPair(p,q);
+					cout << "pair: " << static_cast<size_t>(*i_p) << ", " << static_cast<size_t>(*i_q) << endl;
+				}
 
-					assert(p < q);
-					assert(dfa.IsFinal(p) == dfa.IsFinal(q));
-					assert(part.Find(p) == part.Find(q));
+				TState p, q;
+				tie(p,q) = NormalizedPair(*i_p, *i_q);
 
-					if(neq.Contains(GetPairIndex(p,q)))
+				assert(p < q);
+				assert(dfa.IsFinal(p) == dfa.IsFinal(q));
+				assert(part.Find(p) == part.Find(q));
+
+				path.Clear();
+				equiv.Clear();
+				splitter_stack.clear();
+
+				bool isEquiv = EquivP(p, q, dfa, part, neq, path, equiv, splitter_stack);
+				if(ShowConfiguration)
+				{
+					cout << (isEquiv ? "YES" : "NO") << endl;
+				}
+				if(isEquiv) 
+				{
+					i_q++;
+					if(i_q == cur_part->end()) 
 					{
-						continue;
+						i_p++;
+						i_q = next(i_p, 1);
+					}
+					continue;
+				}
+
+				neq.UnionWith(path);
+				while(!splitter_stack.empty())
+				{
+					TSplitter s = splitter_stack.back();							
+					TState s1 = get<0>(s);
+					TState s2 = get<1>(s);
+					TSymbol a = get<2>(s);
+
+					s1 = part.Find(s1);
+					s2 = part.Find(s2);
+
+					TState min_part;
+					if(part.P[s1].size() < part.P[s2].size())
+					{
+						min_part = s1;
+					} else {
+						min_part = s2;
 					}
 
-					path.Clear();
-					equiv.Clear();
-					splitter_stack.clear();
-
-					bool isEquiv = EquivP(p, q, dfa, part, neq, path, equiv, splitter_stack);
+					Split(dfa, part, min_part, a, cur_part, i_p, i_q);
+					splitter_stack.pop_back();
 					if(ShowConfiguration)
 					{
-						cout << (isEquiv ? "YES" : "NO") << endl;
-					}
-					if(!isEquiv) 
-					{
-						neq.UnionWith(path);
-						while(!splitter_stack.empty())
-						{
-							TSplitter s = splitter_stack.back();							
-							TState s1 = get<0>(s);
-							TState s2 = get<1>(s);
-							TSymbol a = get<2>(s);
-
-							s1 = part.Find(s1);
-							s2 = part.Find(s2);
-
-							TState min_part;
-							if(part.P[s1].second < part.P[s2].second)
-							{
-								min_part = s1;
-							} else {
-								min_part = s2;
-							}
-
-							Split(dfa, part, min_part, a);
-							splitter_stack.pop_back();
-							if(ShowConfiguration)
-							{
-								cout << "splitter a=" << static_cast<size_t>(a) << ", " << to_string(part.P, part.GetSize(), part.Pcontent) << endl;
-							}
-						}
+						cout << "splitter a=" << static_cast<size_t>(a) << ", " << to_string(part) << endl;
 					}
 				}
 			}
@@ -339,14 +328,10 @@ public:
 	{
 		TDfa ndfa(dfa.GetAlphabetLength(), partitions.GetSize());
 		int pidx = 0;
-		for(auto p : partitions.P)
+		for(const auto& p : partitions.P)
 		{
-			auto begin = partitions.Pcontent.begin()+p.first;
-			auto end = begin + p.second;
-			if(begin == end) continue;
-			for(auto is=begin; is!=end; is++)
+			for(TState s : p)
 			{
-				auto s = *is;
 				for(TSymbol sym=0; sym<dfa.GetAlphabetLength(); sym++)
 				{
 					TState tgt = dfa.GetSuccessor(s, sym);
