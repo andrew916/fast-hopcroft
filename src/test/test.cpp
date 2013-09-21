@@ -1340,6 +1340,7 @@ int test501()
 			uint64_t acum_time_b = 0;
 			uint64_t acum_time_h = 0;
 			uint64_t acum_time_i = 0;
+			uint64_t acum_time_hi = 0;
 			uint64_t automata_count = 0;
 			if(!is_directory(root_path_iter->status())) continue;
 			cout << "Entering " << root_path_iter->path() << endl;
@@ -1407,7 +1408,7 @@ int test501()
 					% timer.elapsed().wall
 					% dfa_filename
 					).str() << endl;
-				acum_time_i += timer.elapsed().wall;
+				acum_time_hi += timer.elapsed().wall;
 
 				automata_count++;
 			}
@@ -1416,11 +1417,13 @@ int test501()
 			acum_time_b /= automata_count;
 			acum_time_h /= automata_count;
 			acum_time_i /= automata_count;
-			cout << (boost::format("folder: %1% | Promedios: B:%2% H:%3% I:%4%")
+			acum_time_hi /= automata_count;
+			cout << (boost::format("folder: %1% | Promedios: B:%2% H:%3% I:%4% HI:%5%")
 				% root_path_iter->path().string()
 				% acum_time_b
 				% acum_time_h
 				% acum_time_i
+				% acum_time_hi
 				).str() << endl;
 		}
 	}

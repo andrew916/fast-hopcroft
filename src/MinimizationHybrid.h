@@ -133,16 +133,28 @@ private:
 						}
 						else if(k == i_q)
 						{
+fixmove:
 							i_q = j;
 							if(i_q == cur_part->end()) 
 							{
 								i_p++;
-								if(i_p == k) i_p = j;
-								if(i_p != cur_part->end()) i_q = next(i_p, 1);
+								if(i_p == k) i_p = j; // end
+								else {
+									i_q = next(i_p, 1);
+									if(i_q == k){
+										i_q = j; // end
+										i_p = j; // end
+									}
+								}
 							}
 						}
+						assert(i_p != k);
+						assert(i_q != k);
 					}
 					new_part.splice(new_part.end(), old_part, k);
+					// p -> q  === !p || q
+					assert( !(i_p == i_q) || (i_p == cur_part->end() && i_q == cur_part->end()) );
+					assert( !(i_p != i_q) || (distance(i_p, i_q) > 0) );
 				}
 			}
 			// si todo quedo en la nueva particion, no desperdiciar la vieja

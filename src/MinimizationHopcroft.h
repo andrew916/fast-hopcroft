@@ -123,7 +123,7 @@ public:
 		
 		// vector de parejas que indican en el vector de contenido cada particion
 		// Cada pareja contiene el indice donde inicia una particion y su longitud
-		np.P.resize(dfa.GetStates());
+		np.P.resize(dfa.GetStates()*2);
 
 		np.P[0].first = 0;
 		np.P[0].second = final_states_count;
@@ -198,8 +198,7 @@ public:
 					TStateSize partition_index = np.state_to_partition[ss.GetCurrent()];
 
 					// Is this partition already processed?
-					if(partitions_to_split.Contains(partition_index)) continue;
-					partitions_to_split.Add(partition_index);
+					if(partitions_to_split.TestAndAdd(partition_index)) continue;
 
 					TPartition& partition_desc = np.P[partition_index];
 
@@ -256,6 +255,8 @@ public:
 					TStateSize split_complement_size = partition_size - split_size;
 
 					partition_desc.second = split_size;
+
+					assert(np.new_index < np.P.size());
 
 					// confirm descriptor for new partition
 					np.P[np.new_index].first = partition_desc.first + split_size;
