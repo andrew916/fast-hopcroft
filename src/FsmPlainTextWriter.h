@@ -22,10 +22,10 @@ public:
 		using namespace std;
 		
 		output << "# Estados DFA" << endl;
-		output << dfa.GetStates() << endl;
+		output << static_cast<size_t>(dfa.GetStates()) << endl;
 
 		output << "# Simbolos" << endl;
-		output << dfa.GetAlphabetLength() << endl;
+		output << static_cast<size_t>(dfa.GetAlphabetLength()) << endl;
 		
 		output << "# Iniciales" << endl;		
 		auto first = dfa.GetInitials().GetIterator();
@@ -53,7 +53,7 @@ public:
 				for(TSymbol c=0; c<dfa.GetAlphabetLength(); c++)
 				{
 					if(dfa.IsSuccessor(qs, c, qt))
-						output << (size_t)qs << " " << (size_t)c << " " << (size_t)qt << endl;
+						output << static_cast<size_t>(qs) << " " << static_cast<size_t>(c) << " " << static_cast<size_t>(qt) << endl;
 				}
 			}
 		}

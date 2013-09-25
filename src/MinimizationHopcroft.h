@@ -21,57 +21,84 @@ public:
 	typedef TDfa TDfa;
 	typedef typename TDfa::TState TState;
 	typedef typename TDfa::TSymbol TSymbol;
-	typedef typename TState TStateSize;	
 	typedef typename TDfa::TSet TSet;
-	typedef std::pair<TStateSize,TStateSize> TPartition;
-	typedef std::vector<TPartition> TPartitionSet;
+	typedef std::list<TState> TPartitionItem;
+	typedef std::vector<TPartitionItem> TPartition;
+	typedef std::vector<TState> TStateToPartition;
 
-	typedef std::vector<std::vector<TState>> TPartitionVector;
-	typedef std::vector<TStateSize> TStateToPartition;
-	
 private:
 
-	std::string to_string(const TPartition& P, const std::vector<TState>& Pcontent)
+
+public:
+
+	std::string to_string(const TPartition& P) const
 	{
 		using namespace std;
 		string str;
 		str.append("{");
-		for(TStateSize j=P.first, cnt=0; cnt<P.second; j++, cnt++)
+		for(TState i=0; i<P.size() && P[i].size()>0; i++)
 		{
-			if(cnt > 0) str += ", ";
-			str.append(std::to_string((size_t)Pcontent[j]));
+			if(i > 0) str += ", ";
+			TPartitionItem pi = P[i];
+			str.append(to_string(pi));
 		}
 		str.append("}");
 		return str;
 	}
 
-	std::string to_string(const TPartitionSet& p, TStateSize size, const std::vector<TStateSize>& Pcontent)
+	std::string to_string(const TPartitionItem& p) const
 	{
 		using namespace std;
 		string str;
-		int cnt = 0;
 		str.append("{");
-		for_each(p.cbegin(), p.cbegin()+size, [&](const TPartition& x)
+		int cnt = 0;
+		for(auto i=p.begin(); i!=p.end(); i++)
 		{
 			if(cnt++ > 0) str.append(", ");
-			str.append(to_string(x, Pcontent));
-		});
+			size_t s = static_cast<size_t>(*i);
+			str.append(std::to_string(s));
+		}
 		str.append("}");
 		return str;
 	}
 
-public:
-
 	class NumericPartition
 	{
 	public:
-		std::vector<TState> Pcontent;
-		TStateToPartition state_to_partition;
-		TPartitionSet P;
+		std::vector<TState> state_to_partition;
+		std::vector<std::list<TState>> P;
 		TState new_index;
 
 		TState GetSize() const { return new_index; }
+		void Clear(TState ns)
+		{
+			P.resize(ns);
+			state_to_partition.resize(ns);
+			for(auto& i : P) i.clear();
+			new_index = 0;
+		}
 	};
+
+	std::string to_string(const NumericPartition& p) const
+	{
+		return to_string(p.P);
+	}
+
+	std::string to_string(const TSet& s) const
+	{
+		using namespace std;
+		string str;
+		str.append("{");
+		int cont=0;
+		for(auto i=s.GetIterator(); !i.IsEnd(); i.MoveNext())
+		{
+			if(cont++ > 0) str.append(", ");
+			size_t st = static_cast<size_t>(i.GetCurrent());
+			str.append(std::to_string(st));
+		}
+		str.append("}");
+		return str;
+	}
 
 	/// Controls the debugging info output
 	bool ShowConfiguration;
@@ -84,25 +111,22 @@ public:
 	TDfa BuildDfa(const TDfa& dfa, const NumericPartition& partitions)
 	{
 		TDfa ndfa(dfa.GetAlphabetLength(), partitions.GetSize());
-		int pidx = 0;
-		for(auto p : partitions.P)
+		for(TState i=0; i<partitions.GetSize(); i++)
 		{
-			auto begin = partitions.Pcontent.begin()+p.first;
-			auto end = begin + p.second;
-			if(begin == end) continue;
-			for(auto is=begin; is!=end; is++)
+			auto& pi = partitions.P[i];
+			assert(pi.size() > 0);
+			for(auto is=pi.begin(); is!=pi.end(); is++)
 			{
-				auto s = *is;
+				const auto s = *is;
 				for(TSymbol sym=0; sym<dfa.GetAlphabetLength(); sym++)
 				{
 					TState tgt = dfa.GetSuccessor(s, sym);
 					TState ptgt = partitions.state_to_partition[tgt];
-					ndfa.SetTransition(pidx, sym, ptgt);
+					ndfa.SetTransition(i, sym, ptgt);
 				}
-				if(dfa.IsInitial(s)) ndfa.SetInitial(pidx);
-				if(dfa.IsFinal(s)) ndfa.SetFinal(pidx);
+				if(dfa.IsInitial(s)) ndfa.SetInitial(i);
+				if(dfa.IsFinal(s)) ndfa.SetFinal(i);
 			}
-			pidx++;
 		}
 		return ndfa;
 	}
@@ -111,31 +135,19 @@ public:
 	{
 		using namespace std;
 
-		TStateSize final_states_count = (TStateSize)dfa.GetFinals().Count();
-		TStateSize non_final_states_count = (TStateSize)dfa.GetStates() - final_states_count;
+		TState final_states_count = dfa.GetFinals().Count();
+		TState non_final_states_count = dfa.GetStates() - final_states_count;
 
 		// Un automata sin estado final?
 		assert(final_states_count > 0);
 
-		// cantidad de estados en la particion y particion
 		// Maximo puede exisitir una particion por cada estado, por ello reservamos de esta forma
-		np.Pcontent.resize(dfa.GetStates());
-		
-		// vector de parejas que indican en el vector de contenido cada particion
-		// Cada pareja contiene el indice donde inicia una particion y su longitud
-		np.P.resize(dfa.GetStates()*2);
+		np.Clear(dfa.GetStates());
 
-		np.P[0].first = 0;
-		np.P[0].second = final_states_count;
+		// Inicializa funcion inversa para obtener la particion a la que pertenece un estado		
 
-		np.P[1].first = final_states_count;
-		np.P[1].second = non_final_states_count;
-
-		// Inicializa funcion inversa para obtener la particion a la que pertenece un estado
-		np.state_to_partition.resize(dfa.GetStates());
-
-		auto it_f = np.Pcontent.begin();
-		auto it_nf = np.Pcontent.rbegin();
+		auto it_f = back_inserter(np.P[0]);
+		auto it_nf = back_inserter(np.P[1]);
 		for(TState st=0; st<dfa.GetStates(); st++)
 		{
 			if(dfa.IsFinal(st)) *it_f++ = st;
@@ -146,7 +158,12 @@ public:
 		// partitions count
 		np.new_index = 2;
 
-		TStateSize min_initial_partition_index = final_states_count < non_final_states_count ? 0 : 1;
+		if(ShowConfiguration)
+		{
+			cout << "Initial P=" << to_string(np) << endl;
+		}
+
+		TState min_initial_partition_index = final_states_count < non_final_states_count ? 0 : 1;
 
 		// set containing the next partitions to be processed
 		TSet wait_set_membership(dfa.GetStates());
@@ -163,29 +180,30 @@ public:
 		{
 			assert(np.new_index <= dfa.GetStates());
 
-			// remove current
-			wait_set_membership.Remove(splitter_set.GetCurrent());
-
 			// current splitter partition
 			const auto& splitter_partition = np.P[splitter_set.GetCurrent()];
 
 			if(ShowConfiguration)
-			{				
-				cout << "Spliter=" << to_string(splitter_partition, np.Pcontent) << endl;
+			{
+				cout << "Spliter=" << to_string(splitter_partition) << endl;
 			}
 
 			// Per symbol loop
 			for(TSymbol splitter_letter=0; splitter_letter<dfa.GetAlphabetLength(); splitter_letter++)
 			{								
 				predecessors.Clear();
+				bool was_split = false;
 
 				// recorre elementos de la particion
-				auto partition_it_begin = np.Pcontent.begin() + splitter_partition.first;
-				auto partition_it_end = partition_it_begin + splitter_partition.second;
-				for(; partition_it_begin != partition_it_end; partition_it_begin++)
+				for(auto pii=splitter_partition.begin(); pii!=splitter_partition.end(); pii++)
 				{
-					TState state = *partition_it_begin;
+					const TState state = *pii;
 					predecessors.UnionWith(dfa.GetPredecessors(state, splitter_letter));
+				}
+
+				if(ShowConfiguration)
+				{
+					cout << "delta_inv (" << static_cast<size_t>(splitter_letter) << ") = " << to_string(predecessors) << endl;
 				}
 
 				partitions_to_split.Clear();
@@ -195,72 +213,40 @@ public:
 				for(auto ss=predecessors.GetIterator(); !ss.IsEnd(); ss.MoveNext())
 				{
 					// state ss belongs to partition indicated with partition_index
-					TStateSize partition_index = np.state_to_partition[ss.GetCurrent()];
+					TState partition_index = np.state_to_partition[ss.GetCurrent()];
 
 					// Is this partition already processed?
 					if(partitions_to_split.TestAndAdd(partition_index)) continue;
 
-					TPartition& partition_desc = np.P[partition_index];
+					auto& old_part = np.P[partition_index];
 
 					// Imposible to divide a single state partition
-					const TStateSize partition_size = partition_desc.second;
-					if(partition_size == 1) continue;
+					if(old_part.size() == 1) continue;
 
-					// Partition start point
-					const auto partition_it_original_begin = np.Pcontent.begin() + partition_desc.first;
+					auto& new_part = np.P[np.new_index];
 
-					partition_it_begin = partition_it_original_begin;					
-					partition_it_end = partition_it_begin + partition_desc.second - 1;
-					// iterates trying split
-					do
+					for(auto k=old_part.begin(); k!=old_part.end();)
 					{
-						TState state = *partition_it_begin;
-						if(predecessors.Contains(state))
+						// al menos una vez estara k en predecessors
+						// al menos una vez, no se hara el interior de este if
+						auto l = k++;
+						if(!predecessors.Contains(*l))
 						{
-							partition_it_begin++;
-						}
-						else 
-						{
-							iter_swap(partition_it_begin, partition_it_end);
-							np.state_to_partition[state] = np.new_index;
-							partition_it_end--;
-						}
-					} while(partition_it_begin != partition_it_end);					
-					// last element remains without class, assign it
-					{ 
-						TState state = *partition_it_begin;
-						if(predecessors.Contains(state))
-						{
-							partition_it_begin++;							
-						}
-						else 
-						{							
-							np.state_to_partition[state] = np.new_index;						
+							np.state_to_partition[*l] = np.new_index;
+							new_part.splice(new_part.end(), old_part, l);
 						}
 					}
 
-					// old partition new size
-					TStateSize split_size = (TStateSize)(partition_it_begin - partition_it_original_begin);
+					assert(old_part.size() > 0);
 
-					// continue if was not division
-					if(split_size == partition_size) continue;
+					// si no hubo nada que dividir
+					if(new_part.size() == 0) continue;
+					was_split = true;
 
 					if(ShowConfiguration)
 					{
-						cout << "symbol=" << (size_t)splitter_letter << endl;
-						cout << "pred state=" << (size_t)ss.GetCurrent() << " in partition " << partition_index << endl;
+						cout << "pred state=" << static_cast<size_t>(ss.GetCurrent()) << " in partition " << static_cast<size_t>(partition_index) << endl;
 					}
-
-					// new parition size
-					TStateSize split_complement_size = partition_size - split_size;
-
-					partition_desc.second = split_size;
-
-					assert(np.new_index < np.P.size());
-
-					// confirm descriptor for new partition
-					np.P[np.new_index].first = partition_desc.first + split_size;
-					np.P[np.new_index].second = split_complement_size;
 
 					if(wait_set_membership.Contains(partition_index)) 
 					{
@@ -268,24 +254,26 @@ public:
 					} 
 					else 
 					{
-						auto add_index = split_size < split_complement_size ? partition_index : np.new_index;
+						auto add_index = old_part.size() < new_part.size() ? partition_index : np.new_index;
 						wait_set_membership.Add(add_index);
 					}
 
 					// If we are here, split was done
 					// new partition index must increment
 					np.new_index++;
-
-					if(ShowConfiguration)
-					{
-						cout << "P=" << to_string(np.P, np.new_index, np.Pcontent) << endl;
-					}		
+				}
+				if(ShowConfiguration && was_split)
+				{
+					cout << "P=" << to_string(np) << endl;
+					cout << "Waiting=" << to_string(wait_set_membership) << endl;
 				}
 			}
+			// remove current
+			wait_set_membership.Remove(splitter_set.GetCurrent());
 		}		
 		if(ShowConfiguration)
 		{
-			cout << "Final P=" << to_string(np.P, np.new_index, np.Pcontent) << endl;
+			cout << "Final P=" << to_string(np) << endl;
 			cout << "Finished, " << np.new_index << " states of " << dfa.GetStates() << endl;
 		}
 	}

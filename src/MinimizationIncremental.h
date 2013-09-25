@@ -109,7 +109,7 @@ public:
 
 	typedef typename NumericPartition::TStore TNumericPartitionStore;
 private:
-
+	
 	TPairIndex GetPairIndex(TState p, TState q) const
 	{
 		assert(p < q);
@@ -132,22 +132,22 @@ private:
 		if(ShowConfiguration) {
 			cout << "Test equiv (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ")" << endl;
 		}
-		TState states = dfa.GetStates();
-		TPairIndex root_pair = GetPairIndex(p,q);
+				
 		if(dfa.IsFinal(p) != dfa.IsFinal(q)) return false;
+		TPairIndex root_pair = GetPairIndex(p,q);
 		if(neq.Contains(root_pair)) return false;
-		if(path.Contains(root_pair)) return true;
-		path.Add(root_pair);
+		if(path.TestAndAdd(root_pair)) return true;
 		for(TSymbol a=0; a<dfa.GetAlphabetLength(); a++)
 		{
-			TState sp = dfa.GetSuccessor(p,a);
-			TState sq = dfa.GetSuccessor(q,a);
-			if(part.Find(sp) == part.Find(sq)) continue;
+			TState sp = dfa.GetSuccessor(p, a);
+			TState sq = dfa.GetSuccessor(q, a);
+			if(sp == sq) continue;
+			//if(part.Find(sp) == part.Find(sq)) continue;
 			if(sp > sq) std::swap(sp, sq);
-			TPairIndex pair = GetPairIndex(sp,sq);
-			if(!equiv.Contains(pair))
+			TPairIndex pair = GetPairIndex(sp, sq);
+			if(!equiv.TestAndAdd(pair))
 			{
-				equiv.Add(pair);
+				if(ShowConfiguration) cout << "with symbol: " << static_cast<size_t>(a) << endl;
 				if(!EquivP(sp,sq, dfa, part, neq, equiv, path))
 				{
 					return false;
@@ -160,6 +160,38 @@ private:
 	}
 
 public:
+
+	
+	std::string to_string(const std::list<TState>& ls)
+	{
+		string str;
+		str.append("{");
+		int cont=0;
+		for(auto i=ls.begin(); i!=ls.end(); i++)
+		{
+			if(cont++ > 0) str.append(", ");
+			size_t k = static_cast<size_t>(*i);
+			str.append(std::to_string(k));
+		}
+		str.append("}");
+		return str;
+	}
+
+	std::string to_string(const NumericPartition& p)
+	{
+		string str;
+		str.append("{");
+		TState i=0;
+		for(auto j=p.GetStore().begin(); j!=p.GetStore().end(); j++)
+		{
+			if(j->size() == 0) continue;
+			if(i > 0) str.append(", ");			
+			str.append(to_string(*j));
+			i++;
+		}
+		str.append("}");
+		return str;
+	}
 
 	bool ShowConfiguration;
 
@@ -182,7 +214,7 @@ public:
 			{
 				if(ShowConfiguration) 
 				{
-					cout << "test (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ") -> " << static_cast<size_t>(GetPairIndex(p,q)) << endl;
+					cout << "test (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ")" << endl;
 				}
 				if(dfa.IsFinal(p) != dfa.IsFinal(q)) continue;
 				if(neq.Contains(GetPairIndex(p,q))) continue;
@@ -195,7 +227,7 @@ public:
 				{
 					cout << (isEquiv ? "YES" : "NO") << endl;
 				}
-				if(isEquiv) for(auto it=path.GetIterator(); !it.IsEnd(); it.MoveNext())
+				if(isEquiv) for(auto it=equiv.GetIterator(); !it.IsEnd(); it.MoveNext())
 				{
 					TPairIndex idx = it.GetCurrent();
 					TState p_prime, q_prime;
@@ -211,6 +243,7 @@ public:
 		}
 		if(ShowConfiguration)
 		{
+			cout << "Final P=" << to_string(part) << endl;
 			cout << "Finished " << part.GetSize() << " states of " << dfa.GetStates() << endl;
 		}
 	}

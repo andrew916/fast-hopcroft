@@ -50,6 +50,52 @@ void write_text(TFsa fsa, string filename)
 	s.close();
 }
 
+template<typename TDfa>
+void write_dfa_info(const TDfa& dfa)
+{
+	typedef typename TDfa::TState TState;
+	typedef typename TDfa::TSymbol TSymbol;
+	// Transitions
+	cout << "Transitions" << endl;
+	for(TState s=0; s<dfa.GetStates(); s++)
+	{
+		size_t state = static_cast<size_t>(s);
+		cout << state << " | ";
+		for(TSymbol a=0; a<dfa.GetAlphabetLength(); a++)
+		{
+			TState tgt = dfa.GetSuccessor(s, a);
+			size_t target = static_cast<size_t>(tgt);
+			cout << target;
+			cout << "\t"; // padding
+		}
+		cout << endl;
+	}
+	cout << endl;
+	cout << "Inverse delta" << endl;
+	for(TState s=0; s<dfa.GetStates(); s++)
+	{
+		size_t state = static_cast<size_t>(s);
+		cout << state << " | ";
+		for(TSymbol a=0; a<dfa.GetAlphabetLength(); a++)
+		{
+			auto pred = dfa.GetPredecessors(s, a);
+			int cont = 0;
+			cout << "{";
+			for(auto i=pred.GetIterator(); !i.IsEnd(); i.MoveNext())
+			{
+				if(cont++ > 0) cout << ",";
+				size_t target = static_cast<size_t>(i.GetCurrent());
+				cout << target;
+			}			
+			cout << "}";
+			cont -= 3 + cont;
+			while(cont++ < dfa.GetStates()) cout << " "; // padding			
+		}
+		cout << endl;
+	}
+	cout << endl;
+}
+
 template<typename TFsa>
 TFsa read_text(string filename)
 {
@@ -1166,48 +1212,93 @@ int test400()
 int test401()
 {
 	using namespace std;
+	using namespace boost::timer;
 
-	typedef uint32_t TState;
+	typedef uint64_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
-	typedef MinimizationHopcroft<TDfa> TMinimizer;
 
 	Determinization<TDfa, TNfa> determ;
 	NfaGenerator<TNfa, mt19937> nfagen;
-	TMinimizer mini;
-	TMinimizer::NumericPartition p;
-	mini.ShowConfiguration = false;
+
+	MinimizationHopcroft<TDfa> min_h;
+	MinimizationHopcroft<TDfa>::NumericPartition p_h;
+	min_h.ShowConfiguration = false;
+
+	MinimizationHybrid<TDfa> min_hi;
+	MinimizationHybrid<TDfa>::NumericPartition p_hi;
+	min_hi.ShowConfiguration = false;
+
+	MinimizationIncremental<TDfa> min_i;
+	MinimizationIncremental<TDfa>::NumericPartition p_i;
+	min_i.ShowConfiguration = false;
+
+	cpu_timer timer;
 
 	mt19937 rgen(5000);
-	ofstream report("report_401.csv");
+	ofstream report("report_401_mod.csv");
 	if(!report.is_open()) throw exception("No se pudo abrir el archivo");
 
-	report << "states, alpha, d, states_dfa, states_dfa_min" << endl;
+	report << "states, alpha, d, states_dfa, states_dfa_min, t_minimi, finals_dfa" << endl;
 
 	array<int,4> alphas = { 2, 5, 10, 20};
 	array<int,4> states_set = { 14, 16, 18, 20 };
-	for(int alpha : alphas)
-		for(int states : states_set)
-			for(float d=0.05f; d<0.25f; d+=0.01f)
-				for(int i=0; i<50; i++)
-				{
-					float den = d;
-					cout << "states: "<< states << " alpha: " << alpha << " i:" << i << endl;
-					auto nfa = nfagen.Generate_v2(states, alpha, 1, 1, &den, rgen);
-					auto dfa = determ.Determinize(nfa);
-					/*auto dfam =*/ mini.Minimize(dfa, p);
-					auto fmt = format("%1%, %2%, %3%, %4%, %5%")
-						% states 
-						% alpha
-						% den
-						% dfa.GetStates()
-						% p.GetSize() // dfam.GetStates()
-						;
-					report << fmt.str() << endl;
-				}
+	//for(int alpha : alphas)
+	//for(int states : states_set)
+	//for(float d=0.05f; d<0.25f; d+=0.01f)
+	int alpha = 5;
+	int states = 10;
+	float d = 0.22f;
+	for(int i=0; i<10000; i++)
+	{
+		float den = d;
+		cout << "states: "<< states << " alpha: " << alpha << " i:" << i << endl;
+		auto nfa = nfagen.Generate_v2(states, alpha, 1, 1, &den, rgen);
+		auto dfa = determ.Determinize(nfa);
 
-				return 0;
+		//write_text(dfa, "automata_test.txt");
+		//write_dot(dfa, "automata_test.dot");
+
+		timer.start();
+		min_h.Minimize(dfa, p_h);
+		timer.stop();
+		auto t_h = timer.elapsed().wall;
+		auto c_h = p_h.GetSize();
+
+		timer.start();
+		min_i.Minimize(dfa, p_i);
+		timer.stop();
+		auto t_i = timer.elapsed().wall;
+		auto c_i = p_i.GetSize();
+
+		timer.start();
+		min_hi.Minimize(dfa, p_hi);
+		timer.stop();
+		auto t_hi = timer.elapsed().wall;
+		auto c_hi = p_hi.GetSize();
+
+		auto fmt = boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%")
+			% states 
+			% alpha
+			% den
+			% dfa.GetStates()
+			% t_h
+			% c_h
+			% t_i
+			% c_i
+			% t_hi
+			% c_hi
+			;
+		report << fmt.str() << endl;
+
+		if(!(c_h == c_i)) throw exception("");
+		if(!(c_h == c_hi)) throw exception("");
+		if(!(c_i == c_hi)) throw exception("");
+
+	}
+
+	return 0;
 }
 
 // Test performance 500-599
@@ -1311,11 +1402,10 @@ int test501()
 	path root_path("dfa_501");
 
 	typedef uint16_t TState;
-	typedef uint8_t TSymbol;
+	typedef uint16_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
 
-	MinimizationBrzozowski<TNfa> min1;
 	MinimizationHopcroft<TDfa> min2;
 	MinimizationIncremental<TDfa> min3;
 	MinimizationHybrid<TDfa> min4;
@@ -1326,6 +1416,8 @@ int test501()
 
 	ofstream report("report_501.csv");
 	if(!report.is_open()) throw exception("No se pudo abrir el reporte");
+
+	report << "alg,n,k,t,file" << endl;
 
 	vector<TState> vfinal;
 	vector<TNfa::TEdge> vedges;
@@ -1363,12 +1455,12 @@ int test501()
 				timer.stop();
 				//cout << "Brzozowski " << dfa_filename << ": " << timer.elapsed().wall << endl;
 				report << (boost::format("%1%, %2%, %3%, %4%, %5%") 
-					% "Brzozowski"
-					% n
-					% k
-					% timer.elapsed().wall
-					% dfa_filename
-					).str() << endl;
+				% "Brzozowski"
+				% n
+				% k
+				% timer.elapsed().wall
+				% dfa_filename
+				).str() << endl;
 				acum_time_b += timer.elapsed().wall;
 				*/
 				timer.start();
@@ -1410,6 +1502,10 @@ int test501()
 					).str() << endl;
 				acum_time_hi += timer.elapsed().wall;
 
+				if(part_h.GetSize() != part_i.GetSize()) throw exception();
+				if(part_h.GetSize() != part_hi.GetSize()) throw exception();
+				if(part_i.GetSize() != part_hi.GetSize()) throw exception();
+
 				automata_count++;
 			}
 			// skip empty folders
@@ -1433,6 +1529,81 @@ int test501()
 		cout << ex.what() << endl;
 		return -1;
 	}
+
+	return 0;
+}
+
+int test502()
+{
+	using namespace boost::filesystem;
+	using namespace boost::timer;
+
+	cpu_timer timer;
+	path root_path("dfa_501");
+
+	typedef uint16_t TState;
+	typedef uint16_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	typedef Nfa<TState, TSymbol> TNfa;
+
+	MinimizationHopcroft<TDfa> min_h;
+	min_h.ShowConfiguration = true;
+	MinimizationHopcroft<TDfa>::NumericPartition part_h;
+
+	MinimizationIncremental<TDfa> min_i;
+	min_i.ShowConfiguration = true;
+	MinimizationIncremental<TDfa>::NumericPartition part_i;
+
+	MinimizationHybrid<TDfa> min_hi;
+	min_hi.ShowConfiguration = true;
+	MinimizationHybrid<TDfa>::NumericPartition part_hi;
+
+	ofstream report("report_501.csv");
+	if(!report.is_open()) throw exception("No se pudo abrir el reporte");
+
+	report << "alg,n,k,t,file" << endl;
+
+	//string dfa_filename = "dfa_501\\n50k5\\0002.dfa";
+	string dfa_filename = "automata_test.txt";
+	auto dfa = read_text<TDfa>(dfa_filename);
+	//auto dfa = read_text_one_based<TDfa>(dfa_filename);
+
+	//cout << "Read " << dfa_filename << endl;
+
+	size_t n = dfa.GetStates();
+	size_t k = dfa.GetAlphabetLength();
+
+	write_dot(dfa, "auto.dot");
+	write_dfa_info(dfa);
+
+	string r;
+
+	timer.start();
+	min_h.Minimize(dfa, part_h);
+	timer.stop();
+	cout << "Hopcroft: " << timer.elapsed().wall << endl;;
+	ofstream report_hopcroft("report_hopcroft.txt");
+	r = min_h.to_string(part_h);
+	report_hopcroft << r;
+	report_hopcroft.close();
+
+	timer.start();
+	min_i.Minimize(dfa, part_i);
+	timer.stop();
+	cout << "Incremental: " << timer.elapsed().wall << endl;
+	ofstream report_incremental("report_incremental.txt");
+	r = min_i.to_string(part_i);
+	report_incremental << r;
+	report_incremental.close();
+
+	timer.start();
+	min_hi.Minimize(dfa, part_hi);
+	timer.stop();
+	cout << "Hybrid: " << timer.elapsed().wall << endl;;
+	ofstream report_hybrid("report_hybrid.txt");
+	r = min_hi.to_string(part_hi);
+	report_hybrid << r;
+	report_hybrid.close();
 
 	return 0;
 }
@@ -1514,12 +1685,13 @@ int main(int argc, char** argv)
 		MACRO_TEST(602);
 		MACRO_TEST(603);
 		MACRO_TEST(610);
-		
+
 		MACRO_TEST(400);
 		MACRO_TEST(401);
 
 		MACRO_TEST(500);
 		MACRO_TEST(501);
+		MACRO_TEST(502);
 	default:
 		cout << "La prueba indicada no existe" << endl;
 		throw exception("La prueba no existe");

@@ -80,38 +80,30 @@ private:
 
 		// calcula d_inverse para el conjunto de estados y letra indicado
 		BitSet<TState> pred_states(dfa.GetStates());
+		BitSet<TState> block_split(dfa.GetStates());
 		auto& splitter_part = part.GetPartition(splitter_partition_idx);
-		if(ShowConfiguration) cout << "{";
 		for(auto i=splitter_part.begin(); i!=splitter_part.end(); i++)
 		{
 			TState st = *i;
-			if(ShowConfiguration)
-			{
-				if(i!=splitter_part.begin()) cout << ", ";
-				cout << static_cast<size_t>(st);
-			}
 			const auto& pred_local = dfa.GetPredecessors(st, splitter_letter);
 			pred_states.UnionWith(pred_local);
 		}
 		if(ShowConfiguration) 
 		{
-			cout << "} / " << static_cast<size_t>(splitter_letter) << " <- ";
-			cout << "{";
-			TState cont = 0;
-			for(auto bi=pred_states.GetIterator(); !bi.IsEnd(); bi.MoveNext())
-			{
-				if(cont++ > 0) cout << ", ";
-				cout << static_cast<size_t>(bi.GetCurrent());
-			}
-			cout << "}" << endl;
+			cout << "split " << to_string(splitter_part) << "|" << static_cast<size_t>(splitter_letter);
+			cout << " <- " << to_string(pred_states) << endl;
 		}
 
 		auto old_part_begin = part.P.begin();
 		auto old_part_end = next(old_part_begin, part.new_index);
 		// we ignore new partitions (new ones created inside this loop)
-		for(auto i=old_part_begin; i!=old_part_end; i++)
+		for(auto j=pred_states.GetIterator(); !j.IsEnd(); j.MoveNext())
 		{
-			auto& old_part = *i;
+			TState st = j.GetCurrent();
+			TState block = part.Find(st);
+			if(block_split.TestAndAdd(block)) continue;
+
+			auto& old_part = part.P[block];
 
 			assert(old_part.size() > 0);
 			if(old_part.size() < 2) continue;
@@ -121,10 +113,11 @@ private:
 			for(auto j=old_part.begin(); j!=old_part.end(); )
 			{
 				auto k = j++;
+				// el bloque al menos contiene una vez un miembro de pred_states
 				if(!pred_states.Contains(*k))
 				{
-					// Q necesita estar por delante de P
-					if(i == cur_part)
+					// Q necesita estar por delante de P					
+					if(part.P.begin()+block == cur_part)
 					{
 						if(k == i_p)
 						{
@@ -133,7 +126,6 @@ private:
 						}
 						else if(k == i_q)
 						{
-fixmove:
 							i_q = j;
 							if(i_q == cur_part->end()) 
 							{
@@ -151,26 +143,24 @@ fixmove:
 						assert(i_p != k);
 						assert(i_q != k);
 					}
+					part.state_to_partition[*k] = part.new_index;
 					new_part.splice(new_part.end(), old_part, k);
+
 					// p -> q  === !p || q
 					assert( !(i_p == i_q) || (i_p == cur_part->end() && i_q == cur_part->end()) );
 					assert( !(i_p != i_q) || (distance(i_p, i_q) > 0) );
 				}
 			}
-			// si todo quedo en la nueva particion, no desperdiciar la vieja
-			if(old_part.size() == 0) old_part.splice(old_part.begin(), new_part);
-			else for(auto j=new_part.begin(); j!=new_part.end(); j++)
-			{
-				part.state_to_partition[*j] = part.new_index;
-			}
-
+			
+			assert(old_part.size() > 0);
+			
 			// If we are here, split was done
 			// new partition index must increment
 			if(new_part.size() > 0)	part.new_index++;
 		}
 	}
 
-	bool EquivP(TState p, TState q, const TDfa& dfa, const NumericPartition& part, const BitSet<TPairIndex>& neq, BitSet<TPairIndex>& path, BitSet<TPairIndex>& equiv, std::vector<TSplitter>& splitter_stack)
+	bool EquivP(TState p, TState q, const TDfa& dfa, const NumericPartition& part, BitSet<TPairIndex>& path, BitSet<TPairIndex>& equiv, std::vector<TSplitter>& splitter_stack)
 	{
 		using namespace std;
 		if(ShowConfiguration) 
@@ -179,7 +169,6 @@ fixmove:
 		}
 		if(part.Find(p) != part.Find(q)) return false;
 		TPairIndex root_pair = GetPairIndex(p,q);
-		if(neq.Contains(root_pair)) return false;
 		if(path.TestAndAdd(root_pair)) return true;		
 		equiv.Add(root_pair);
 		for(TSymbol a=0; a<dfa.GetAlphabetLength(); a++)
@@ -191,7 +180,7 @@ fixmove:
 			TPairIndex pair = GetPairIndex(sp,sq);
 			if(equiv.Contains(pair)) continue;
 			splitter_stack.push_back(make_tuple(sp, sq, a));
-			if(!EquivP(sp,sq, dfa, part, neq, path, equiv, splitter_stack))
+			if(!EquivP(sp,sq, dfa, part, path, equiv, splitter_stack))
 			{
 				return false;
 			}
@@ -204,7 +193,7 @@ fixmove:
 
 public:
 
-	std::string to_string(std::list<TState> part)
+	std::string to_string(const std::list<TState>& part) const
 	{
 		using namespace std;
 		string str;
@@ -219,16 +208,34 @@ public:
 		return str;
 	}
 
-	std::string to_string(const NumericPartition& P)
+	std::string to_string(const BitSet<TState>& c) const
+	{
+		using namespace std;
+		string str;
+		str.append("{");
+		int cont=0;
+		for(auto i=c.GetIterator(); !i.IsEnd(); i.MoveNext())
+		{
+			if(cont++ > 0) str.append(", ");
+			auto s = static_cast<size_t>(i.GetCurrent());
+			str.append(std::to_string(s));
+		}
+		str.append("}");
+		return str;
+	}
+
+	
+
+	std::string to_string(const NumericPartition& P) const
 	{
 		using namespace std;
 		string str;
 		TState cnt = 0;
 		str.append("{");
-		for(auto i=P.P.begin(); i!=P.P.end(); i++)
+		for(TState cnt=0; cnt<P.GetSize(); cnt++)
 		{
-			if(cnt++ > 0) str.append(", ");
-			str.append(to_string(*i));
+			if(cnt > 0) str.append(", ");
+			str.append(to_string(P.P[cnt]));
 		}
 		str.append("}");
 		return str;
@@ -258,7 +265,6 @@ public:
 		// partitions count
 		part.new_index = 2;
 
-		BitSet<TPairIndex> neq((states*states-states)/2);
 		BitSet<TPairIndex> path((states*states-states)/2);
 		BitSet<TPairIndex> equiv((states*states-states)/2);
 		vector<TSplitter> splitter_stack;
@@ -290,7 +296,7 @@ public:
 				equiv.Clear();
 				splitter_stack.clear();
 
-				bool isEquiv = EquivP(p, q, dfa, part, neq, path, equiv, splitter_stack);
+				bool isEquiv = EquivP(p, q, dfa, part, path, equiv, splitter_stack);
 				if(ShowConfiguration)
 				{
 					cout << (isEquiv ? "YES" : "NO") << endl;
@@ -306,7 +312,6 @@ public:
 					continue;
 				}
 
-				neq.UnionWith(path);
 				while(!splitter_stack.empty())
 				{
 					TSplitter s = splitter_stack.back();							
@@ -329,7 +334,7 @@ public:
 					splitter_stack.pop_back();
 					if(ShowConfiguration)
 					{
-						cout << "splitter a=" << static_cast<size_t>(a) << ", " << to_string(part) << endl;
+						cout << "P=" << to_string(part) << endl;
 					}
 				}
 			}
