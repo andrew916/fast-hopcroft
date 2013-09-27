@@ -262,7 +262,8 @@ public:
 			if(f) *it_f++ = st;	else *it_nf++ = st;
 			part.state_to_partition[st] = f ? 0 : 1;
 		}
-		// partitions count
+		// partitions count, are all finals?
+		if(part.P[1].empty()) { part.new_index = 1; return; }
 		part.new_index = 2;
 
 		BitSet<TPairIndex> path((states*states-states)/2);

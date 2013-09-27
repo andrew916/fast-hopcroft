@@ -156,6 +156,7 @@ public:
 		}
 
 		// partitions count
+		if(np.P[1].empty()) { np.new_index=1; return; }
 		np.new_index = 2;
 
 		if(ShowConfiguration)
@@ -168,6 +169,9 @@ public:
 		// set containing the next partitions to be processed
 		TSet wait_set_membership(dfa.GetStates());
 		wait_set_membership.Add(min_initial_partition_index);
+
+		// contains the letter to continue the search
+		vector<TSymbol> wait_set_letter(dfa.GetStates(), 0);
 
 		// set containing the already processed partitions
 		TSet partitions_to_split(dfa.GetStates());
@@ -189,7 +193,7 @@ public:
 			}
 
 			// Per symbol loop
-			for(TSymbol splitter_letter=0; splitter_letter<dfa.GetAlphabetLength(); splitter_letter++)
+			for(TSymbol splitter_letter=wait_set_letter[splitter_set.GetCurrent()]; splitter_letter<dfa.GetAlphabetLength(); splitter_letter++)
 			{								
 				predecessors.Clear();
 				bool was_split = false;
@@ -251,11 +255,13 @@ public:
 					if(wait_set_membership.Contains(partition_index)) 
 					{
 						wait_set_membership.Add(np.new_index);
+						wait_set_letter[np.new_index] = splitter_letter + 1;
 					} 
 					else 
 					{
 						auto add_index = old_part.size() < new_part.size() ? partition_index : np.new_index;
 						wait_set_membership.Add(add_index);
+						// wait_set_letter[add_index] = 0; // is already zero
 					}
 
 					// If we are here, split was done

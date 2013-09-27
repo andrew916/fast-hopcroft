@@ -1214,8 +1214,8 @@ int test401()
 	using namespace std;
 	using namespace boost::timer;
 
-	typedef uint64_t TState;
-	typedef uint8_t TSymbol;
+	typedef uint16_t TState;
+	typedef uint16_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
 
@@ -1240,20 +1240,17 @@ int test401()
 	ofstream report("report_401_mod.csv");
 	if(!report.is_open()) throw exception("No se pudo abrir el archivo");
 
-	report << "states, alpha, d, states_dfa, states_dfa_min, t_minimi, finals_dfa" << endl;
+	report << "states,alpha,d,states_dfa,states_dfa_min,t_h,c_h,t_i,c_i,t_hi,c_hi" << endl;
 
-	array<int,4> alphas = { 2, 5, 10, 20};
-	array<int,4> states_set = { 14, 16, 18, 20 };
-	//for(int alpha : alphas)
-	//for(int states : states_set)
-	//for(float d=0.05f; d<0.25f; d+=0.01f)
-	int alpha = 5;
-	int states = 10;
-	float d = 0.22f;
-	for(int i=0; i<10000; i++)
+	const array<TSymbol,5> alphas = { 2, 10, 25, 50, 500 };
+	const array<TState,2> states_set = { 10, 11 };
+	for(TSymbol alpha : alphas)
+	for(TState states : states_set)
+	for(float d=0.05f; d<0.25f; d+=0.01f)
+	for(int i=0; i<50; i++)
 	{
 		float den = d;
-		cout << "states: "<< states << " alpha: " << alpha << " i:" << i << endl;
+		cout << "states: "<< states << " alpha: " << alpha << " d:" << d << " i:" << i << endl;
 		auto nfa = nfagen.Generate_v2(states, alpha, 1, 1, &den, rgen);
 		auto dfa = determ.Determinize(nfa);
 
@@ -1385,7 +1382,7 @@ int test500()
 	timer.stop();
 	auto dfa_minhi = mini.BuildDfa(dfa, part);
 
-	cout << "Minimizado Hybrido con " << (size_t)part.GetSize() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
+	cout << "Minimizado Hibrido con " << (size_t)part.GetSize() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
 	cout << "Minimizacion tomo " << timer.format(5) << endl;
 	write_dot(dfa_minhi, "nfa\\t500_dfa_min_hi.dot");
 	write_text(dfa_minhi, "nfa\\t500_dfa_min_hi.txt");
@@ -1399,7 +1396,7 @@ int test501()
 	using namespace boost::timer;
 
 	cpu_timer timer;
-	path root_path("dfa_501");
+	path root_path("CorpusAlmeida");
 
 	typedef uint16_t TState;
 	typedef uint16_t TSymbol;
@@ -1414,10 +1411,10 @@ int test501()
 	min3.ShowConfiguration = false;
 	min4.ShowConfiguration = false;
 
-	ofstream report("report_501.csv");
+	ofstream report("report_501_almeida.csv");
 	if(!report.is_open()) throw exception("No se pudo abrir el reporte");
 
-	report << "alg,n,k,t,file" << endl;
+	report << "alg,n,k,t,file,min_st" << endl;
 
 	vector<TState> vfinal;
 	vector<TNfa::TEdge> vedges;
@@ -1454,12 +1451,13 @@ int test501()
 				min1.Minimize(nfa, &min_states, vfinal, vedges);
 				timer.stop();
 				//cout << "Brzozowski " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%, %2%, %3%, %4%, %5%") 
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
 				% "Brzozowski"
 				% n
 				% k
 				% timer.elapsed().wall
 				% dfa_filename
+				% static_cast<size_t>(part_b.GetSize())
 				).str() << endl;
 				acum_time_b += timer.elapsed().wall;
 				*/
@@ -1467,12 +1465,13 @@ int test501()
 				min2.Minimize(dfa, part_h);
 				timer.stop();
 				//cout << "Hopcroft " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%, %2%, %3%, %4%, %5%") 
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
 					% "Hopcroft"
 					% n
 					% k
 					% timer.elapsed().wall
 					% dfa_filename
+					% static_cast<size_t>(part_h.GetSize())
 					).str()	<< endl;
 				acum_time_h += timer.elapsed().wall;
 
@@ -1480,12 +1479,13 @@ int test501()
 				min3.Minimize(dfa, part_i);
 				timer.stop();
 				//cout << "Incremental " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%, %2%, %3%, %4%, %5%") 
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
 					% "Incremental"
 					% n
 					% k
 					% timer.elapsed().wall
 					% dfa_filename
+					% static_cast<size_t>(part_i.GetSize())
 					).str() << endl;
 				acum_time_i += timer.elapsed().wall;
 
@@ -1493,12 +1493,13 @@ int test501()
 				min4.Minimize(dfa, part_hi);
 				timer.stop();
 				//cout << "Hybrid " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%, %2%, %3%, %4%, %5%") 
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
 					% "Hybrid"
 					% n
 					% k
 					% timer.elapsed().wall
 					% dfa_filename
+					% static_cast<size_t>(part_hi.GetSize())
 					).str() << endl;
 				acum_time_hi += timer.elapsed().wall;
 
