@@ -1240,7 +1240,7 @@ int test401()
 	ofstream report("report_401_mod.csv");
 	if(!report.is_open()) throw exception("No se pudo abrir el archivo");
 
-	report << "states,alpha,d,states_dfa,states_dfa_min,t_h,c_h,t_i,c_i,t_hi,c_hi" << endl;
+	report << "states,alpha,d,states_dfa,t_h,c_h,t_i,c_i,t_hi,c_hi" << endl;
 
 	const array<TSymbol,5> alphas = { 2, 10, 25, 50, 500 };
 	const array<TState,2> states_set = { 10, 11 };
