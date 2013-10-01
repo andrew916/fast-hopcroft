@@ -1199,9 +1199,9 @@ int test400()
 					//write_dot(nfa, filename + ".dot");
 					//write_dot(dfa, filename + "_dfa.dot");
 					//write_dot(dfa2, filename + "_mini.dot");
-					write_text(nfa, filename + ".txt");
-					write_text(dfa, filename + "_dfa.txt");
-					write_text(dfa2, filename + "_mini.txt");
+					//write_text(nfa, filename + ".txt");
+					//write_text(dfa, filename + "_dfa.txt");
+					//write_text(dfa2, filename + "_mini.txt");
 				}
 			}
 		}

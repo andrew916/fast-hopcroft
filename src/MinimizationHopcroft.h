@@ -255,7 +255,10 @@ public:
 					if(wait_set_membership.Contains(partition_index)) 
 					{
 						wait_set_membership.Add(np.new_index);
-						wait_set_letter[np.new_index] = splitter_letter + 1;
+						if(partition_index == splitter_set.GetCurrent())
+						{
+							wait_set_letter[np.new_index] = splitter_letter + 1;
+						}
 					} 
 					else 
 					{
