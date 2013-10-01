@@ -169,10 +169,7 @@ public:
 		// set containing the next partitions to be processed
 		TSet wait_set_membership(dfa.GetStates());
 		wait_set_membership.Add(min_initial_partition_index);
-
-		// contains the letter to continue the search
-		vector<TSymbol> wait_set_letter(dfa.GetStates(), 0);
-
+		
 		// set containing the already processed partitions
 		TSet partitions_to_split(dfa.GetStates());
 
@@ -193,7 +190,7 @@ public:
 			}
 
 			// Per symbol loop
-			for(TSymbol splitter_letter=wait_set_letter[splitter_set.GetCurrent()]; splitter_letter<dfa.GetAlphabetLength(); splitter_letter++)
+			for(TSymbol splitter_letter=0; splitter_letter<dfa.GetAlphabetLength(); splitter_letter++)
 			{								
 				predecessors.Clear();
 				bool was_split = false;
@@ -246,7 +243,7 @@ public:
 					// si no hubo nada que dividir
 					if(new_part.size() == 0) continue;
 					was_split = true;
-
+					
 					if(ShowConfiguration)
 					{
 						cout << "pred state=" << static_cast<size_t>(ss.GetCurrent()) << " in partition " << static_cast<size_t>(partition_index) << endl;
@@ -254,11 +251,7 @@ public:
 
 					if(wait_set_membership.Contains(partition_index)) 
 					{
-						wait_set_membership.Add(np.new_index);
-						if(partition_index == splitter_set.GetCurrent())
-						{
-							wait_set_letter[np.new_index] = splitter_letter + 1;
-						}
+						wait_set_membership.Add(np.new_index);						
 					} 
 					else 
 					{
