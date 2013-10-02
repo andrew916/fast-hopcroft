@@ -3,8 +3,8 @@
 #include <string>
 #include <istream>
 #include <limits>
-#include <boost\algorithm\string\split.hpp>
-#include <boost\algorithm\string\trim.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 template<typename TFsm>
 class FsmPlainTextReader

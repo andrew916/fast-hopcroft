@@ -1249,8 +1249,8 @@ int test401()
 	const array<TState,2> states_set = { 10, 11 };
 	for(TSymbol alpha : alphas)
 	for(TState states : states_set)
-	for(float d=0.00f; d<0.5f; d+=0.1f)
-	for(int i=0; i<50; i++)
+	for(float d=0.00f; d<1.0f; d+=0.05f)
+	for(int i=0; i<20; i++)
 	{
 		float den = d;
 		cout << "states: "<< states << " alpha: " << alpha << " d:" << d << " i:" << i << endl;
@@ -1266,7 +1266,7 @@ int test401()
 		auto t_h = timer.elapsed().wall;
 		auto c_h = p_h.GetSize();
 
-		timer.start();
+		/*timer.start();
 		min_i.Minimize(dfa, p_i);
 		timer.stop();
 		auto t_i = timer.elapsed().wall;
@@ -1276,7 +1276,7 @@ int test401()
 		min_hi.Minimize(dfa, p_hi);
 		timer.stop();
 		auto t_hi = timer.elapsed().wall;
-		auto c_hi = p_hi.GetSize();
+		auto c_hi = p_hi.GetSize();*/
 
 		auto fmt = boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%")
 			% states 
@@ -1285,16 +1285,16 @@ int test401()
 			% dfa.GetStates()
 			% t_h
 			% c_h
-			% t_i
-			% c_i
-			% t_hi
-			% c_hi
+			% 0//t_i
+			% 0//c_i
+			% 0//t_hi
+			% 0//c_hi
 			;
 		report << fmt.str() << endl;
 
-		if(!(c_h == c_i)) throw exception("");
-		if(!(c_h == c_hi)) throw exception("");
-		if(!(c_i == c_hi)) throw exception("");
+		//if(!(c_h == c_i)) throw exception("");
+		//if(!(c_h == c_hi)) throw exception("");
+		//if(!(c_i == c_hi)) throw exception("");
 
 	}
 
