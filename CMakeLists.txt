@@ -4,7 +4,7 @@ set(FASTHOPCROFT_VERSION_MINOR 3)
 
 project(FastHopcroft)
 configure_file(src/config.h.in config.h)
-find_package(Boost 1.54 REQUIRED)
+find_package(Boost 1.49 REQUIRED)
 include_directories(
 	"${Boost_INCLUDE_DIR}"
 	"${PROJECT_BINARY_DIR}")
