@@ -105,7 +105,7 @@ void GenerateNfa(Options opt)
 	TNfa nfa = gen.Generate(static_cast<TState>(opt.States), static_cast<TSymbol>(opt.Symbols), 1, 1, opt.Density, rgen);
 	if(opt.Verbose) 
 	{		
-		cout << "Generated NFA with " << nfa.GetStates() << " states and " << nfa.GetAlphabetLength() << " symbols" << endl;
+		cout << "Generated NFA with " << static_cast<size_t>(nfa.GetStates()) << " states and " << static_cast<size_t>(nfa.GetAlphabetLength()) << " symbols" << endl;
 	}
 
 	ofstream ofs(opt.OutputFile);

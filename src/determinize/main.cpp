@@ -12,147 +12,146 @@
 
 namespace convert_nfa_dfa 
 {
-	
-using namespace std;
-using boost::format;
+	using namespace std;
+	using boost::format;
 
-class Options 
-{
-public:
-	string InputFile;
-	string OutputFile;
-	string DotInputFile;
-	string DotOutputFile;
-	bool EmitDotInputFile;
-	bool EmitDotOutputFile;
-	bool ShowHelp;
-	bool Verbose;
-
-	Options() : EmitDotInputFile(false), EmitDotOutputFile(false), Verbose(false), ShowHelp(false)
+	class Options 
 	{
-	}
-};
+	public:
+		string InputFile;
+		string OutputFile;
+		string DotInputFile;
+		string DotOutputFile;
+		bool EmitDotInputFile;
+		bool EmitDotOutputFile;
+		bool ShowHelp;
+		bool Verbose;
 
-
-void ParseCommandLine(int argc, char** argv, Options& opt)
-{	
-	for(int i=1; i<argc; i++)
-	{
-		string arg = argv[i];
-		if(arg == "-i")
+		Options() : EmitDotInputFile(false), EmitDotOutputFile(false), Verbose(false), ShowHelp(false)
 		{
-			opt.InputFile = argv[i+1];
-			i++;
 		}
-		else if(arg == "-o")
+	};
+
+
+	void ParseCommandLine(int argc, char** argv, Options& opt)
+	{	
+		for(int i=1; i<argc; i++)
 		{
-			opt.OutputFile = argv[i+1];
-			i++;
+			string arg = argv[i];
+			if(arg == "-i")
+			{
+				opt.InputFile = argv[i+1];
+				i++;
+			}
+			else if(arg == "-o")
+			{
+				opt.OutputFile = argv[i+1];
+				i++;
+			}
+			else if(arg == "-dot-in")
+			{
+				opt.EmitDotInputFile = true;
+				opt.DotInputFile = argv[i+1];
+				i++;
+			}
+			else if(arg == "-dot-out")
+			{
+				opt.EmitDotOutputFile = true;
+				opt.DotOutputFile = argv[i+1];
+				i++;
+			}
+			else if(arg == "-v")
+			{
+				opt.Verbose = true;
+			}
+			else if(arg == "-h" || arg == "-?")
+			{
+				opt.ShowHelp = true;
+			}		
 		}
-		else if(arg == "-dot-in")
-		{
-			opt.EmitDotInputFile = true;
-			opt.DotInputFile = argv[i+1];
-			i++;
-		}
-		else if(arg == "-dot-out")
-		{
-			opt.EmitDotOutputFile = true;
-			opt.DotOutputFile = argv[i+1];
-			i++;
-		}
-		else if(arg == "-v")
-		{
-			opt.Verbose = true;
-		}
-		else if(arg == "-h" || arg == "-?")
-		{
-			opt.ShowHelp = true;
-		}		
-	}
-}
-
-void Convert(Options opt)
-{
-	typedef uint32_t TState;
-	typedef uint8_t TSymbol;
-	typedef Dfa<TState, TSymbol> TDfa;
-	typedef Nfa<TState, TSymbol> TNfa;
-	
-	FsmPlainTextReader<TNfa> reader;
-	FsmPlainTextWriter<TDfa> writer;
-		
-	ifstream ifs(opt.InputFile);
-	if(!ifs.is_open()) 
-	{
-		cout << "Error opening file " << opt.InputFile << endl;
-		return;
 	}
 
-	TNfa nfa = reader.Read(ifs);
+	void Convert(Options opt)
+	{
+		typedef uint32_t TState;
+		typedef uint8_t TSymbol;
+		typedef Dfa<TState, TSymbol> TDfa;
+		typedef Nfa<TState, TSymbol> TNfa;
 
-	if(opt.Verbose) 
-	{		
-		cout << "Read " << opt.InputFile << endl;
-		cout << "Found FSA with " << nfa.GetStates() << " states and " << nfa.GetAlphabetLength() << " symbols" << endl;
-	}
-	ifs.close();
-		
-	Determinization<TDfa, TNfa> det;
-	TDfa dfa = det.Determinize(nfa);
+		FsmPlainTextReader<TNfa> reader;
+		FsmPlainTextWriter<TDfa> writer;
 
-	if(opt.Verbose)
-	{
-		cout << "Determinization done, DFA with " << dfa.GetStates() << " states and " << dfa.GetAlphabetLength() << " symbols" << endl;
-	}
-	
-	ofstream ofs(opt.OutputFile);
-	if(!ofs.is_open()) 
-	{
-		cout << "Error opening file " << opt.OutputFile << endl;
-		return;
-	}
-	writer.Write(dfa, ofs);
-	ofs.close();
-	
-	if(opt.Verbose)
-	{
-		cout << "Written " << opt.OutputFile << endl;
- 	}
-
-	if(opt.EmitDotInputFile)
-	{
-		FsmGraphVizWriter<TNfa> wnfa;
-		ofs.open(opt.DotInputFile);
-		if(!ofs.is_open())
+		ifstream ifs(opt.InputFile);
+		if(!ifs.is_open()) 
 		{
-			cout << "Error opening file " << opt.DotInputFile << endl;
+			cout << "Error opening file " << opt.InputFile << endl;
 			return;
 		}
-		wnfa.Write(nfa, ofs, false);
-		ofs.close();
+
+		TNfa nfa = reader.Read(ifs);
+
+		if(opt.Verbose) 
+		{		
+			cout << "Read " << opt.InputFile << endl;
+			cout << "Found FSA with " << static_cast<size_t>(nfa.GetStates()) << " states and " << static_cast<size_t>(nfa.GetAlphabetLength()) << " symbols" << endl;
+		}
+		ifs.close();
+
+		Determinization<TDfa, TNfa> det;
+		TDfa dfa = det.Determinize(nfa);
+
 		if(opt.Verbose)
 		{
-			cout << "Written DOT " << opt.DotInputFile << endl;
- 		}
-	}
-	if(opt.EmitDotOutputFile)
-	{
-		ofs.open(opt.DotOutputFile);
-		if(!ofs.is_open())
+			cout << "Determinization done, DFA with " << static_cast<size_t>(dfa.GetStates()) << " states and " << static_cast<size_t>(dfa.GetAlphabetLength()) << " symbols" << endl;
+		}
+
+		ofstream ofs(opt.OutputFile);
+		if(!ofs.is_open()) 
 		{
-			cout << "Error opening file " << opt.DotOutputFile << endl;
+			cout << "Error opening file " << opt.OutputFile << endl;
 			return;
 		}
-		FsmGraphVizWriter<TDfa> wdfa;
-		wdfa.Write(dfa, ofs, false);
+		writer.Write(dfa, ofs);
 		ofs.close();
+
 		if(opt.Verbose)
 		{
-			cout << "Written DOT " << opt.DotOutputFile << endl;
- 		}
+			cout << "Written " << opt.OutputFile << endl;
+		}
+
+		if(opt.EmitDotInputFile)
+		{
+			FsmGraphVizWriter<TNfa> wnfa;
+			ofs.open(opt.DotInputFile);
+			if(!ofs.is_open())
+			{
+				cout << "Error opening file " << opt.DotInputFile << endl;
+				return;
+			}
+			wnfa.Write(nfa, ofs, false);
+			ofs.close();
+			if(opt.Verbose)
+			{
+				cout << "Written DOT " << opt.DotInputFile << endl;
+			}
+		}
+		if(opt.EmitDotOutputFile)
+		{
+			ofs.open(opt.DotOutputFile);
+			if(!ofs.is_open())
+			{
+				cout << "Error opening file " << opt.DotOutputFile << endl;
+				return;
+			}
+			FsmGraphVizWriter<TDfa> wdfa;
+			wdfa.Write(dfa, ofs, false);
+			ofs.close();
+			if(opt.Verbose)
+			{
+				cout << "Written DOT " << opt.DotOutputFile << endl;
+			}
+		}
 	}
-}
 
 }
 

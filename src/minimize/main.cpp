@@ -117,13 +117,15 @@ namespace minimize
 		}
 
 		TFsa fsa = reader_fsa.Read(ifs);
+		ifs.close();
+		ifs = ifstream(opt.InputFile);
 		TDfa dfa = reader_dfa.Read(ifs);
 		ifs.close();
 
 		if(opt.Verbose) 
 		{
 			cout << "Read " << opt.InputFile << endl;
-			cout << "Found FSA with " << dfa.GetStates() << " states and " << dfa.GetAlphabetLength() << " symbols" << endl;
+			cout << "Found FSA with " << static_cast<size_t>(dfa.GetStates()) << " states and " << static_cast<size_t>(dfa.GetAlphabetLength()) << " symbols" << endl;
 		}
 
 		cpu_timer timer;
@@ -134,6 +136,7 @@ namespace minimize
 		{
 			MinimizationHopcroft<TDfa> min;
 			MinimizationHopcroft<TDfa>::NumericPartition partition;
+			min.ShowConfiguration = false;
 			timer.start();
 			min.Minimize(dfa, partition);
 			timer.stop();
@@ -147,16 +150,22 @@ namespace minimize
 			MinimizationBrzozowski<TFsa, TDfa> min;			
 			MinimizationBrzozowski<TFsa, TDfa>::TVectorDfaState vfinal;
 			MinimizationBrzozowski<TFsa, TDfa>::TVectorDfaEdge vedges;
+			
 			TState states;
 			timer.start();
 			min.Minimize(fsa, &states, vfinal, vedges);
 			timer.stop();
+			if(opt.Verbose)
+			{
+				cout << "Minimum state count: " << static_cast<size_t>(states) << endl;
+			}
 			if(!opt.SkipSynthOutput) min_dfa = min.BuildDfa(fsa.GetAlphabetLength(), states, vfinal, vedges);
 		}
 		else if(opt.Algorithm == MinimizationAlgorithm::Incremental)
 		{
 			MinimizationIncremental<TDfa> min;
 			MinimizationIncremental<TDfa>::NumericPartition partition;
+			min.ShowConfiguration = false;
 			timer.start();
 			min.Minimize(dfa, partition);
 			timer.stop();
@@ -169,6 +178,7 @@ namespace minimize
 		{
 			MinimizationHybrid<TDfa> min;
 			MinimizationHybrid<TDfa>::NumericPartition partition;
+			min.ShowConfiguration = false;
 			timer.start();
 			min.Minimize(dfa, partition);
 			timer.stop();
@@ -257,12 +267,12 @@ int main(int argc, char** argv)
 			<< "\t-dot-out <dotoutfile>  DOT output filename" << endl
 			<< "\t-dot-in <dotinfile>    DOT input filename" << endl
 			<< "\t-h,-?                  Show this help message" << endl
+			<< "\t-v                     Verbose mode" << endl
 			<< endl
 			<< "Algorithms available: hopcroft, incremental, hybrid" << endl
 			;
 	}
-
-	Minimization(opt);
+	else Minimization(opt);
 
 
 	return 0;
