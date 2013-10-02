@@ -1,4 +1,5 @@
 add_executable(test test.cpp)
+enable_testing()
 
 add_test(test50 test 50)
 

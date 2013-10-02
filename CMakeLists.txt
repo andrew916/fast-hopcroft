@@ -27,10 +27,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_IS_CLANG)
     set(CMAKE_CXX_FLAGS_RELEASE "-O4")
 endif()
 	
-add_subdirectory(src/convert_nfa_dfa)
+add_subdirectory(src/determinize)
 add_subdirectory(src/generate_nfa)
-add_subdirectory(src/minimize_brzozowski)
-add_subdirectory(src/minimize_hopcroft)
+add_subdirectory(src/minimize)
 add_subdirectory(src/test)
 
 #export(PACKAGE FastHopcroftExecutable)

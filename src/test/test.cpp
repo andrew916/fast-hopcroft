@@ -489,12 +489,13 @@ int test201()
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	typedef Nfa<TState,TSymbol> TDfa;
-	MinimizationBrzozowski<TDfa> mini;	
+	typedef Nfa<TState,TSymbol> TNfa;
+	typedef Dfa<TState,TSymbol> TDfa;
+	MinimizationBrzozowski<TNfa, TDfa> mini;	
 	//    / 1 - 3
 	//  0
 	//    \ 2 - 4
-	TDfa dfa(2, 5);
+	TNfa dfa(2, 5);
 
 	dfa.SetInitial(0);
 	dfa.SetFinal(3);
@@ -515,7 +516,7 @@ int test201()
 	dfa.SetTransition(4, 0, 4);
 	dfa.SetTransition(4, 1, 4);
 
-	TDfa dfa_min = mini.Minimize(dfa);
+	auto dfa_min = mini.Minimize(dfa);
 
 	// asegura que la cantidad de estados al final es menor
 	assert(dfa_min.GetStates() < dfa.GetStates());
@@ -532,15 +533,16 @@ int test202()
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	typedef Nfa<TState, TSymbol> TDfa;
-	MinimizationBrzozowski<TDfa> mini;	
+	typedef Dfa<TState, TSymbol> TDfa;
+	typedef Nfa<TState,TSymbol> TNfa;
+	MinimizationBrzozowski<TNfa, TDfa> mini;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /
 	//   1 -3 - 6 - 9  - 12
 	//    \
 	//      4 - 7 - 10 - 13
-	TDfa dfa(3, 14);
+	TNfa dfa(3, 14);
 
 	dfa.SetInitial(1);
 	dfa.SetFinal(11);
@@ -580,15 +582,16 @@ int test203()
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	typedef Nfa<TState, TSymbol> TDfa;
-	MinimizationBrzozowski<TDfa> mini;	
+	typedef Dfa<TState, TSymbol> TDfa;
+	typedef Nfa<TState,TSymbol> TNfa;
+	MinimizationBrzozowski<TNfa, TDfa> mini;	
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /       \   /
 	//   1 -3 - 6 - 9  - 12
 	//    \       \   \
 	//      4 - 7 - 10 - 13
-	TDfa dfa(3, 14);
+	TNfa dfa(3, 14);
 
 	dfa.SetInitial(1);
 	dfa.SetFinal(11);

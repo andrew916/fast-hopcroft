@@ -91,7 +91,7 @@ public:
 		assert(current_state_index == new_states_lst.size());	
 		*new_states_count = current_state_index;
 	}
-
+		
 	TDfa BuildDfa(TSymbol symbols, TDfaState states, const TVectorDfaState& final_states, const TVectorDfaEdge& new_edges)
 	{
 		using namespace std;

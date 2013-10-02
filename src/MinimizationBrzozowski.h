@@ -1,20 +1,21 @@
 // July 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #pragma once
 
-#include "Dfa.h"
-#include "Nfa.h"
 #include "Determinization.h"
+#include "Dfa.h"
 
 /// Brzozowski's FSA Minimization Algorithm.
-template<typename TFsa>
+template<typename TFsa, typename TDfa = Dfa<TFsa::TState, TFsa::TSymbol>>
 class MinimizationBrzozowski
 {
 public:	
 	typedef TFsa TFsa;
+	typedef TDfa TDfa;
 	typedef typename TFsa::TState TState;
 	typedef typename TFsa::TSymbol TSymbol;
 		
 	typedef Determinization<TFsa, TFsa> TDeterminization;
+	typedef Determinization<TDfa, TFsa> TDeterminization2;
 	typedef typename TDeterminization::TDfaState TDfaState;
 	typedef typename TDeterminization::TVectorDfaState TVectorDfaState;
 	typedef typename TDeterminization::TVectorDfaEdge TVectorDfaEdge;
@@ -37,20 +38,20 @@ public:
 		det.Determinize(p2, states, vfinalstates, vedges);		
 	}
 
-	TFsa BuildDfa(TSymbol alpha, TDfaState states, const TVectorDfaState& final_states, const TVectorDfaEdge& edges)
+	TDfa BuildDfa(TSymbol alpha, TDfaState states, const TVectorDfaState& final_states, const TVectorDfaEdge& edges)
 	{
-		TDeterminization det;
-		TFsa dfa = det.BuildDfa(alpha, states, final_states, edges);
+		TDeterminization2 det;
+		TDfa dfa = det.BuildDfa(alpha, states, final_states, edges);
 		return dfa;
 	}
 
-	TFsa Minimize(const TFsa& fsa)
+	TDfa Minimize(const TFsa& fsa)
 	{
 		TDfaState states;
 		TVectorDfaState fstates;
 		TVectorDfaEdge edges;
 		Minimize(fsa, &states, fstates, edges);
-		TFsa min_fsa = BuildDfa(fsa.GetAlphabetLength(), states, fstates, edges);
+		TDfa min_fsa = BuildDfa(fsa.GetAlphabetLength(), states, fstates, edges);
 		return min_fsa;
 	}
 };
