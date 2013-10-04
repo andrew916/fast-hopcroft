@@ -62,7 +62,7 @@ public:
 		col.clear();
 		getline(str, line);
 		trim(line);
-		split(col, line, is_space);		
+		split(col, line, is_space());		
 		for(string i : col)
 		{
 			TState st = (TState)stol(i);
@@ -76,7 +76,7 @@ public:
 		col.clear();
 		getline(str, line);	
 		trim(line);
-		split(col, line, is_space);
+		split(col, line, is_space());
 		for(string i : col)
 		{
 			TState st = (TState)stol(i);
@@ -96,7 +96,7 @@ public:
 
 			col.clear();
 			trim(line);
-			split(col, line, is_space);
+			split(col, line, is_space());
 			if(col.size() != 3) throw invalid_argument("Formato invalido");
 
 			TState qs = (TState)stol(col[0]);
@@ -151,7 +151,7 @@ public:
 		getline(str, line);
 		vector<string> alpha_set_line;
 		trim(line);
-		split(alpha_set_line, line, is_space);
+		split(alpha_set_line, line, is_space());
 		size_t alpha = alpha_set_line.size();
 		if(alpha >= numeric_limits<TSymbol>::max())
 		{
@@ -170,7 +170,7 @@ public:
 		col.clear();
 		getline(str, line);	
 		trim(line);
-		split(col, line, is_space);
+		split(col, line, is_space());
 		for(string i : col)
 		{
 			TState st = (TState)stol(i);
@@ -191,7 +191,7 @@ public:
 
 			col.clear();
 			trim(line);
-			split(col, line, is_space);
+			split(col, line, is_space());
 			if(col.size() != 3) throw invalid_argument("Formato invalido");
 
 			TState qs = (TState)stol(col[0]);

@@ -68,7 +68,7 @@ public:
 				}
 				TDfaState target_state_index = static_cast<TDfaState>(new_states_lst.size());
 				// intenta insertar el conjunto de estados, si ya lo contiene no hace nada
-				auto fn = new_states_map.insert(TStatesMap::value_type(next, target_state_index));
+				auto fn = new_states_map.insert(typename TStatesMap::value_type(next, target_state_index));
 				auto was_inserted = fn.second;
 				if(was_inserted)
 				{					
