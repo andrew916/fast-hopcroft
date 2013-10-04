@@ -54,6 +54,7 @@ Index popcnt(Block x)
 }
 
 // 64-bit AMD64 versions
+#ifdef _MSC_VER
 template<typename Index>
 void bs(uint64_t* b, Index idx)
 {
@@ -99,6 +100,52 @@ bool bsf(uint64_t b, Index* i)
 	return r;
 }
 
+// 32-bit x86 versions
+template<typename Index>
+void bs(uint32_t* b, Index idx)
+{
+	_bittestandset(reinterpret_cast<int32_t*>(b), idx);
+}
+
+template<typename Index>
+void bc(uint32_t* b, Index idx)
+{
+	_bittestandreset(reinterpret_cast<int32_t*>(b), idx);
+}
+
+template<typename Index>
+bool bt(uint32_t b, Index idx)
+{
+	return _bittest(reinterpret_cast<int32_t*>(&b), idx) != 0;
+}
+
+template<typename Index>
+bool bts(uint32_t* b, Index idx)
+{
+	return _bittestandset(reinterpret_cast<int32_t*>(b), idx) != 0;
+}
+
+template<typename Index>
+bool btc(uint32_t* b, Index idx)
+{
+	return _bittestandreset(reinterpret_cast<int32_t*>(b), idx) != 0;
+}
+
+template<typename Index>
+Index popcnt(uint32_t x)
+{
+	return static_cast<Index>(__popcnt(x));
+}
+
+template<typename Index>
+bool bsf(uint32_t b, Index* i)
+{
+	unsigned long ii;
+	auto r = _BitScanForward(&ii, b) != 0;
+	*i = static_cast<Index>(ii);
+	return r;
+}
+#endif
 
 /*
 Martin Läuter (1997), Charles E. Leiserson, Harald Prokop, Keith H. Randall
