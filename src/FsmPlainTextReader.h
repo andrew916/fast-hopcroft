@@ -1,10 +1,12 @@
 #pragma once
 
+#include <stdexcept>
 #include <string>
 #include <istream>
 #include <limits>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/classification.hpp>
 
 template<typename TFsm>
 class FsmPlainTextReader
@@ -21,32 +23,33 @@ public:
 		using namespace std;
 		using boost::split;
 		using boost::trim;
+		using boost::algorithm::is_space;
 
-		if(str.eof()) throw exception();
+		if(str.eof()) throw invalid_argument("end of file premature");
 
 		string line;
 		vector<string> col;
 
 		// states
 		getline(str, line);		
-		if(line[0] != '#') throw exception("Formato invalido");
+		if(line[0] != '#') throw invalid_argument("Formato invalido");
 
 		getline(str, line);
 		unsigned long states = stoul(line);
 		if(states >= numeric_limits<TState>::max())
 		{
-			throw exception("El numero de estados supera el maximo representable");
+			throw invalid_argument("El numero de estados supera el maximo representable");
 		}
 
 		// alpha
 		getline(str, line);
-		if(line[0] != '#') throw exception("Formato invalido");
+		if(line[0] != '#') throw invalid_argument("Formato invalido");
 
 		getline(str, line);
 		unsigned long alpha = stoul(line);
 		if(alpha >= numeric_limits<TSymbol>::max())
 		{
-			throw exception("El numero de simbolos supera el maximo representable");
+			throw invalid_argument("El numero de simbolos supera el maximo representable");
 		}
 
 		// initialization
@@ -54,12 +57,12 @@ public:
 
 		// initial
 		getline(str, line);
-		if(line[0] != '#') throw exception("Formato invalido");
+		if(line[0] != '#') throw invalid_argument("Formato invalido");
 
 		col.clear();
 		getline(str, line);
 		trim(line);
-		split(col, line, isspace);		
+		split(col, line, is_space);		
 		for(string i : col)
 		{
 			TState st = (TState)stol(i);
@@ -68,12 +71,12 @@ public:
 
 		// final
 		getline(str, line);
-		if(line[0] != '#') throw exception("Formato invalido");
+		if(line[0] != '#') throw invalid_argument("Formato invalido");
 
 		col.clear();
 		getline(str, line);	
 		trim(line);
-		split(col, line, isspace);
+		split(col, line, is_space);
 		for(string i : col)
 		{
 			TState st = (TState)stol(i);
@@ -82,7 +85,7 @@ public:
 
 		// transitions
 		getline(str, line);
-		if(line[0] != '#') throw exception("Formato invalido");
+		if(line[0] != '#') throw invalid_argument("Formato invalido");
 				
 		size_t transitionsRead=0;
 		while(!str.eof())
@@ -93,8 +96,8 @@ public:
 
 			col.clear();
 			trim(line);
-			split(col, line, isspace);
-			if(col.size() != 3) throw exception("Formato invalido");
+			split(col, line, is_space);
+			if(col.size() != 3) throw invalid_argument("Formato invalido");
 
 			TState qs = (TState)stol(col[0]);
 			TSymbol c = (TSymbol)stol(col[1]);
@@ -123,35 +126,36 @@ public:
 		using namespace std;
 		using boost::split;
 		using boost::trim;
+		using boost::algorithm::is_space;
 
-		if(str.eof()) throw exception();
+		if(str.eof()) throw invalid_argument("end of file premature");
 
 		string line;
 		vector<string> col;
 
 		// states
 		getline(str, line);		
-		if(line[0] != '#') throw exception("Formato invalido");
+		if(line[0] != '#') throw invalid_argument("Formato invalido");
 
 		getline(str, line);
 		unsigned long states = stoul(line);
 		if(states >= numeric_limits<TState>::max())
 		{
-			throw exception("El numero de estados supera el maximo representable");
+			throw invalid_argument("El numero de estados supera el maximo representable");
 		}
 
 		// alpha
 		getline(str, line);
-		if(line[0] != '#') throw exception("Formato invalido");
+		if(line[0] != '#') throw invalid_argument("Formato invalido");
 
 		getline(str, line);
 		vector<string> alpha_set_line;
 		trim(line);
-		boost::split(alpha_set_line, line, boost::is_space());
+		split(alpha_set_line, line, is_space);
 		size_t alpha = alpha_set_line.size();
 		if(alpha >= numeric_limits<TSymbol>::max())
 		{
-			throw exception("El numero de simbolos supera el maximo representable");
+			throw invalid_argument("El numero de simbolos supera el maximo representable");
 		}
 
 		// initialization
@@ -161,22 +165,22 @@ public:
 
 		// final
 		getline(str, line);
-		if(line[0] != '#') throw exception("Formato invalido");
+		if(line[0] != '#') throw invalid_argument("Formato invalido");
 
 		col.clear();
 		getline(str, line);	
 		trim(line);
-		split(col, line, isspace);
+		split(col, line, is_space);
 		for(string i : col)
 		{
 			TState st = (TState)stol(i);
-			if(st == 0) throw exception("Formato invalido, no basado en 1");
+			if(st == 0) throw invalid_argument("Formato invalido, no basado en 1");
 			dfa.SetFinal(st-1);
 		}
 
 		// transitions
 		getline(str, line);
-		if(line[0] != '#') throw exception("Formato invalido");
+		if(line[0] != '#') throw invalid_argument("Formato invalido");
 				
 		size_t transitionsRead=0;
 		while(!str.eof())
@@ -187,8 +191,8 @@ public:
 
 			col.clear();
 			trim(line);
-			split(col, line, isspace);
-			if(col.size() != 3) throw exception("Formato invalido");
+			split(col, line, is_space);
+			if(col.size() != 3) throw invalid_argument("Formato invalido");
 
 			TState qs = (TState)stol(col[0]);
 			TSymbol c = (TSymbol)stol(col[1]);

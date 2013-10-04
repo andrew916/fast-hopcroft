@@ -4,11 +4,11 @@
 #include <ostream>
 #include <stdint.h>
 
-template<typename TFsm>
+template<typename _TFsm>
 class FsmPlainTextWriter
 {
 public:
-	typedef TFsm TFsm;
+	typedef _TFsm TFsm;
 	typedef typename TFsm::TState TState;
 	typedef typename TFsm::TSymbol TSymbol;
 

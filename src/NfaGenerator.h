@@ -16,7 +16,7 @@ private:
 
 public:
 	
-	template<typename TSet, typename TRandGen>
+	template<typename TSet>
 	typename TSet::TElement RandomChoice(const TSet& reach, TRandGen& gen, std::uniform_int<typename TSet::TElement>& state_dist)
 	{
 		TState q;

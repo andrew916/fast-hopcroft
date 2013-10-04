@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdexcept>
 #include <string>
 #include <map>
 #include <unordered_set>
@@ -38,7 +39,7 @@ protected:
 		else 
 		{
 			auto msg = std::string("Se esperaba el literal: ")+ref; 
-			throw std::exception(msg.c_str()); 
+			throw std::invalid_argument(msg.c_str()); 
 		}
 	}
 
@@ -46,7 +47,7 @@ protected:
 	{
 		if(!std::all_of(token.begin(), token.end(), isdigit))
 		{
-			throw std::exception("Se esperaba token numerico");
+			throw std::invalid_argument("Se esperaba token numerico");
 		}
 		i = boost::lexical_cast<int,std::string>(token);
 		state++;
@@ -56,7 +57,7 @@ protected:
 	{
 		if(token.size() != 1 || !isalpha(token[0]))
 		{
-			throw std::exception("Se esperaba token caracter");
+			throw std::invalid_argument("Se esperaba token caracter");
 		}
 		i = token[0];
 		state++;
