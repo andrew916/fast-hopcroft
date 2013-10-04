@@ -147,7 +147,7 @@ public:
 		getline(str, line);
 		vector<string> alpha_set_line;
 		trim(line);
-		boost::split(alpha_set_line, line, boost::is_any_of(" "));
+		boost::split(alpha_set_line, line, boost::is_space());
 		size_t alpha = alpha_set_line.size();
 		if(alpha >= numeric_limits<TSymbol>::max())
 		{

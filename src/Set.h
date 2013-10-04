@@ -9,7 +9,7 @@ template<typename TElement, typename TBlock = uint64_t>
 class BitSet
 {
 public:
-	typedef dynamic_bitset<TBlock> TStore;
+	typedef dynamic_bitset<TElement, TBlock> TStore;
 	typedef BitSet<TElement, TBlock> TSet;
 	typedef TElement TElement;
 
@@ -22,12 +22,11 @@ public:
 	{
 		size_t operator()(const TSet& _Keyval) const
 		{	
-			TStore::hash h;
-			return h(_Keyval.store);
+			return _Keyval.store.hash_value();
 		}
 	};
 
-	explicit BitSet(size_t elements) 
+	explicit BitSet(TElement elements) 
 		: store(elements)
 	{
 	}
@@ -39,52 +38,52 @@ public:
 
 	void Clear()
 	{
-		store.reset();
+		store.clear();
 	}
 
 	void Add(const TElement& element)
 	{
-		store.set(element);
+		store.add(element);
 	}
 
 	void Remove(const TElement& element)
 	{
-		store.reset(element);
+		store.remove(element);
 	}
 
 	bool TestAndAdd(const TElement& element)
 	{
-		return store.test_set(element);
+		return store.test_and_add(element);
 	}
 
 	bool TestAndRemove(const TElement& element)
 	{
-		return store.test_reset(element);
+		return store.test_and_remove(element);
 	}
 
 	void UnionWith(const TSet& other)
 	{
-		store |= other.store;
+		store.union_with(other.store);
 	}
 
 	void IntersectWith(const TSet& other)
 	{
-		store &= other.store;
+		store.intersect_with(other.store);
 	}
 
 	void DifferenceWith(const TSet& other)
 	{
-		 store -= other.store;
+		 store.difference_with(other.store);
 	}
 
 	void SymetricDifferenceWith(const TSet& other)
 	{
-		store ^= other.store;
+		store.symetric_difference_with(other.store);
 	}
 
 	bool Contains(const TElement& element) const
 	{
-		return store.test(element);
+		return store.contains(element);
 	}
 
 	bool IsEmpty() const 
@@ -129,11 +128,11 @@ public:
 	{
 	public:
 	private:
-		typename TStore::size_type i;
-		const TStore* col;
-
-		Iterator(typename TStore::size_type begin, const TStore& store)
-			: i(begin), col(&store)
+		
+		typename TStore::iterator i;
+		
+		Iterator(const typename TStore::iterator& _i)
+			: i(_i)
 		{
 		}
 
@@ -142,17 +141,17 @@ public:
 	public:
 		void MoveNext()
 		{
-			i = col->find_next(i);
+			++i;
 		}
 
 		bool IsEnd() const
 		{
-			return i == TStore::npos;
+			return i.is_end();
 		}
 
 		TElement GetCurrent() const
 		{
-			return static_cast<TElement>(i);
+			return static_cast<TElement>(*i);
 		}
 
 		bool Equals(const Iterator& rh) const
@@ -173,7 +172,7 @@ public:
 
 	Iterator GetIterator() const 
 	{
-		return Iterator(store.find_first(), store);
+		return Iterator(store.begin());
 	}
 
 	bool operator==(const TSet& rh) const

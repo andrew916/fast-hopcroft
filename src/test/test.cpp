@@ -1266,7 +1266,7 @@ int test401()
 		auto t_h = timer.elapsed().wall;
 		auto c_h = p_h.GetSize();
 
-		/*timer.start();
+		timer.start();
 		min_i.Minimize(dfa, p_i);
 		timer.stop();
 		auto t_i = timer.elapsed().wall;
@@ -1276,7 +1276,7 @@ int test401()
 		min_hi.Minimize(dfa, p_hi);
 		timer.stop();
 		auto t_hi = timer.elapsed().wall;
-		auto c_hi = p_hi.GetSize();*/
+		auto c_hi = p_hi.GetSize();
 
 		auto fmt = boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%")
 			% states 
@@ -1292,9 +1292,9 @@ int test401()
 			;
 		report << fmt.str() << endl;
 
-		//if(!(c_h == c_i)) throw exception("");
-		//if(!(c_h == c_hi)) throw exception("");
-		//if(!(c_i == c_hi)) throw exception("");
+		if(!(c_h == c_i)) throw exception("");
+		if(!(c_h == c_hi)) throw exception("");
+		if(!(c_i == c_hi)) throw exception("");
 
 	}
 
