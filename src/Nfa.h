@@ -12,14 +12,14 @@
 /// Represenation:
 /// Each state is a zero-based integer index.
 /// Each symbol is a zero-based integer index.
-template<typename TState, typename TSymbol, typename TToken = uint64_t>
+template<typename _TState, typename _TSymbol, typename TToken = uint64_t>
 class Nfa
 {
 public:	
+	typedef _TState TState;
+	typedef _TSymbol TSymbol;
 	typedef Nfa<TState,TSymbol,TToken> TNfa;
 	typedef BitSet<TState, TToken> TSet;
-	typedef TState TState;
-	typedef TSymbol TSymbol;
 	typedef std::tuple<TState,TSymbol,TState> TEdge;
 	
 private:
@@ -193,7 +193,7 @@ public:
 			if(i.IsEnd()) MoveNext();
 		}
 
-		friend class TNfa;
+		friend TNfa;
 
 	public:
 		TEdge GetCurrent() const
@@ -226,7 +226,7 @@ public:
 	{
 		TState s=0;
 		TSymbol a=0;
-		TSet::Iterator i=GetSuccessors(s,a).GetIterator();
+		typename TSet::Iterator i=GetSuccessors(s,a).GetIterator();
 		return EdgeSuccessorIterator(this, s, a, i);
 	}
 };

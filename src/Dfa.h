@@ -14,14 +14,14 @@
 /// Represenation:
 /// Each state is a zero-based integer index.
 /// Each symbol is a zero-based integer index.
-template<typename TState, typename TSymbol, typename TToken = uint64_t>
+template<typename _TState, typename _TSymbol, typename _TToken = uint64_t>
 class Dfa
 {
 public:	
+	typedef _TState TState;
+	typedef _TSymbol TSymbol;
+	typedef _TToken TToken;
 	typedef BitSet<TState, TToken> TSet;
-	typedef TState TState;
-	typedef TSymbol TSymbol;
-	typedef TToken TToken;
 
 private:
 	/// number of symbols in alphabet

@@ -14,11 +14,11 @@
 
 
 /// Hopcroft's DFA Minimization Algorithm.
-template<typename TDfa>
+template<typename _TDfa>
 class MinimizationHopcroft
 {	
 public:	
-	typedef TDfa TDfa;
+	typedef _TDfa TDfa;
 	typedef typename TDfa::TState TState;
 	typedef typename TDfa::TSymbol TSymbol;
 	typedef typename TDfa::TSet TSet;

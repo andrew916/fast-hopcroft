@@ -2,7 +2,7 @@
 #pragma once
 
 #include <tuple>
-#include "Nfa.h"
+#include "Set.h"
 
 ///	Represents a Finite Automata.
 ///	<param ref="TState" /> is the integer type representing states.
@@ -10,15 +10,15 @@
 /// Represenation:
 /// Each state is a zero-based integer index.
 /// Each symbol is a zero-based integer index.
-template<typename TState, typename TSymbol, typename TSet = Set<TState>, typename TEdge = std::tuple<TState,TSymbol,TState>, typename TEdgeSet = Set<TEdge>>
+template<typename _TState, typename _TSymbol, typename _TSet = Set<_TState>, typename _TEdge = std::tuple<_TState, _TSymbol, _TState>, typename _TEdgeSet = Set<_TEdge>>
 class Fsa
 {
 public:
-	typedef TSet TSet;
-	typedef TState TState;
-	typedef TSymbol TSymbol;
-	typedef TEdge TEdge;
-	typedef TEdgeSet TEdgeSet;
+	typedef _TSet TSet;
+	typedef _TState TState;
+	typedef _TSymbol TSymbol;
+	typedef _TEdge TEdge;
+	typedef _TEdgeSet TEdgeSet;
 	
 private:
 	/// number of symbols in alphabet

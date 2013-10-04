@@ -6,11 +6,11 @@
 #include "Set.h"
 
 // Incremental Almeida et al. Minimization Algorithm.
-template<typename TDfa>
+template<typename _TDfa>
 class MinimizationHybrid
 {
 public:
-	typedef TDfa TDfa;
+	typedef _TDfa TDfa;
 	typedef typename TDfa::TState TState;
 	typedef typename TDfa::TSymbol TSymbol;
 	typedef uint64_t TPairIndex;

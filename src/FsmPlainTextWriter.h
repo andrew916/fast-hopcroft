@@ -3,7 +3,6 @@
 #include <string>
 #include <ostream>
 #include <stdint.h>
-#include "Dfa.h"
 
 template<typename TFsm>
 class FsmPlainTextWriter

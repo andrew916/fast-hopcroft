@@ -6,8 +6,6 @@
 #include <stdint.h>
 #include <boost/functional/hash.hpp>
 
-#include <intrin.h>
-
 template<typename Block, typename Index>
 void bs(Block* b, Index idx)
 {
@@ -55,6 +53,8 @@ Index popcnt(Block x)
 
 // 64-bit AMD64 versions
 #ifdef _MSC_VER
+#include <intrin.h>
+
 template<typename Index>
 void bs(uint64_t* b, Index idx)
 {
@@ -186,9 +186,9 @@ template<class _Parent>
 class dynamic_bitset_iterator
 {
 public:
-	typedef typename dynamic_bitset_iterator<_Parent> iterator;
+	typedef dynamic_bitset_iterator<_Parent> iterator;
 	typedef typename _Parent::element_type element_type;
-	typedef typename _Parent::Block block_type;
+	typedef typename _Parent::block_type block_type;
 	typedef typename _Parent::StorageType storage_type;	
 	static const element_type bits_per_block = sizeof(block_type) * 8;
 private:
@@ -273,7 +273,7 @@ class dynamic_bitset
 {
 public:
 	typedef ElementType element_type;
-	typedef Block Block;
+	typedef Block block_type;
 	typedef dynamic_bitset<ElementType, Block, Allocator> dynamic_bitset_type;
 	typedef dynamic_bitset_iterator<dynamic_bitset_type> iterator;
 	static const element_type bits_per_block = sizeof(Block) * 8;
@@ -283,7 +283,7 @@ private:
 	StorageType storage;
 	element_type bits;
 
-	friend class iterator;
+	friend class dynamic_bitset_iterator<dynamic_bitset_type>;
 
 	size_t blocks_need(element_type bits)
 	{
@@ -303,7 +303,7 @@ public:
 	}
 
 	dynamic_bitset()
-		: this(0)
+		: dynamic_bitset(0)
 	{
 	}
 
@@ -360,9 +360,10 @@ public:
 	{
 		element_type bit_idx = n % bits_per_block;
 		element_type block_idx = n / bits_per_block;
-		Block mask = static_cast<Block>(1) << bit_idx;
+		block_type mask = static_cast<Block>(1) << bit_idx;
+
 		mask = ~(mask - 1);
-		Block b = storage[block_idx] & mask;
+		block_type b = storage[block_idx] & mask;
 		element_type p;
 		if(bsf(b, &p))
 		{
@@ -426,7 +427,7 @@ public:
 		element_type c=0;
 		for(auto i : storage)
 		{
-			c += popcnt<Block, element_type>(i);
+			c += popcnt<block_type, element_type>(i);
 		}
 		return c;
 	}

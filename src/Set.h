@@ -4,14 +4,15 @@
 #include "dynamic_bitset.h"
 #include <algorithm>
 #include <string>
+#include <boost/functional/hash.hpp>
 
-template<typename TElement, typename TBlock = uint64_t>
+template<typename _TElement, typename TBlock = uint64_t>
 class BitSet
 {
 public:
+	typedef _TElement TElement;
 	typedef dynamic_bitset<TElement, TBlock> TStore;
 	typedef BitSet<TElement, TBlock> TSet;
-	typedef TElement TElement;
 
 private:
 	TStore store;
@@ -136,7 +137,7 @@ public:
 		{
 		}
 
-		friend class TSet;
+		friend TSet;
 
 	public:
 		void MoveNext()
@@ -358,7 +359,7 @@ public:
 		{
 		}
 
-		friend class TSet;
+		friend TSet;
 
 	public:
 
@@ -420,40 +421,7 @@ public:
 	{
 		size_t operator()(const TSet& _Keyval) const
 		{	
-		#ifdef _M_X64
-			static_assert(sizeof(size_t) == 8, "This code is for 64-bit size_t.");
-			const size_t _FNV_offset_basis = 14695981039346656037ULL;
-			const size_t _FNV_prime = 1099511628211ULL;
-
-		 #else /* _M_X64 */
-			static_assert(sizeof(size_t) == 4, "This code is for 32-bit size_t.");
-			const size_t _FNV_offset_basis = 2166136261U;
-			const size_t _FNV_prime = 16777619U;
-		 #endif /* _M_X64 */
-
-			size_t _Val = _FNV_offset_basis;
-
-			for(auto i=_Keyval.GetIterator(); !i.IsEnd(); i.MoveNext())
-			{
-				// fold in another value		
-				auto z = i.GetCurrent();
-				auto ss = sizeof(z);
-				while(ss--) {
-					_Val ^= (size_t)(z & 0xFF);
-					_Val *= _FNV_prime;
-					z >>= 8;
-				}
-			}
-
-		 #ifdef _M_X64
-			static_assert(sizeof(size_t) == 8, "This code is for 64-bit size_t.");
-			_Val ^= _Val >> 32;
-
-		 #else /* _M_X64 */
-			static_assert(sizeof(size_t) == 4, "This code is for 32-bit size_t.");
-		 #endif /* _M_X64 */
-
-			return (_Val);
+			return boost::hash_value(_Keyval.store);			
 		}
 	};
 

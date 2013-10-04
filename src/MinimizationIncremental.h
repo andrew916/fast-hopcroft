@@ -6,11 +6,11 @@
 #include "Set.h"
 
 // Incremental Almeida et al. Minimization Algorithm.
-template<typename TDfa>
+template<typename _TDfa>
 class MinimizationIncremental
 {
 public:
-	typedef TDfa TDfa;
+	typedef _TDfa TDfa;
 	typedef typename TDfa::TState TState;
 	typedef typename TDfa::TSymbol TSymbol;
 	typedef uint64_t TPairIndex;
@@ -164,6 +164,7 @@ public:
 	
 	std::string to_string(const std::list<TState>& ls)
 	{
+		using namespace std;
 		string str;
 		str.append("{");
 		int cont=0;
@@ -179,6 +180,7 @@ public:
 
 	std::string to_string(const NumericPartition& p)
 	{
+		using namespace std;
 		string str;
 		str.append("{");
 		TState i=0;

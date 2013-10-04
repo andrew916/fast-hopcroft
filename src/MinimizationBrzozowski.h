@@ -5,12 +5,12 @@
 #include "Dfa.h"
 
 /// Brzozowski's FSA Minimization Algorithm.
-template<typename TFsa, typename TDfa = Dfa<TFsa::TState, TFsa::TSymbol>>
+template<typename _TFsa, typename _TDfa = Dfa<typename _TFsa::TState, typename _TFsa::TSymbol>>
 class MinimizationBrzozowski
 {
 public:	
-	typedef TFsa TFsa;
-	typedef TDfa TDfa;
+	typedef _TFsa TFsa;
+	typedef _TDfa TDfa;
 	typedef typename TFsa::TState TState;
 	typedef typename TFsa::TSymbol TSymbol;
 		
