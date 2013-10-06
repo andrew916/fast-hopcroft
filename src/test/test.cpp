@@ -1249,8 +1249,8 @@ int test401()
 	const array<TState,2> states_set = { 10, 11 };
 	for(TSymbol alpha : alphas)
 	for(TState states : states_set)
-	for(float d=0.00f; d<1.0f; d+=0.05f)
-	for(int i=0; i<20; i++)
+	for(float d=0.00f; d<1.0f; d+=0.025f)
+	for(int i=0; i<50; i++)
 	{
 		float den = d;
 		cout << "states: "<< states << " alpha: " << alpha << " d:" << d << " i:" << i << endl;

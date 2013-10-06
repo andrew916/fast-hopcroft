@@ -37,7 +37,6 @@ public:
 
 		TNfa nfa(alpha, states);		
 
-
 		// Determina estados iniciales
 		for(TState i=0; i<initials;)
 		{
