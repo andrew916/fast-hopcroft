@@ -7,170 +7,160 @@
 #include <boost/functional/hash.hpp>
 
 template<typename Block, typename Index>
-void bs(Block* b, Index idx)
+struct bitutil
 {
-	*b |= static_cast<Block>(1) << idx;
-}
+	static void bs(Block* b, Index idx)
+	{
+		*b |= static_cast<Block>(1) << idx;
+	}
+		
+	static void bc(Block* b, Index idx)
+	{
+		*b &= ~(static_cast<Block>(1) << idx);
+	}
 
-template<typename Block, typename Index>
-void bc(Block* b, Index idx)
-{
-	*b &= ~(static_cast<Block>(1) << idx);
-}
+	static bool bt(Block b, Index idx)
+	{
+		Block mask = static_cast<Block>(1) << idx;
+		return (b & mask) != 0;
+	}
 
-template<typename Block, typename Index>
-bool bt(Block b, Index idx)
-{
-	Block mask = static_cast<Block>(1) << idx;
-	return (b & mask) != 0;
-}
+	static bool bts(Block* b, Index idx)
+	{
+		auto r = bt(*b, idx);
+		bs(b, idx);
+		return r;
+	}
 
-template<typename Block, typename Index>
-bool bts(Block* b, Index idx)
-{
-	auto r = bt(*b, idx);
-	bs(b, idx);
-	return r;
-}
+	static bool btc(Block* b, Index idx)
+	{
+		auto r = bt(*b, idx);
+		bc(b, idx);
+		return r;
+	}
 
-template<typename Block, typename Index>
-bool btc(Block* b, Index idx)
-{
-	auto r = bt(*b, idx);
-	bc(b, idx);
-	return r;
-}
+	/*
+	Martin Läuter (1997), Charles E. Leiserson, Harald Prokop, Keith H. Randall
+	"Using de Bruijn Sequences to Index a 1 in a Computer Word"
+	*/
+	static bool bsf(Block b, Index* i)
+	{
+		static const uint8_t index64[64] = {
+			0,  1, 48,  2, 57, 49, 28,  3,
+			61, 58, 50, 42, 38, 29, 17,  4,
+			62, 55, 59, 36, 53, 51, 43, 22,
+			45, 39, 33, 30, 24, 18, 12,  5,
+			63, 47, 56, 27, 60, 41, 37, 16,
+			54, 35, 52, 21, 44, 32, 23, 11,
+			46, 26, 40, 15, 34, 20, 31, 10,
+			25, 14, 19,  9, 13,  8,  7,  6
+		};
 
-template<typename Block, typename Index>
-Index popcnt(Block x)
-{
-	static_assert(sizeof(x) <= 8, "Max size of block is 64-bit");
-	Index pop;
-	for(pop=0; x; pop++)
-		x &= x - 1;
-	return pop;
-}
+		static_assert(sizeof(b) <= 8, "Max size of block is 64-bit");
+		if(b==0) return false;
+		const uint64_t debruijn64 = 0x03f79d71b4cb0a89;
+		*i = index64[((b & -b) * debruijn64) >> 58];
+		return true;
+	}
 
+	static Index popcnt(Block x)
+	{
+		static_assert(sizeof(x) <= 8, "Max size of block is 64-bit");
+		Index pop;
+		for(pop=0; x; pop++)
+			x &= x - 1;
+		return pop;
+	}
+};
 // 64-bit AMD64 versions
 #ifdef _MSC_VER
 #include <intrin.h>
 
 template<typename Index>
-void bs(uint64_t* b, Index idx)
+struct bitutil<uint64_t, Index>
 {
-	_bittestandset64(reinterpret_cast<int64_t*>(b), idx);
-}
+	static void bs(uint64_t* b, Index idx)
+	{
+		_bittestandset64(reinterpret_cast<int64_t*>(b), idx);
+	}
 
-template<typename Index>
-void bc(uint64_t* b, Index idx)
-{
-	_bittestandreset64(reinterpret_cast<int64_t*>(b), idx);
-}
+	static void bc(uint64_t* b, Index idx)
+	{
+		_bittestandreset64(reinterpret_cast<int64_t*>(b), idx);
+	}
 
-template<typename Index>
-bool bt(uint64_t b, Index idx)
-{
-	return _bittest64(reinterpret_cast<int64_t*>(&b), idx) != 0;
-}
+	static bool bt(uint64_t b, Index idx)
+	{
+		return _bittest64(reinterpret_cast<int64_t*>(&b), idx) != 0;
+	}
 
-template<typename Index>
-bool bts(uint64_t* b, Index idx)
-{
-	return _bittestandset64(reinterpret_cast<int64_t*>(b), idx) != 0;
-}
+	static bool bts(uint64_t* b, Index idx)
+	{
+		return _bittestandset64(reinterpret_cast<int64_t*>(b), idx) != 0;
+	}
 
-template<typename Index>
-bool btc(uint64_t* b, Index idx)
-{
-	return _bittestandreset64(reinterpret_cast<int64_t*>(b), idx) != 0;
-}
+	static bool btc(uint64_t* b, Index idx)
+	{
+		return _bittestandreset64(reinterpret_cast<int64_t*>(b), idx) != 0;
+	}
 
-template<typename Index>
-Index popcnt(uint64_t x)
-{
-	return static_cast<Index>(__popcnt64(x));
-}
+	static Index popcnt(uint64_t x)
+	{
+		return static_cast<Index>(__popcnt64(x));
+	}
 
-template<typename Index>
-bool bsf(uint64_t b, Index* i)
-{
-	unsigned long ii;
-	auto r = _BitScanForward64(&ii, b) != 0;
-	*i = static_cast<Index>(ii);
-	return r;
-}
+	static bool bsf(uint64_t b, Index* i)
+	{
+		unsigned long ii;
+		auto r = _BitScanForward64(&ii, b) != 0;
+		*i = static_cast<Index>(ii);
+		return r;
+	}
+};
 
 // 32-bit x86 versions
 template<typename Index>
-void bs(uint32_t* b, Index idx)
+struct bitutil<uint32_t, Index>
 {
-	_bittestandset(reinterpret_cast<int32_t*>(b), idx);
-}
+	static void bs(uint32_t* b, Index idx)
+	{
+		_bittestandset(reinterpret_cast<int32_t*>(b), idx);
+	}
 
-template<typename Index>
-void bc(uint32_t* b, Index idx)
-{
-	_bittestandreset(reinterpret_cast<int32_t*>(b), idx);
-}
+	static void bc(uint32_t* b, Index idx)
+	{
+		_bittestandreset(reinterpret_cast<int32_t*>(b), idx);
+	}
 
-template<typename Index>
-bool bt(uint32_t b, Index idx)
-{
-	return _bittest(reinterpret_cast<int32_t*>(&b), idx) != 0;
-}
+	static bool bt(uint32_t b, Index idx)
+	{
+		return _bittest(reinterpret_cast<int32_t*>(&b), idx) != 0;
+	}
 
-template<typename Index>
-bool bts(uint32_t* b, Index idx)
-{
-	return _bittestandset(reinterpret_cast<int32_t*>(b), idx) != 0;
-}
+	static bool bts(uint32_t* b, Index idx)
+	{
+		return _bittestandset(reinterpret_cast<int32_t*>(b), idx) != 0;
+	}
 
-template<typename Index>
-bool btc(uint32_t* b, Index idx)
-{
-	return _bittestandreset(reinterpret_cast<int32_t*>(b), idx) != 0;
-}
+	static bool btc(uint32_t* b, Index idx)
+	{
+		return _bittestandreset(reinterpret_cast<int32_t*>(b), idx) != 0;
+	}
 
-template<typename Index>
-Index popcnt(uint32_t x)
-{
-	return static_cast<Index>(__popcnt(x));
-}
+	static Index popcnt(uint32_t x)
+	{
+		return static_cast<Index>(__popcnt(x));
+	}
 
-template<typename Index>
-bool bsf(uint32_t b, Index* i)
-{
-	unsigned long ii;
-	auto r = _BitScanForward(&ii, b) != 0;
-	*i = static_cast<Index>(ii);
-	return r;
-}
+	static bool bsf(uint32_t b, Index* i)
+	{
+		unsigned long ii;
+		auto r = _BitScanForward(&ii, b);
+		*i = static_cast<Index>(ii);
+		return r;
+	}
+};
 #endif
-
-/*
-Martin Läuter (1997), Charles E. Leiserson, Harald Prokop, Keith H. Randall
-"Using de Bruijn Sequences to Index a 1 in a Computer Word"
-*/
-template<typename Block, typename Index>
-bool bsf(Block b, Index* i)
-{
-	static const uint8_t index64[64] = {
-		0,  1, 48,  2, 57, 49, 28,  3,
-		61, 58, 50, 42, 38, 29, 17,  4,
-		62, 55, 59, 36, 53, 51, 43, 22,
-		45, 39, 33, 30, 24, 18, 12,  5,
-		63, 47, 56, 27, 60, 41, 37, 16,
-		54, 35, 52, 21, 44, 32, 23, 11,
-		46, 26, 40, 15, 34, 20, 31, 10,
-		25, 14, 19,  9, 13,  8,  7,  6
-	};
-
-	static_assert(sizeof(b) <= 8, "Max size of block is 64-bit");
-	if(b==0) return false;
-	const uint64_t debruijn64 = 0x03f79d71b4cb0a89;
-	*i = index64[((b & -b) * debruijn64) >> 58];
-	return true;
-}
 
 // Declarations 
 
@@ -190,6 +180,7 @@ public:
 	typedef typename _Parent::element_type element_type;
 	typedef typename _Parent::block_type block_type;
 	typedef typename _Parent::StorageType storage_type;	
+	typedef bitutil<block_type, element_type> bu;
 	static const element_type bits_per_block = sizeof(block_type) * 8;
 private:
 	element_type bit_num;
@@ -233,9 +224,9 @@ public:
 		assert(blk_iter != storage->end());
 		element_type bit_idx;
 		do {
-			if(bsf(current_block, &bit_idx))
+			if(bu::bsf(current_block, &bit_idx))
 			{
-				btc(&current_block, bit_idx);
+				bu::bc(&current_block, bit_idx);
 				auto blk_idx = std::distance(storage->begin(), blk_iter);
 				element_type blk_bit_begin = static_cast<element_type>(blk_idx) * bits_per_block;
 				bit_num = bit_idx + blk_bit_begin;
@@ -276,6 +267,7 @@ public:
 	typedef Block block_type;
 	typedef dynamic_bitset<ElementType, Block, Allocator> dynamic_bitset_type;
 	typedef dynamic_bitset_iterator<dynamic_bitset_type> iterator;
+	typedef bitutil<block_type, element_type> bu;
 	static const element_type bits_per_block = sizeof(Block) * 8;
 
 private:
@@ -293,7 +285,7 @@ private:
 public:
 
 	dynamic_bitset(element_type _bits)
-		: storage(blocks_need(_bits), 0, Allocator()), bits(_bits)
+		: storage(blocks_need(_bits)), bits(_bits)
 	{
 	}
 
@@ -309,32 +301,34 @@ public:
 
 	void add(element_type n)
 	{
-		bs(&storage[n/bits_per_block], n%bits_per_block);
+		bu::bs(&storage[n/bits_per_block], n%bits_per_block);
 	}
 
 	void remove(element_type n)
 	{
-		bc(&storage[n/bits_per_block], n%bits_per_block);
+		bu::bc(&storage[n/bits_per_block], n%bits_per_block);
 	}
 
 	bool contains(element_type n) const
 	{
-		return bt(storage[n/bits_per_block], n%bits_per_block);
+		return bu::bt(storage[n/bits_per_block], n%bits_per_block);
 	}
 
 	void complement()
 	{
 		for(auto& i : storage) i = ~i;
+		block_type mask = (block_type(1) << (bits % bits_per_block)) - 1;
+		storage.back() &= mask;
 	}
 
 	bool test_and_add(element_type n)
 	{
-		return bts(&storage[n/bits_per_block], n%bits_per_block);
+		return bu::bts(&storage[n/bits_per_block], n%bits_per_block);
 	}
 
 	bool test_and_remove(element_type n)
 	{
-		return btc(&storage[n/bits_per_block], n%bits_per_block);
+		return bu::btc(&storage[n/bits_per_block], n%bits_per_block);
 	}
 
 	void clear() 
@@ -348,7 +342,7 @@ public:
 		element_type p;
 		for(const auto& i : storage)
 		{
-			if(bsf(i, &p))
+			if(bu::bsf(i, &p))
 			{
 				return p + bit_blk;
 			}
@@ -360,19 +354,18 @@ public:
 	{
 		element_type bit_idx = n % bits_per_block;
 		element_type block_idx = n / bits_per_block;
-		block_type mask = static_cast<Block>(1) << bit_idx;
-
-		mask = ~(mask - 1);
+		block_type mask = ~static_cast<Block>(0) << (bit_idx + 1);
+				
 		block_type b = storage[block_idx] & mask;
 		element_type p;
 		if(bsf(b, &p))
 		{
 			return p + block_idx * bits_per_block;
 		}
-		for(block_idx++; block_idx < storage.size(); block_idx++)
+		while(block_idx++ < storage.size())
 		{
 			b = storage[block_idx];
-			if(bsf(b, &p)) return p + block_idx * bits_per_block;
+			if(bu::bsf(b, &p)) return p + block_idx * bits_per_block;
 		}
 		return max_count();
 	}
@@ -380,8 +373,8 @@ public:
 	element_type max_count() const
 	{
 		// 2^n-1
-		element_type p = 1 << (sizeof(element_type)*8);
-		return p - 1;
+		element_type p = (1 << (sizeof(element_type)*8)) - 1;
+		return p;
 	}
 
 	void union_with(const dynamic_bitset_type& bt) 
@@ -427,9 +420,32 @@ public:
 		element_type c=0;
 		for(auto i : storage)
 		{
-			c += popcnt<block_type, element_type>(i);
+			c += bu::popcnt(i);
 		}
 		return c;
+	}
+
+	element_type element_in_position(element_type cnt) const
+	{
+		assert(cnt < count());
+		element_type c = 0;
+		auto i = storage.begin();
+		while(true)
+		{
+			auto p = bu::popcnt(*i);
+			if(p > cnt) break;
+			cnt -= p;
+			c += bits_per_block;
+			i++;
+		}
+		block_type b = *i;
+		element_type bit;
+		do
+		{			
+			bu::bsf(b, &bit);
+			bu::bc(&b, bit);
+		} while(cnt--);
+		return c + bit;
 	}
 
 	bool operator==(const dynamic_bitset_type& rhs) const

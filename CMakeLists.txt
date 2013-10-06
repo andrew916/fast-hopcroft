@@ -4,6 +4,7 @@ set(FASTHOPCROFT_VERSION_MINOR 3)
 
 project(FastHopcroft)
 configure_file(src/config.h.in config.h)
+set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.49 REQUIRED COMPONENTS system filesystem timer)
 include_directories(
 	"${Boost_INCLUDE_DIR}"

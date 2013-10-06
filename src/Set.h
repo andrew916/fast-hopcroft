@@ -37,6 +37,11 @@ public:
 		store.find_next(element);
 	}
 
+	TElement GetElementAt(TElement pos) const 
+	{
+		return store.element_in_position(pos);
+	}
+
 	void Clear()
 	{
 		store.clear();
@@ -82,6 +87,11 @@ public:
 		store.symetric_difference_with(other.store);
 	}
 
+	void Complement()
+	{
+		store.complement();
+	}
+
 	bool Contains(const TElement& element) const
 	{
 		return store.contains(element);
@@ -94,7 +104,7 @@ public:
 
 	TElement Count() const 
 	{
-		return static_cast<TElement>(store.count());
+		return store.count();
 	}
 
 	static TSet Union(const TSet& lh, const TSet& rh)

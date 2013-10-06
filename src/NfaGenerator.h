@@ -15,18 +15,15 @@ public:
 private:
 
 public:
-	
+
 	template<typename TSet>
-	typename TSet::TElement RandomChoice(const TSet& reach, TRandGen& gen, std::uniform_int<typename TSet::TElement>& state_dist)
-	{
-		TState q;
-		do
-		{
-			q = state_dist(gen);
-			if(reach.Contains(q)) break;
-			//q = reach.find_next(q);
-		} while(true); //while(q==reach.npos);
-		return q;
+	typename TSet::TElement RandomChoice(const TSet& reach, TRandGen& gen)
+	{				
+		auto max = reach.Count();
+		assert(max > 0);
+		std::uniform_int_distribution<TSet::TElement> d(0, max-1);
+		TSet::TElement q = d(gen);		
+		return reach.GetElementAt(q);
 	}
 
 	TNfa Generate_v2(TState states, TSymbol alpha, TState initials, TState finals, float* density, TRandGen& gen)
@@ -39,7 +36,8 @@ public:
 		typedef tuple<TState,TSymbol,TState> TEdge;
 
 		TNfa nfa(alpha, states);		
-								
+
+
 		// Determina estados iniciales
 		for(TState i=0; i<initials;)
 		{
@@ -51,10 +49,10 @@ public:
 			nfa.SetInitial(qi);
 			i++;
 		}
-		
+
 		// Determina estados finales
 		for(TState i=0; i<finals;)
-		{
+		{	
 			TState qi = state_dist(gen);
 			if(nfa.IsFinal(qi))
 			{
@@ -75,8 +73,10 @@ public:
 		{
 			if(!reach.Contains(i))
 			{
-				TState qs = RandomChoice(reach, gen, state_dist);
+				TState qs = RandomChoice(reach, gen);
 				reach.Add(i);
+				// el proximo bloque asegura que i es coalcanzable, 
+				// por lo tanto qs se vuelve coalcanzable en esta iteracion
 				nreach.Add(qs);
 				TSymbol c = sym_dist(gen);
 				nfa.SetTransition(qs, c, i);
@@ -84,8 +84,11 @@ public:
 			}
 			if(!nreach.Contains(i))
 			{
-				TState qt = RandomChoice(nreach, gen, state_dist);
+				TState qt = RandomChoice(nreach, gen);
 				nreach.Add(i);
+				// como el bloque anterior asegura que i es alcanzable
+				// aqui qt se vuelve alcanzable
+				assert(reach.Contains(i));				
 				reach.Add(qt);
 				TSymbol c = sym_dist(gen);
 				nfa.SetTransition(i, c, qt);
@@ -99,12 +102,13 @@ public:
 			return nfa;
 		}
 
-		vector<TEdge> remaining(states*states*alpha);
+		vector<TEdge> remaining(states*states*alpha - n_transitions);
 		auto i = remaining.begin();
 		for(TState qs=0; qs<states; qs++)
 			for(TState qt=0; qt<states; qt++)
 				for(TSymbol s=0; s<alpha; s++)
-					*i++ = make_tuple(qs,s,qt);
+					if(!nfa.IsSuccessor(qs, s, qt))
+						*i++ = make_tuple(qs,s,qt);
 
 		shuffle(remaining.begin(), remaining.end(), gen);
 		auto iter = remaining.begin();
@@ -112,11 +116,8 @@ public:
 		{			
 			TState qs, qt; TSymbol s;
 			tie(qs, s, qt) = *iter++;
-			if(!nfa.IsSuccessor(qs, s, qt))
-			{
-				nfa.SetTransition(qs, s, qt);
-				n_transitions++;
-			}
+			nfa.SetTransition(qs, s, qt);
+			n_transitions++;
 		}
 		return nfa;
 	}
@@ -129,7 +130,7 @@ public:
 		uniform_real_distribution<float> p_dist;
 
 		TNfa nfa(alpha, states);
-		
+
 		// Determina estados iniciales
 		for(TState i=0; i<initials;)
 		{
@@ -141,7 +142,7 @@ public:
 			nfa.SetInitial(qi);
 			i++;
 		}
-		
+
 		// Determina estados finales
 		for(TState i=0; i<finals;)
 		{
@@ -160,14 +161,14 @@ public:
 		{
 			if(!reach.Contains(i))
 			{
-				TState qs = RandomChoice(reach, gen, state_dist);
+				TState qs = RandomChoice(reach, gen);
 				reach.Add(i);
 				TSymbol c = sym_dist(gen);
 				nfa.SetTransition(qs, c, i);
 			}
 			if(!nreach.Contains(i))
 			{
-				TState qt = RandomChoice(nreach, gen, state_dist);
+				TState qt = RandomChoice(nreach, gen);
 				nreach.Add(i);
 				TSymbol c = sym_dist(gen);
 				nfa.SetTransition(i, c, qt);
