@@ -21,8 +21,8 @@ public:
 	{				
 		auto max = reach.Count();
 		assert(max > 0);
-		std::uniform_int_distribution<TSet::TElement> d(0, max-1);
-		TSet::TElement q = d(gen);		
+		std::uniform_int_distribution<typename TSet::TElement> d(0, max-1);
+		typename TSet::TElement q = d(gen);		
 		return reach.GetElementAt(q);
 	}
 

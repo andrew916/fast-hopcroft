@@ -68,7 +68,8 @@ private:
 
 	std::tuple<TState,TState> NormalizedPair(TState p, TState q) const
 	{
-		return make_pair(std::min(p,q), std::max(p,q));
+		using namespace std;
+		return make_pair(min(p,q), max(p,q));
 	}
 
 	// Try splits all partition using the splitter indicated by partition index and letter.

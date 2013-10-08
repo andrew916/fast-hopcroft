@@ -118,6 +118,7 @@ private:
 
 	std::tuple<TState,TState> GetPairFromIndex(TPairIndex index) const
 	{
+		using namespace std;
 		TState q = static_cast<TState>(sqrt((1 + 8*index)/4.0f) + 0.5f);
 		TState p = static_cast<TState>(index - (q*q-q)/2);
 		assert(p < q);

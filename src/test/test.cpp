@@ -18,6 +18,7 @@
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <array>
+#include <stdexcept>
 
 using namespace std;
 using boost::format;
@@ -31,7 +32,7 @@ void write_dot(TFsa fsa, string filename)
 	ofstream s(filename);
 	if(!s.is_open()) 
 	{
-		throw exception("El archivo no pudo ser abierto");
+		throw invalid_argument("El archivo no pudo ser abierto");
 	}
 	writer.Write(fsa, s);
 	s.close();
@@ -44,7 +45,7 @@ void write_text(TFsa fsa, string filename)
 	ofstream s(filename);
 	if(!s.is_open()) 
 	{
-		throw exception("El archivo no pudo ser abierto");
+		throw invalid_argument("El archivo no pudo ser abierto");
 	}
 	writer.Write(fsa, s);
 	s.close();
@@ -101,7 +102,7 @@ TFsa read_text(string filename)
 {
 	FsmPlainTextReader<TFsa> reader;
 	ifstream fsa_input(filename);
-	if(!fsa_input.is_open()) throw exception("El archivo no pudo ser abierto");
+	if(!fsa_input.is_open()) throw invalid_argument("El archivo no pudo ser abierto");
 	auto fsa = reader.Read(fsa_input);
 	fsa_input.close();
 	return fsa;
@@ -112,7 +113,7 @@ TFsa read_text_one_based(string filename)
 {
 	FsmPlainTextReaderOneBased<TFsa> reader;
 	ifstream fsa_input(filename);
-	if(!fsa_input.is_open()) throw exception("El archivo no pudo ser abierto");
+	if(!fsa_input.is_open()) throw invalid_argument("El archivo no pudo ser abierto");
 	auto fsa = reader.Read(fsa_input);
 	fsa_input.close();
 	return fsa;
@@ -328,7 +329,8 @@ int test104()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHopcroft<TDfa> mini;
+	MinimizationHopcroft<TDfa> mini;	
+	MinimizationHopcroft<TDfa>::NumericPartition np;
 	FsaFormatReader<TDfa> parser;
 	vector<string> files;
 
@@ -428,7 +430,7 @@ int test104()
 
 		boost::timer::cpu_timer timer;
 		timer.start();
-		mini.Minimize(dfa, MinimizationHopcroft<TDfa>::NumericPartition());
+		mini.Minimize(dfa, np);
 		timer.stop();
 
 		{
@@ -1241,64 +1243,64 @@ int test401()
 
 	mt19937 rgen(5000);
 	ofstream report("report_401_mod.csv");
-	if(!report.is_open()) throw exception("No se pudo abrir el archivo");
+	if(!report.is_open()) throw invalid_argument("No se pudo abrir el archivo");
 
 	report << "states,alpha,d,states_dfa,t_h,c_h,t_i,c_i,t_hi,c_hi" << endl;
 
 	const array<TSymbol,5> alphas = { 2, 10, 25, 50, 500 };
 	const array<TState,2> states_set = { 10, 11 };
 	for(TSymbol alpha : alphas)
-	for(TState states : states_set)
-	for(float d=0.00f; d<1.0f; d+=0.025f)
-	for(int i=0; i<50; i++)
-	{
-		float den = d;
-		cout << "states: "<< states << " alpha: " << alpha << " d:" << d << " i:" << i << endl;
-		auto nfa = nfagen.Generate_v2(states, alpha, 1, 1, &den, rgen);
-		auto dfa = determ.Determinize(nfa);
+		for(TState states : states_set)
+			for(float d=0.00f; d<1.0f; d+=0.025f)
+				for(int i=0; i<50; i++)
+				{
+					float den = d;
+					cout << "states: "<< states << " alpha: " << alpha << " d:" << d << " i:" << i << endl;
+					auto nfa = nfagen.Generate_v2(states, alpha, 1, 1, &den, rgen);
+					auto dfa = determ.Determinize(nfa);
 
-		//write_text(dfa, "automata_test.txt");
-		//write_dot(dfa, "automata_test.dot");
+					//write_text(dfa, "automata_test.txt");
+					//write_dot(dfa, "automata_test.dot");
 
-		timer.start();
-		min_h.Minimize(dfa, p_h);
-		timer.stop();
-		auto t_h = timer.elapsed().wall;
-		auto c_h = p_h.GetSize();
-/*
-		timer.start();
-		min_i.Minimize(dfa, p_i);
-		timer.stop();
-		auto t_i = timer.elapsed().wall;
-		auto c_i = p_i.GetSize();
+					timer.start();
+					min_h.Minimize(dfa, p_h);
+					timer.stop();
+					auto t_h = timer.elapsed().wall;
+					auto c_h = p_h.GetSize();
+					/*
+					timer.start();
+					min_i.Minimize(dfa, p_i);
+					timer.stop();
+					auto t_i = timer.elapsed().wall;
+					auto c_i = p_i.GetSize();
 
-		timer.start();
-		min_hi.Minimize(dfa, p_hi);
-		timer.stop();
-		auto t_hi = timer.elapsed().wall;
-		auto c_hi = p_hi.GetSize();*/
+					timer.start();
+					min_hi.Minimize(dfa, p_hi);
+					timer.stop();
+					auto t_hi = timer.elapsed().wall;
+					auto c_hi = p_hi.GetSize();*/
 
-		auto fmt = boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%")
-			% states 
-			% alpha
-			% den
-			% dfa.GetStates()
-			% t_h
-			% c_h
-			% 0//t_i
-			% 0//c_i
-			% 0//t_hi
-			% 0//c_hi
-			;
-		report << fmt.str() << endl;
-/*
-		if(!(c_h == c_i)) throw exception("");
-		if(!(c_h == c_hi)) throw exception("");
-		if(!(c_i == c_hi)) throw exception("");*/
+					auto fmt = boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%")
+						% states 
+						% alpha
+						% den
+						% dfa.GetStates()
+						% t_h
+						% c_h
+						% 0//t_i
+						% 0//c_i
+						% 0//t_hi
+						% 0//c_hi
+						;
+					report << fmt.str() << endl;
+					/*
+					if(!(c_h == c_i)) throw invalid_argument("");
+					if(!(c_h == c_hi)) throw invalid_argument("");
+					if(!(c_i == c_hi)) throw invalid_argument("");*/
 
-	}
+				}
 
-	return 0;
+				return 0;
 }
 
 // Test performance 500-599
@@ -1415,7 +1417,7 @@ int test501()
 	min4.ShowConfiguration = false;
 
 	ofstream report("report_501_almeida.csv");
-	if(!report.is_open()) throw exception("No se pudo abrir el reporte");
+	if(!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
 
 	report << "alg,n,k,t,file,min_st" << endl;
 
@@ -1506,9 +1508,9 @@ int test501()
 					).str() << endl;
 				acum_time_hi += timer.elapsed().wall;
 
-				if(part_h.GetSize() != part_i.GetSize()) throw exception();
-				if(part_h.GetSize() != part_hi.GetSize()) throw exception();
-				if(part_i.GetSize() != part_hi.GetSize()) throw exception();
+				if(part_h.GetSize() != part_i.GetSize()) throw logic_error("different minimal states");
+				if(part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
+				if(part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
 
 				automata_count++;
 			}
@@ -1563,7 +1565,7 @@ int test502()
 	MinimizationHybrid<TDfa>::NumericPartition part_hi;
 
 	ofstream report("report_501.csv");
-	if(!report.is_open()) throw exception("No se pudo abrir el reporte");
+	if(!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
 
 	report << "alg,n,k,t,file" << endl;
 
@@ -1698,7 +1700,7 @@ int main(int argc, char** argv)
 		MACRO_TEST(502);
 	default:
 		cout << "La prueba indicada no existe" << endl;
-		throw exception("La prueba no existe");
+		throw invalid_argument("La prueba no existe");
 		return -1;
 	};
 #undef MACRO_TEST

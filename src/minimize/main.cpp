@@ -118,7 +118,7 @@ namespace minimize
 
 		TFsa fsa = reader_fsa.Read(ifs);
 		ifs.close();
-		ifs = ifstream(opt.InputFile);
+		ifs.open(opt.InputFile);
 		TDfa dfa = reader_dfa.Read(ifs);
 		ifs.close();
 

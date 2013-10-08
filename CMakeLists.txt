@@ -5,7 +5,7 @@ set(FASTHOPCROFT_VERSION_MINOR 3)
 project(FastHopcroft)
 configure_file(src/config.h.in config.h)
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.49 REQUIRED COMPONENTS system filesystem timer)
+find_package(Boost 1.49 REQUIRED COMPONENTS system filesystem timer chrono)
 include_directories(
 	"${Boost_INCLUDE_DIR}"
 	"${PROJECT_BINARY_DIR}")
@@ -23,9 +23,14 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
 	set(CMAKE_CXX_COMPILER_IS_CLANG TRUE)
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_IS_CLANG)
+if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "-std=c++11")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O4")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+endif()
+
+if(CMAKE_CXX_COMPILER_IS_CLANG)
+    set(CMAKE_CXX_FLAGS "-std=c++11")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O5")
 endif()
 	
 add_subdirectory(src/determinize)
