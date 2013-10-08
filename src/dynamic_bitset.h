@@ -11,17 +11,17 @@ struct bitutil
 {
 	static void bs(Block* b, Index idx)
 	{
-		*b |= static_cast<Block>(1) << idx;
+		*b |= Block(1) << idx;
 	}
 		
 	static void bc(Block* b, Index idx)
 	{
-		*b &= ~(static_cast<Block>(1) << idx);
+		*b &= ~(Block(1) << idx);
 	}
 
 	static bool bt(Block b, Index idx)
 	{
-		Block mask = static_cast<Block>(1) << idx;
+		Block mask = Block(1) << idx;
 		return (b & mask) != 0;
 	}
 
@@ -160,6 +160,114 @@ struct bitutil<uint32_t, Index>
 		return r;
 	}
 };
+#elif __GNUC__
+
+template<typename Index>
+struct bitutil<uint64_t, Index>
+{
+	static void bs(uint64_t* b, Index idx)
+	{
+		uint8_t i = static_cast<uint8_t>(idx);
+		*b |= uint64_t(1) << i;
+	}
+
+	static void bc(uint64_t* b, Index idx)
+	{
+		uint8_t i = static_cast<uint8_t>(idx);
+		*b &= ~(uint64_t(1) << i);
+	}
+
+	static bool bt(uint64_t b, Index idx)
+	{
+		uint8_t i = static_cast<uint8_t>(idx);
+		return ((b >> i) & 1) != 0;
+	}
+
+	static bool bts(uint64_t* b, Index idx)
+	{
+		bool flag = bt(*b, idx); 
+		bs(b, idx);
+		return flag;
+	}
+
+	static bool btc(uint64_t* b, Index idx)
+	{
+		bool flag = bt(*b, idx); 
+		bc(b, idx);
+		return flag;
+	}
+
+	static Index popcnt(uint64_t x)
+	{
+		return static_cast<Index>(__builtin_popcountll(x));
+	}
+
+	static bool bsf(uint64_t b, Index* i)
+	{	
+		auto r = __builtin_ffsll(b);
+		if(r != 0) 
+		{
+			*i = static_cast<Index>(r - 1);
+			return true;
+		}
+		return false;
+	}
+};
+
+
+template<typename Index>
+struct bitutil<uint32_t, Index>
+{
+	static void bs(uint32_t* b, Index idx)
+	{
+		uint8_t i = static_cast<uint8_t>(idx);
+		*b |= uint32_t(1) << i;
+	}
+
+	static void bc(uint32_t* b, Index idx)
+	{
+		uint8_t i = static_cast<uint8_t>(idx);
+		*b &= ~(uint32_t(1) << i);
+	}
+
+	static bool bt(uint32_t b, Index idx)
+	{
+		uint8_t i = static_cast<uint8_t>(idx);
+		return ((b >> i) & 1) != 0;
+	}
+
+	static bool bts(uint32_t* b, Index idx)
+	{
+		bool flag = bt(*b, idx); 
+		bs(b, idx);
+		return flag;
+	}
+
+	static bool btc(uint32_t* b, Index idx)
+	{
+		bool flag = bt(*b, idx); 
+		bc(b, idx);
+		return flag;
+	}
+
+	static Index popcnt(uint32_t x)
+	{
+		return static_cast<Index>(__builtin_popcountl(x));
+	}
+
+	static bool bsf(uint32_t b, Index* i)
+	{	
+		auto r = __builtin_ffsl(b);
+		if(r != 0) 
+		{
+			*i = static_cast<Index>(r - 1);
+			return true;
+		}
+		return false;
+	}
+};
+
+
 #endif
 
 // Declarations 
