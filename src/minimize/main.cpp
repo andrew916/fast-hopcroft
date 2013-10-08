@@ -60,13 +60,13 @@ namespace minimize
 			string arg = argv[i];
 			if(arg == "-m")
 			{
-				if(stricmp(argv[i+1], "hopcroft") == 0) {
+				if(strcmp(argv[i+1], "hopcroft") == 0) {
 					opt.Algorithm = MinimizationAlgorithm::Hopcroft;
-				} else if(stricmp(argv[i+1], "brzozowski") == 0) {
+				} else if(strcmp(argv[i+1], "brzozowski") == 0) {
 					opt.Algorithm = MinimizationAlgorithm::Brzozowski;
-				} else if(stricmp(argv[i+1], "incremental") == 0) {
+				} else if(strcmp(argv[i+1], "incremental") == 0) {
 					opt.Algorithm = MinimizationAlgorithm::Incremental;
-				} else if(stricmp(argv[i+1], "hybrid") == 0) {
+				} else if(strcmp(argv[i+1], "hybrid") == 0) {
 					opt.Algorithm = MinimizationAlgorithm::Hybrid;
 				} else {
 					cout << "error: invalid algorithm specification" << endl;
