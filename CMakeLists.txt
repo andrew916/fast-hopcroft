@@ -11,12 +11,12 @@ include_directories(
 	"${PROJECT_BINARY_DIR}")
 
 link_directories("${Boost_LIBRARY_DIRS}")
-	
+
 if (MSVC)
-	set(CMAKE_CXX_FLAGS_RELEASE        "/MD /Ox /Ot /Gr /GL /D NDEBUG")
-	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MD /Ox /Ot /Gr /GL /D NDEBUG /Zi")
-	set(CMAKE_EXE_LINKER_FLAGS_RELEASE            "/LTCG /INCREMENTAL:NO")
-	set(CMAKE_EXE_LINKER_FLAGS_RELEASEWITHDEBINFO "/LTCG /INCREMENTAL:NO")
+	set(CMAKE_CXX_FLAGS_RELEASE        "/MD /Ox /Ot /Gr /GL /D NDEBUG" CACHE STRING "" FORCE)
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MD /Ox /Ot /Gr /GL /D NDEBUG /Zi" CACHE STRING "" FORCE)
+	set(CMAKE_EXE_LINKER_FLAGS_RELEASE            "/LTCG /INCREMENTAL:NO" CACHE STRING "" FORCE)
+	set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "/LTCG /INCREMENTAL:NO /DEBUG" CACHE STRING "" FORCE)
 endif(MSVC)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
@@ -24,12 +24,13 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "-std=c++11")
+    set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 endif()
 
 if(CMAKE_CXX_COMPILER_IS_CLANG)
-    set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++")
+    set(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ ${CMAKE_CXX_FLAGS}")
 endif()
+
 	
 add_subdirectory(src/determinize)
 add_subdirectory(src/generate_nfa)

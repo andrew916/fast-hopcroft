@@ -42,7 +42,9 @@ namespace transcode
 
 		Options() : 		
 			ShowHelp(false), 
-			Verbose(false)
+			Verbose(false),
+			InputFormat(Format::None),
+			OutputFormat(Format::None)
 		{
 		}
 	};
@@ -104,6 +106,10 @@ namespace transcode
 				opt.ShowHelp = true;
 			}
 		}
+		if(!opt.ShowHelp && opt.InputFile.empty()) throw invalid_argument("missing input file param");
+		if(!opt.ShowHelp && opt.OutputFile.empty()) throw invalid_argument("missing output file param");
+		if(!opt.ShowHelp && opt.InputFormat == Format::None) throw invalid_argument("missing input format param");
+		if(!opt.ShowHelp && opt.OutputFormat == Format::None) throw invalid_argument("missing input format param");
 	}
 
 	// TODO: Take advantage of polymorph code when it is available
@@ -153,6 +159,10 @@ namespace transcode
 				throw invalid_argument("This transcode scenario is not supported");
 			}
 		}
+		else 
+		{
+			throw invalid_argument("input format not supported");
+		}
 	}
 
 }
@@ -181,7 +191,6 @@ int main(int argc, char** argv)
 			;
 	}
 	else Transcode(opt);
-
 
 	return 0;
 }

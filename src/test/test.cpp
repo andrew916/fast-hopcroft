@@ -1256,7 +1256,7 @@ int test401()
 				{
 					float den = d;
 					cout << "states: "<< states << " alpha: " << alpha << " d:" << d << " i:" << i << endl;
-					auto nfa = nfagen.Generate_v2(states, alpha, 1, 1, &den, rgen);
+					auto nfa = nfagen.Generate_v2(states, alpha, 1, states/2, &den, rgen);
 					auto dfa = determ.Determinize(nfa);
 
 					//write_text(dfa, "automata_test.txt");
