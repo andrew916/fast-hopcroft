@@ -34,6 +34,7 @@ endif()
 add_subdirectory(src/determinize)
 add_subdirectory(src/generate_nfa)
 add_subdirectory(src/minimize)
+add_subdirectory(src/transcode)
 add_subdirectory(src/test)
 
 #export(PACKAGE FastHopcroftExecutable)

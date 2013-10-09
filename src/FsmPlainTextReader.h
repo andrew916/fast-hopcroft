@@ -111,6 +111,8 @@ public:
 	}
 };
 
+/** One based files do not have initial states.
+*/
 template<typename TFsm>
 class FsmPlainTextReaderOneBased
 {
