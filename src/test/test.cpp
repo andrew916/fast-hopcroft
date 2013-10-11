@@ -17,11 +17,15 @@
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 #include <array>
 #include <stdexcept>
 
 using namespace std;
 using boost::format;
+
+char** global_argv;
+int global_argc;
 
 // Utilities
 
@@ -1218,89 +1222,152 @@ int test401()
 {
 	using namespace std;
 	using namespace boost::timer;
+	using namespace boost::program_options;
 
 	typedef uint16_t TState;
 	typedef uint16_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
 
+	bool show_help;
+	bool enable_all;
+	bool hoproft_verbose, incremental_verbose, hybrid_verbose;
+	bool hopcroft_enable, incremental_enable, hybrid_enable;
+	string output_file;
+	int seed, redundancy;
+
+	vector<TState> states_set;
+	vector<TSymbol> alphas;
+	vector<float> finals_densities;
+	float min_density, max_density, step_density;
+
+	options_description opt_desc("Allowed options");
+	opt_desc.add_options()
+		("help,?", bool_switch(&show_help)->default_value(false), "Show this information")
+		("all", bool_switch(&enable_all)->default_value(false), "Enable use all algorithms produces the same results")
+		("hopcroft", value(&hopcroft_enable)->default_value(true), "Enable use Hopcroft algorithm")
+		("incremental", value(&incremental_enable)->default_value(false), "Enable use Incremental algorithm")
+		("hybrid", value(&hybrid_enable)->default_value(false), "Enable use Hybrid algorithm")
+		("seed", value(&seed)->default_value(5000), "Seed for MT19937 random number generator")
+		("hopcroft-verbose", value(&hoproft_verbose)->default_value(false), "Verbosity for Hopcroft")
+		("incremental-verbose", value(&incremental_verbose)->default_value(false), "Verbosity for Incremental algorithm")
+		("hybrid-verbose", value(&hybrid_verbose)->default_value(false), "Verbosity for Hybrid algorithm")
+		("output,o", value(&output_file)->default_value("report_401.csv"), "Output file")
+		("alphas,a", value(&alphas), "Alphabet to test")
+		("states,s", value(&states_set), "States number to test")
+		("finals-density,f", value(&finals_densities), "Final states density")
+		("min-density", value(&min_density)->default_value(0.0f), "Minimum density")
+		("max-density", value(&max_density)->default_value(1.0f), "Maximum density")
+		("step-density", value(&step_density)->default_value(0.05f), "Density step increment")
+		("redundancy,r", value(&redundancy)->default_value(50), "How many tests per configuration scenario")
+		;
+
+	variables_map vm;
+	command_line_parser parser(global_argc, global_argv);
+	auto po = parser.options(opt_desc).run();
+	store(po, vm);
+	notify(vm);
+
+	if(show_help)
+	{
+		cout << opt_desc << endl;
+		return 0;
+	}
+	if(enable_all) hopcroft_enable = incremental_enable = hybrid_enable = true; 
+	else if(!hopcroft_enable && !incremental_enable && !hybrid_enable) throw invalid_option_value("None algorithm enabled");
+
+	if(redundancy == 0) throw invalid_option_value("Invalid redundancy");
+	if(max_density > 1.0f) throw invalid_option_value("Invalid max density");
+	if(min_density < 0.0f) throw invalid_option_value("Invalid min density");	
+	if(step_density < 0.0f || step_density>1.0f) throw invalid_option_value("Invalid step density");
+	if(max_density < min_density) throw invalid_option_value("max density must be greater than min density");
+	if(hoproft_verbose || hybrid_verbose || incremental_verbose) cout << "WARNING: Verbosity affects time measurements" << endl;
+
 	Determinization<TDfa, TNfa> determ;
 	NfaGenerator<TNfa, mt19937> nfagen;
 
 	MinimizationHopcroft<TDfa> min_h;
 	MinimizationHopcroft<TDfa>::NumericPartition p_h;
-	min_h.ShowConfiguration = false;
+	min_h.ShowConfiguration = hoproft_verbose;
 
 	MinimizationHybrid<TDfa> min_hi;
 	MinimizationHybrid<TDfa>::NumericPartition p_hi;
-	min_hi.ShowConfiguration = false;
+	min_hi.ShowConfiguration = hybrid_verbose;
 
 	MinimizationIncremental<TDfa> min_i;
 	MinimizationIncremental<TDfa>::NumericPartition p_i;
-	min_i.ShowConfiguration = false;
+	min_i.ShowConfiguration = incremental_verbose;
 
 	cpu_timer timer;
 
-	mt19937 rgen(5000);
-	ofstream report("report_401_mod.csv");
+	mt19937 rgen(seed);
+	ofstream report(output_file);
 	if(!report.is_open()) throw invalid_argument("No se pudo abrir el archivo");
 
-	report << "states,alpha,d,states_dfa,t_h,c_h,t_i,c_i,t_hi,c_hi" << endl;
+	report << "states,alpha,d,fd,states_dfa,t_h,c_h,t_i,c_i,t_hi,c_hi" << endl;
 
-	const array<TSymbol,5> alphas = { 2, 10, 25, 50, 500 };
-	const array<TState,2> states_set = { 10, 11 };
 	for(TSymbol alpha : alphas)
 		for(TState states : states_set)
-			for(float d=0.00f; d<1.0f; d+=0.025f)
-				for(int i=0; i<50; i++)
-				{
-					float den = d;
-					cout << "states: "<< states << " alpha: " << alpha << " d:" << d << " i:" << i << endl;
-					auto nfa = nfagen.Generate_v2(states, alpha, 1, states/2, &den, rgen);
-					auto dfa = determ.Determinize(nfa);
+			for(float d=min_density; d<max_density; d+=step_density)
+				for(float finals_density : finals_densities)
+					for(int i=0; i<50; i++)
+					{
+						float den = d;
+						cout << "states: "<< states << " alpha: " << alpha << " d:" << d << " i:" << i << " fd:" << finals_density << endl;
+						auto nfa = nfagen.Generate_v2(states, alpha, 1, states*finals_density, &den, rgen);
+						auto dfa = determ.Determinize(nfa);
 
-					//write_text(dfa, "automata_test.txt");
-					//write_dot(dfa, "automata_test.dot");
+						//write_text(dfa, "automata_test.txt");
+						//write_dot(dfa, "automata_test.dot");
 
-					timer.start();
-					min_h.Minimize(dfa, p_h);
-					timer.stop();
-					auto t_h = timer.elapsed().wall;
-					auto c_h = p_h.GetSize();
-					/*
-					timer.start();
-					min_i.Minimize(dfa, p_i);
-					timer.stop();
-					auto t_i = timer.elapsed().wall;
-					auto c_i = p_i.GetSize();
+						nanosecond_type t_h=0, t_i=0, t_hy=0;
+						TState c_h=0, c_i=0, c_hy=0;
 
-					timer.start();
-					min_hi.Minimize(dfa, p_hi);
-					timer.stop();
-					auto t_hi = timer.elapsed().wall;
-					auto c_hi = p_hi.GetSize();*/
+						if(hopcroft_enable)
+						{
+							timer.start();
+							min_h.Minimize(dfa, p_h);
+							timer.stop();
+							t_h = timer.elapsed().wall;
+							c_h = p_h.GetSize();
+						}
+						if(incremental_enable)
+						{
+							timer.start();
+							min_i.Minimize(dfa, p_i);
+							timer.stop();
+							t_i = timer.elapsed().wall;
+							c_i = p_i.GetSize();
+						}
+						if(hybrid_enable)
+						{
+							timer.start();
+							min_hi.Minimize(dfa, p_hi);
+							timer.stop();
+							t_hy = timer.elapsed().wall;
+							c_hy = p_hi.GetSize();
+						}
+						auto fmt = boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%")
+							% states 
+							% alpha
+							% den
+							% finals_density
+							% dfa.GetStates()
+							% t_h
+							% c_h
+							% t_i
+							% c_i
+							% t_hy
+							% c_hy
+							;
+						report << fmt.str() << endl;
 
-					auto fmt = boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%")
-						% states 
-						% alpha
-						% den
-						% dfa.GetStates()
-						% t_h
-						% c_h
-						% 0//t_i
-						% 0//c_i
-						% 0//t_hi
-						% 0//c_hi
-						;
-					report << fmt.str() << endl;
-					/*
-					if(!(c_h == c_i)) throw invalid_argument("");
-					if(!(c_h == c_hi)) throw invalid_argument("");
-					if(!(c_i == c_hi)) throw invalid_argument("");*/
+						if(hopcroft_enable && incremental_enable && (c_h != c_i))  throw invalid_argument("Hopcroft differs of Incremental");
+						if(hopcroft_enable && hybrid_enable &&      (c_h != c_hy)) throw invalid_argument("Hopcroft differs of Hybrid");
+						if(incremental_enable && hybrid_enable &&   (c_i != c_hy)) throw invalid_argument("Incremental differs of Hybrid");
+					}
 
-				}
-
-				return 0;
+					return 0;
 }
 
 // Test performance 500-599
@@ -1427,113 +1494,104 @@ int test501()
 	MinimizationHybrid<TDfa>::NumericPartition part_hi;
 	MinimizationHopcroft<TDfa>::NumericPartition part_h;
 
-	try 
+	for(auto root_path_iter=directory_iterator(root_path); root_path_iter != directory_iterator(); root_path_iter++)
 	{
-		for(auto root_path_iter=directory_iterator(root_path); root_path_iter != directory_iterator(); root_path_iter++)
+		uint64_t acum_time_b = 0;
+		uint64_t acum_time_h = 0;
+		uint64_t acum_time_i = 0;
+		uint64_t acum_time_hi = 0;
+		uint64_t automata_count = 0;
+		if(!is_directory(root_path_iter->status())) continue;
+		cout << "Entering " << root_path_iter->path() << endl;
+		for(auto i=directory_iterator(root_path_iter->path()); i!=directory_iterator(); i++)
 		{
-			uint64_t acum_time_b = 0;
-			uint64_t acum_time_h = 0;
-			uint64_t acum_time_i = 0;
-			uint64_t acum_time_hi = 0;
-			uint64_t automata_count = 0;
-			if(!is_directory(root_path_iter->status())) continue;
-			cout << "Entering " << root_path_iter->path() << endl;
-			for(auto i=directory_iterator(root_path_iter->path()); i!=directory_iterator(); i++)
-			{
-				if(!is_regular_file(i->status())) continue;
+			if(!is_regular_file(i->status())) continue;
 
-				auto dfa_filename = i->path().string();
-				auto nfa = read_text_one_based<TNfa>(dfa_filename);
-				auto dfa = read_text_one_based<TDfa>(dfa_filename);
+			auto dfa_filename = i->path().string();
+			auto nfa = read_text_one_based<TNfa>(dfa_filename);
+			auto dfa = read_text_one_based<TDfa>(dfa_filename);
 
-				//cout << "Read " << dfa_filename << endl;
+			//cout << "Read " << dfa_filename << endl;
 
-				size_t n = nfa.GetStates();
-				size_t k = nfa.GetAlphabetLength();
-				/*
-				TState min_states;
-				timer.start();
-				min1.Minimize(nfa, &min_states, vfinal, vedges);
-				timer.stop();
-				//cout << "Brzozowski " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-				% "Brzozowski"
+			size_t n = nfa.GetStates();
+			size_t k = nfa.GetAlphabetLength();
+			/*
+			TState min_states;
+			timer.start();
+			min1.Minimize(nfa, &min_states, vfinal, vedges);
+			timer.stop();
+			//cout << "Brzozowski " << dfa_filename << ": " << timer.elapsed().wall << endl;
+			report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+			% "Brzozowski"
+			% n
+			% k
+			% timer.elapsed().wall
+			% dfa_filename
+			% static_cast<size_t>(part_b.GetSize())
+			).str() << endl;
+			acum_time_b += timer.elapsed().wall;
+			*/
+			timer.start();
+			min2.Minimize(dfa, part_h);
+			timer.stop();
+			//cout << "Hopcroft " << dfa_filename << ": " << timer.elapsed().wall << endl;
+			report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+				% "Hopcroft"
 				% n
 				% k
 				% timer.elapsed().wall
 				% dfa_filename
-				% static_cast<size_t>(part_b.GetSize())
+				% static_cast<size_t>(part_h.GetSize())
+				).str()	<< endl;
+			acum_time_h += timer.elapsed().wall;
+
+			timer.start();
+			min3.Minimize(dfa, part_i);
+			timer.stop();
+			//cout << "Incremental " << dfa_filename << ": " << timer.elapsed().wall << endl;
+			report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+				% "Incremental"
+				% n
+				% k
+				% timer.elapsed().wall
+				% dfa_filename
+				% static_cast<size_t>(part_i.GetSize())
 				).str() << endl;
-				acum_time_b += timer.elapsed().wall;
-				*/
-				timer.start();
-				min2.Minimize(dfa, part_h);
-				timer.stop();
-				//cout << "Hopcroft " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-					% "Hopcroft"
-					% n
-					% k
-					% timer.elapsed().wall
-					% dfa_filename
-					% static_cast<size_t>(part_h.GetSize())
-					).str()	<< endl;
-				acum_time_h += timer.elapsed().wall;
+			acum_time_i += timer.elapsed().wall;
 
-				timer.start();
-				min3.Minimize(dfa, part_i);
-				timer.stop();
-				//cout << "Incremental " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-					% "Incremental"
-					% n
-					% k
-					% timer.elapsed().wall
-					% dfa_filename
-					% static_cast<size_t>(part_i.GetSize())
-					).str() << endl;
-				acum_time_i += timer.elapsed().wall;
-
-				timer.start();
-				min4.Minimize(dfa, part_hi);
-				timer.stop();
-				//cout << "Hybrid " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-					% "Hybrid"
-					% n
-					% k
-					% timer.elapsed().wall
-					% dfa_filename
-					% static_cast<size_t>(part_hi.GetSize())
-					).str() << endl;
-				acum_time_hi += timer.elapsed().wall;
-
-				if(part_h.GetSize() != part_i.GetSize()) throw logic_error("different minimal states");
-				if(part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
-				if(part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
-
-				automata_count++;
-			}
-			// skip empty folders
-			if(automata_count == 0) continue;
-			acum_time_b /= automata_count;
-			acum_time_h /= automata_count;
-			acum_time_i /= automata_count;
-			acum_time_hi /= automata_count;
-			cout << (boost::format("folder: %1% | Promedios: B:%2% H:%3% I:%4% HI:%5%")
-				% root_path_iter->path().string()
-				% acum_time_b
-				% acum_time_h
-				% acum_time_i
-				% acum_time_hi
+			timer.start();
+			min4.Minimize(dfa, part_hi);
+			timer.stop();
+			//cout << "Hybrid " << dfa_filename << ": " << timer.elapsed().wall << endl;
+			report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+				% "Hybrid"
+				% n
+				% k
+				% timer.elapsed().wall
+				% dfa_filename
+				% static_cast<size_t>(part_hi.GetSize())
 				).str() << endl;
+			acum_time_hi += timer.elapsed().wall;
+
+			if(part_h.GetSize() != part_i.GetSize()) throw logic_error("different minimal states");
+			if(part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
+			if(part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
+
+			automata_count++;
 		}
-	}
-	catch(const filesystem_error& ex)
-	{
-		cout << "ERROR" << endl;
-		cout << ex.what() << endl;
-		return -1;
+		// skip empty folders
+		if(automata_count == 0) continue;
+		acum_time_b /= automata_count;
+		acum_time_h /= automata_count;
+		acum_time_i /= automata_count;
+		acum_time_hi /= automata_count;
+		cout << (boost::format("folder: %1% | Promedios: B:%2% H:%3% I:%4% HI:%5%")
+			% root_path_iter->path().string()
+			% acum_time_b
+			% acum_time_h
+			% acum_time_i
+			% acum_time_hi
+			).str() << endl;
 	}
 
 	return 0;
@@ -1616,7 +1674,7 @@ int test502()
 
 // Test Set 50-60
 
-void test50()
+int test50()
 {
 	cout << "Prueba de Set" << endl;
 	Set<int> s(3);
@@ -1657,53 +1715,70 @@ void test50()
 	r2.MoveNext();
 
 	assert(r2.IsEnd());
+
+	return 0;
 }
 
 
 int main(int argc, char** argv)
 {	
-	int i = stoi(argv[1]);
-
-#define MACRO_TEST(N) case N: test##N(); break
-	switch(i)
+	if(argc < 2)
 	{
-		MACRO_TEST(50);
-
-		MACRO_TEST(100);
-		MACRO_TEST(101);
-		MACRO_TEST(102);
-		MACRO_TEST(103);
-		MACRO_TEST(104);
-
-		MACRO_TEST(200);
-		MACRO_TEST(201);
-		MACRO_TEST(202);
-		MACRO_TEST(203);
-
-		MACRO_TEST(300);
-		MACRO_TEST(301);
-		MACRO_TEST(302);
-		MACRO_TEST(303);
-		MACRO_TEST(310);
-
-		MACRO_TEST(600);
-		MACRO_TEST(601);
-		MACRO_TEST(602);
-		MACRO_TEST(603);
-		MACRO_TEST(610);
-
-		MACRO_TEST(400);
-		MACRO_TEST(401);
-
-		MACRO_TEST(500);
-		MACRO_TEST(501);
-		MACRO_TEST(502);
-	default:
-		cout << "La prueba indicada no existe" << endl;
-		throw invalid_argument("La prueba no existe");
+		cout << "Specify the test number" << endl;
 		return -1;
-	};
+	}
+	int i = stoi(argv[1]);
+	global_argc = argc - 1;
+	global_argv = &argv[1];
+	global_argv[0] = argv[0];
+	try{
+#define MACRO_TEST(N) case N: return test##N(); break
+		switch(i)
+		{
+			MACRO_TEST(50);
+
+			MACRO_TEST(100);
+			MACRO_TEST(101);
+			MACRO_TEST(102);
+			MACRO_TEST(103);
+			MACRO_TEST(104);
+
+			MACRO_TEST(200);
+			MACRO_TEST(201);
+			MACRO_TEST(202);
+			MACRO_TEST(203);
+
+			MACRO_TEST(300);
+			MACRO_TEST(301);
+			MACRO_TEST(302);
+			MACRO_TEST(303);
+			MACRO_TEST(310);
+
+			MACRO_TEST(600);
+			MACRO_TEST(601);
+			MACRO_TEST(602);
+			MACRO_TEST(603);
+			MACRO_TEST(610);
+
+			MACRO_TEST(400);
+			MACRO_TEST(401);
+
+			MACRO_TEST(500);
+			MACRO_TEST(501);
+			MACRO_TEST(502);
+		default:
+			cout << "La prueba indicada no existe" << endl;
+			throw invalid_argument("La prueba no existe");
+			return -1;
+		}
 #undef MACRO_TEST
+	}
+	catch(exception ex)
+	{
+		cout << "Error: " << endl;
+		cout << ex.what() << endl;
+		return -1;
+	}
 
 	return 0;
 }
