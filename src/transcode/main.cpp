@@ -9,108 +9,40 @@
 #include "../FsaFormatReader.h"
 #include "../FsmPlainTextReader.h"
 #include "../FsmPlainTextWriter.h"
+#include "../FsaFormat.h"
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/program_options.hpp>
 #include <string>
 
 namespace transcode
 {
 
 	using namespace std;
+	using namespace boost::program_options;
 	using boost::filesystem::ifstream;
 	using boost::filesystem::ofstream;
-	using boost::format;
-
-	enum class Format
-	{
-		None,
-		ZeroBasedPlainText,
-		OneBasedPlainText,
-		GraphViz
-	};
+	using boost::format;	
 
 	class Options
 	{
 	public:
 		string InputFile;
 		string OutputFile;
-		Format InputFormat;
-		Format OutputFormat;
+		FsaFormat InputFormat;
+		FsaFormat OutputFormat;
 		bool ShowHelp;
 		bool Verbose;
 
 		Options() : 		
 			ShowHelp(false), 
 			Verbose(false),
-			InputFormat(Format::None),
-			OutputFormat(Format::None)
+			InputFormat(FsaFormat::None),
+			OutputFormat(FsaFormat::None)
 		{
 		}
 	};
-
-	Format ParseFormat(string fmt)
-	{
-		if(fmt == "zero-based-text") return Format::ZeroBasedPlainText;
-		else if(fmt == "one-based-text") return Format::OneBasedPlainText;
-		else if(fmt == "graphviz") return Format::GraphViz;
-		else if(fmt == "none") return Format::None;
-		else throw invalid_argument("Unknown format: " + fmt);
-	}
-
-	string to_string(Format fmt)
-	{
-		switch (fmt)
-		{
-		case Format::None: return "none";
-		case Format::ZeroBasedPlainText: return "zero-based-text";
-		case Format::OneBasedPlainText: return "one-based-text";
-		case Format::GraphViz: return "graphviz";		
-		}
-		throw invalid_argument("Unknown format");
-	}
-
-	void ParseCommandLine(int argc, char** argv, Options& opt)
-	{
-		for(int i=1; i<argc; i++)
-		{
-			string arg = argv[i];
-			if(arg == "-if")
-			{
-				string format_str = argv[i + 1];
-				opt.InputFormat = ParseFormat(format_str);
-				i++;
-			}
-			if(arg == "-of")
-			{
-				string format_str = argv[i + 1];
-				opt.OutputFormat = ParseFormat(format_str);
-				i++;
-			}
-			else if(arg == "-i")
-			{
-				opt.InputFile = argv[i+1];
-				i++;
-			}
-			else if(arg == "-o")
-			{				
-				opt.OutputFile = argv[i+1];
-				i++;
-			}
-			else if(arg == "-v")
-			{
-				opt.Verbose = true;
-			}
-			else if(arg == "-h" || arg == "-?")
-			{
-				opt.ShowHelp = true;
-			}
-		}
-		if(!opt.ShowHelp && opt.InputFile.empty()) throw invalid_argument("missing input file param");
-		if(!opt.ShowHelp && opt.OutputFile.empty()) throw invalid_argument("missing output file param");
-		if(!opt.ShowHelp && opt.InputFormat == Format::None) throw invalid_argument("missing input format param");
-		if(!opt.ShowHelp && opt.OutputFormat == Format::None) throw invalid_argument("missing input format param");
-	}
 
 	// TODO: Take advantage of polymorph code when it is available
 	void Transcode(Options opt)
@@ -120,22 +52,22 @@ namespace transcode
 
 		typedef Nfa<uint32_t, uint32_t> TFsa;
 
-		if(opt.InputFormat == Format::GraphViz) 
+		if(opt.InputFormat == FsaFormat::GraphViz) 
 			throw invalid_argument("GraphViz in not supported as input format");
 
-		if(opt.OutputFormat == Format::OneBasedPlainText) 
+		if(opt.OutputFormat == FsaFormat::OneBasedPlainText) 
 			throw invalid_argument("One-Based-plain-text format is not supported as output format");
 
-		if(opt.InputFormat == Format::OneBasedPlainText)
+		if(opt.InputFormat == FsaFormat::OneBasedPlainText)
 		{			
 			FsmPlainTextReaderOneBased<TFsa> reader;
 			auto fsa = reader.Read(input_file);
-			if(opt.OutputFormat == Format::ZeroBasedPlainText) 
+			if(opt.OutputFormat == FsaFormat::ZeroBasedPlainText) 
 			{
 				FsmPlainTextWriter<TFsa> writer;
 				writer.Write(fsa, output_file);
 			} 
-			else if(opt.OutputFormat == Format::GraphViz)
+			else if(opt.OutputFormat == FsaFormat::GraphViz)
 			{
 				FsmGraphVizWriter<TFsa> writer;
 				writer.Write(fsa, output_file);
@@ -145,11 +77,11 @@ namespace transcode
 				throw invalid_argument("This transcode scenario is not supported");
 			}
 		}
-		else if(opt.InputFormat == Format::ZeroBasedPlainText)
+		else if(opt.InputFormat == FsaFormat::ZeroBasedPlainText)
 		{
 			FsmPlainTextReader<TFsa> reader;
 			auto fsa = reader.Read(input_file);
-			if(opt.OutputFormat == Format::GraphViz)
+			if(opt.OutputFormat == FsaFormat::GraphViz)
 			{
 				FsmGraphVizWriter<TFsa> writer;
 				writer.Write(fsa, output_file);
@@ -171,26 +103,35 @@ using namespace transcode;
 
 int main(int argc, char** argv)
 {
-	Options opt;
+	Options o;	
+	options_description opt_desc("Allowed options");
+	opt_desc.add_options() 
+		("help,?", bool_switch(&o.ShowHelp)->default_value(false), "Show this information")
+		("output,o", value(&o.OutputFile), "Output file")
+		("input,i", value(&o.InputFile), "Output file")
+		("iformat,k", value(&o.InputFormat), "input file format")
+		("oformat,t", value(&o.OutputFormat), "output file format")
+		("verbose,v", value(&o.Verbose)->default_value(false), "Verbose mode")
+		;
 
-	ParseCommandLine(argc, argv, opt);
-
-	if(opt.ShowHelp)
+	if(o.ShowHelp)
 	{
-		cout << "Usage:" << endl 
-			<< argv[0] << " -i <infile> -o <outfile> -if <format> -of <format> [-h|-?] [-v]" << endl
-			<< endl
-			<< "\t-i <infile>         Input filename" << endl
-			<< "\t-o <outfile>        Output filename" << endl
-			<< "\t-if <format>        Input file format" << endl
-			<< "\t-of <format>        Output file format" << endl
-			<< "\t-h,-?               Show this help message" << endl
-			<< "\t-v                  Verbose mode" << endl
-			<< endl
-			<< "Available formats: zero-based-text, one-based-text, graphviz" << endl
-			;
+		cout << opt_desc << endl;
+		return 0;
 	}
-	else Transcode(opt);
+	try{
+		if(!o.ShowHelp && o.InputFile.empty()) throw invalid_argument("missing input file param");
+		if(!o.ShowHelp && o.OutputFile.empty()) throw invalid_argument("missing output file param");
+		if(!o.ShowHelp && o.InputFormat == FsaFormat::None) throw invalid_argument("missing input format param");
+		if(!o.ShowHelp && o.OutputFormat == FsaFormat::None) throw invalid_argument("missing input format param");
+
+		Transcode(o);
+	}
+	catch(exception ex)
+	{
+		cout << "Error: " << ex.what() << endl;
+		return -1;
+	}
 
 	return 0;
 }

@@ -5,172 +5,113 @@
 #include "../FsaFormatReader.h"
 #include "../FsmPlainTextReader.h"
 #include "../FsmPlainTextWriter.h"
+#include "../FsaFormat.h"
 #include <fstream>
 #include <chrono>
 #include <boost/format.hpp>
+#include <boost/program_options.hpp>
 #include <string>
 #include <iostream>
 
 namespace generate_nfa
 {
 
-using namespace std;
-using boost::format;
+	using namespace std;
+	using namespace boost::program_options;
+	using boost::format;
 
-class Options
-{
-public:
-	string OutputFile;
-	string DotOutputFile;
-	long States;
-	long Symbols;
-	long Seed;
-	bool Verbose;
-	bool ShowHelp;
-	float Density;
-	bool EmitDotOutputFile;
-
-	Options() : States(10), Symbols(2), Seed(0), Verbose(false), ShowHelp(false), Density(0.05f), EmitDotOutputFile(false)
+	class Options
 	{
-	}
-};
+	public:
+		string OutputFile;
+		FsaFormat OutputFormat;
+		long States;
+		long Symbols;
+		long Seed;
+		bool Verbose;
+		bool ShowHelp;
+		float Density;
+		float FinalsDensity;	
 
-void ParseCommandLine(int argc, char** argv, Options& opt)
-{
-	for(int i=1; i<argc; i++)
+		Options() : States(10), Symbols(2), Seed(0), Verbose(false), ShowHelp(false), Density(0.05f), FinalsDensity(0.1f), OutputFormat(FsaFormat::None)
+		{
+		}
+	};
+
+	void GenerateNfa(const Options& opt)
 	{
-		string arg = argv[i];
-		if(arg == "-o")
-		{
-			opt.OutputFile = argv[i+1];
-			i++;				
-		}
-		else if(arg == "-s")
-		{
-			opt.States = stol(argv[i+1]);
-			i++;
-		}
-		else if(arg == "-a")
-		{
-			opt.Symbols = stol(argv[i+1]);
-			i++;
-		}
-		else if(arg == "-seed")
-		{
-			opt.Seed = stol(argv[i+1]);
-			i++;
-		}
-		else if(arg == "-d")
-		{
-			opt.Density = stof(argv[i+1]);
-			i++;
-		}
-		else if(arg == "-dot-out")
-		{
-			opt.EmitDotOutputFile = true;
-			opt.DotOutputFile = argv[i+1];
-			i++;
-		}
-		else if(arg == "-v")
-		{
-			opt.Verbose = true;
-		}
-		else if(arg == "-h" || arg == "-?")
-		{
-			opt.ShowHelp = true;
-		}
-	}
+		typedef uint16_t TState;
+		typedef uint8_t TSymbol;
+		typedef Nfa<TState, TSymbol> TNfa;
+		typedef mt19937 TRandGen;
 
-}
+		// Si la semilla es cero, usamos como semilla un valor derivado del temporizador
+		auto seed = opt.Seed;
+		if(seed == 0)
+		{
+			chrono::steady_clock::time_point p = chrono::steady_clock::now();
+			chrono::steady_clock::duration d = p.time_since_epoch();
+			seed = static_cast<long>(d.count());
+		}
 
-void GenerateNfa(Options opt)
-{
-	typedef uint16_t TState;
-	typedef uint8_t TSymbol;
-	typedef Nfa<TState, TSymbol> TNfa;
-	typedef mt19937 TRandGen;
-	
-	// Si la semilla es cero, usamos como semilla un valor derivado del temporizador
-	if(opt.Seed == 0)
-	{
-		chrono::steady_clock::time_point p = chrono::steady_clock::now();
-		chrono::steady_clock::duration d = p.time_since_epoch();
-		opt.Seed = static_cast<long>(d.count());
-	}
+		NfaGenerator<TNfa, TRandGen> gen;
+		TRandGen rgen(seed);
+		FsmPlainTextWriter<TNfa> writer;
+		
+		TNfa nfa = gen.Generate(static_cast<TState>(opt.States), static_cast<TSymbol>(opt.Symbols), 1, 1, opt.Density, rgen);
+		if(opt.Verbose) 
+		{		
+			cout << "Generated NFA with " << static_cast<size_t>(nfa.GetStates()) << " states and " << static_cast<size_t>(nfa.GetAlphabetLength()) << " symbols" << endl;
+		}
 
-	NfaGenerator<TNfa, TRandGen> gen;
-	TRandGen rgen(opt.Seed);
-	FsmPlainTextWriter<TNfa> writer;
-
-	TNfa nfa = gen.Generate(static_cast<TState>(opt.States), static_cast<TSymbol>(opt.Symbols), 1, 1, opt.Density, rgen);
-	if(opt.Verbose) 
-	{		
-		cout << "Generated NFA with " << static_cast<size_t>(nfa.GetStates()) << " states and " << static_cast<size_t>(nfa.GetAlphabetLength()) << " symbols" << endl;
-	}
-
-	ofstream ofs(opt.OutputFile);
-	if(!ofs.is_open())
-	{
-		cout << "Error opening " << opt.OutputFile << endl;
-		return;
-	}
-	writer.Write(nfa, ofs);
-	ofs.close();
-
-	if(opt.Verbose)
-	{
-		cout << "Written " << opt.OutputFile << endl;
- 	}
-
-	if(opt.EmitDotOutputFile)
-	{
-		ofs.open(opt.DotOutputFile);
+		ofstream ofs(opt.OutputFile);
 		if(!ofs.is_open())
 		{
-			cout << "Error opening " << opt.DotOutputFile << endl;
+			cout << "Error opening " << opt.OutputFile << endl;
 			return;
 		}
-		FsmGraphVizWriter<TNfa> wnfa;
-		wnfa.Write(nfa, ofs, false);		
+		writer.Write(nfa, ofs);
 		ofs.close();
-		if(opt.Verbose) 
+
+		if(opt.Verbose)
 		{
-			cout << "Written " << opt.DotOutputFile << endl;
+			cout << "Written " << opt.OutputFile << endl;
 		}
 	}
-}
 
 }
 
 using namespace generate_nfa;
 
 int main(int argc, char** argv)
-{		
-	Options opt;
-	ParseCommandLine(argc, argv, opt);
-	
-	if(opt.ShowHelp)
-	{
-		cout 
-			<< "Generates a new NFA using a specified seed and transition function density." << endl
-			<< "Use the same seed to get the same automata" << endl
-			<< "Usage: " << endl
-			<< argv[0] << " -o <outfile> -s <states> -a <symbols> -d <density> [-dot-out <dotoutfile>] [-s <seed>] [-h|-?] [-v]" << endl
-			<< endl	
-			<< "\t-o        outfile     Output FSA file" << endl
-			<< "\t-dot-out  dotoutfile  Filename to write DOT file from output FSA" << endl
-			<< "\t-s        <states>    Number of states" << endl
-			<< "\t-a        <symbols>   Number of symbols" << endl
-			<< "\t-d        <density>   Real number in zero to 1.0 range. Indicates how populated is the transition function" << endl
-			<< "\t-seed     <seed>      Integer value for the numeric random generator" << endl
-			<< "\t-h,-?                 Show this help message" << endl
-			<< "\t-v                    Verbose mode" << endl
-			;
+{
+	Options o;
+	options_description opt_desc("Allowed options");
+	opt_desc.add_options()
+		("help,?", bool_switch(&o.ShowHelp)->default_value(false), "Show this information")
+		("states,n", value(&o.States)->default_value(10), "Number of states")
+		("alpha,k", value(&o.Symbols)->default_value(2), "Number of symbols")
+		("density,d", value(&o.Density)->default_value(0.1f), "Transition function density")
+		("finals,f", value(&o.FinalsDensity)->default_value(0.1f), "Final states density")
+		("seed,s", value(&o.Seed)->default_value(0), "Zero means time-based")
+		("verbose,v", bool_switch(&o.Verbose)->default_value(false), "Verbose mode")
+		("output,o", value(&o.OutputFile), "Output file")
+		("format,t", value(&o.OutputFormat)->default_value(FsaFormat::ZeroBasedPlainText), "Output format")
+		;
 
+	variables_map vm;
+	command_line_parser parser(argc, argv);
+	auto po = parser.options(opt_desc).run();
+	store(po, vm);
+	notify(vm);
+
+	if(o.ShowHelp)
+	{
+		cout << opt_desc << endl;
 		return 0;
 	}
 
-	GenerateNfa(opt);
+	GenerateNfa(o);
 
 	return 0;
 }
