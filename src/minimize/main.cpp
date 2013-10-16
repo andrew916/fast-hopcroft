@@ -3,6 +3,7 @@
 #include "../MinimizationBrzozowski.h"
 #include "../MinimizationIncremental.h"
 #include "../MinimizationHybrid.h"
+#include "../MinimizationAlgorithm.h"
 #include "../Dfa.h"
 #include "../Nfa.h"
 #include "../FsmGraphVizWriter.h"
@@ -12,20 +13,18 @@
 #include <fstream>
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
+#include <boost/program_options.hpp>
 #include <string>
+
+#include <stdexcept>
+#include <iostream>
 
 namespace minimize
 {
 
 	using namespace std;
+	using namespace boost::program_options;
 	using boost::format;
-
-	enum class MinimizationAlgorithm {
-		Hopcroft,
-		Brzozowski,
-		Incremental,
-		Hybrid
-	};
 
 	class Options
 	{
@@ -33,17 +32,11 @@ namespace minimize
 		MinimizationAlgorithm Algorithm;
 		string InputFile;
 		string OutputFile;
-		string DotInputFile;
-		string DotOutputFile;
-		bool EmitDotOutputFile;
-		bool EmitDotInputFile;
 		bool SkipSynthOutput;
 		bool ShowHelp;
 		bool Verbose;
 
 		Options() : 
-			EmitDotOutputFile(false), 
-			EmitDotInputFile(false), 
 			SkipSynthOutput(true), 
 			ShowHelp(false), 
 			Verbose(false), 
@@ -53,50 +46,7 @@ namespace minimize
 	};
 
 
-	void ParseCommandLine(int argc, char** argv, Options& opt)
-	{
-		for(int i=1; i<argc; i++)
-		{
-			string arg = argv[i];
-			if(arg == "-m")
-			{
-				if(strcmp(argv[i+1], "hopcroft") == 0) {
-					opt.Algorithm = MinimizationAlgorithm::Hopcroft;
-				} else if(strcmp(argv[i+1], "brzozowski") == 0) {
-					opt.Algorithm = MinimizationAlgorithm::Brzozowski;
-				} else if(strcmp(argv[i+1], "incremental") == 0) {
-					opt.Algorithm = MinimizationAlgorithm::Incremental;
-				} else if(strcmp(argv[i+1], "hybrid") == 0) {
-					opt.Algorithm = MinimizationAlgorithm::Hybrid;
-				} else {
-					cout << "error: invalid algorithm specification" << endl;
-					abort();
-				}
-				i++;
-			}
-			else if(arg == "-i")
-			{
-				opt.InputFile = argv[i+1];
-				i++;
-			}
-			else if(arg == "-o")
-			{
-				opt.SkipSynthOutput = false;
-				opt.OutputFile = argv[i+1];
-				i++;
-			}
-			else if(arg == "-v")
-			{
-				opt.Verbose = true;
-			}
-			else if(arg == "-h" || arg == "-?")
-			{
-				opt.ShowHelp = true;
-			}
-		}
-	}
-
-	void Minimization(Options opt)
+	int Minimization(Options opt)
 	{
 		using boost::timer::cpu_timer;
 		typedef uint16_t TState;
@@ -113,7 +63,7 @@ namespace minimize
 		if(!ifs.is_open())
 		{
 			cout << "Error opening file " << opt.InputFile << endl;
-			return;
+			return -1;
 		}
 
 		TFsa fsa = reader_fsa.Read(ifs);
@@ -150,7 +100,7 @@ namespace minimize
 			MinimizationBrzozowski<TFsa, TDfa> min;			
 			MinimizationBrzozowski<TFsa, TDfa>::TVectorDfaState vfinal;
 			MinimizationBrzozowski<TFsa, TDfa>::TVectorDfaEdge vedges;
-			
+
 			TState states;
 			timer.start();
 			min.Minimize(fsa, &states, vfinal, vedges);
@@ -199,7 +149,7 @@ namespace minimize
 			if(!ofs.is_open())
 			{
 				cout << "Error with output file: " << opt.OutputFile << endl;
-				return;
+				return -1;
 			}
 			writer.Write(min_dfa, ofs);
 			ofs.close();
@@ -209,41 +159,7 @@ namespace minimize
 				cout << "Written " << opt.OutputFile << endl;
 			}
 		}
-
-		if(opt.EmitDotInputFile)
-		{
-			ofstream ofs(opt.DotInputFile);
-			if(!ofs.is_open())
-			{
-				cout << "Error opening file " << opt.DotInputFile << endl;
-				return;
-			}
-
-			FsmGraphVizWriter<TDfa> wnfa;		
-			wnfa.Write(dfa, ofs, false);
-			ofs.close();
-			if(opt.Verbose)
-			{
-				cout << "Written DOT " << opt.DotInputFile << endl;
-			}
-		}
-		if(opt.EmitDotOutputFile && !opt.SkipSynthOutput)
-		{
-			ofstream ofs(opt.DotOutputFile);
-			if(!ofs.is_open())
-			{
-				cout << "Error opening file " << opt.DotOutputFile << endl;
-				return;
-			}
-
-			FsmGraphVizWriter<TDfa> wdfa;
-			wdfa.Write(min_dfa, ofs, false);
-			ofs.close();
-			if(opt.Verbose)
-			{
-				cout << "Written DOT " << opt.DotOutputFile << endl;
-			}
-		}
+		return 0;
 	}
 
 }
@@ -252,28 +168,30 @@ using namespace minimize;
 
 int main(int argc, char** argv)
 {
-	Options opt;
+	Options o;
+	options_description opt_desc("allowed options");
+	opt_desc.add_options()
+		("help,?", bool_switch(&o.ShowHelp)->default_value(false), "Show this information")
+		("algorithm,a", value(&o.Algorithm)->default_value(MinimizationAlgorithm::Hopcroft), "Minimization algorithm")
+		("input,i", value(&o.InputFile), "Input file")
+		("output,o", value(&o.OutputFile), "Output file")
+		("skip_synth,s", bool_switch(&o.SkipSynthOutput)->default_value(false), "Skip synthetize output")
+		("verbose,v", bool_switch(&o.Verbose), "Verbose mode")
+		;
 
-	ParseCommandLine(argc, argv, opt);
+	variables_map vm;
+	command_line_parser parser(argc, argv);
+	auto po = parser.options(opt_desc).run();
+	store(po, vm);
+	notify(vm);
 
-	if(opt.ShowHelp)
+	if(o.ShowHelp)
 	{
-		cout << "Usage:" << endl 
-			<< argv[0] << " -i <infile> [-o <outfile>] [-dot-in <dotinfile>] [-dot-out <dotoutfile>] [-h|-?] [-v]" << endl
-			<< endl
-			<< "\t-a <algorithm>         Minimization algorithm" << endl
-			<< "\t-i <infile>            Input filename" << endl
-			<< "\t-o <outfile>           Output filename" << endl
-			<< "\t-dot-out <dotoutfile>  DOT output filename" << endl
-			<< "\t-dot-in <dotinfile>    DOT input filename" << endl
-			<< "\t-h,-?                  Show this help message" << endl
-			<< "\t-v                     Verbose mode" << endl
-			<< endl
-			<< "Algorithms available: hopcroft, incremental, hybrid" << endl
-			;
+		cout << opt_desc << endl;
+		return 0;
 	}
-	else Minimization(opt);
 
+	Minimization(o);
 
 	return 0;
 }

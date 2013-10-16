@@ -114,6 +114,12 @@ int main(int argc, char** argv)
 		("verbose,v", value(&o.Verbose)->default_value(false), "Verbose mode")
 		;
 
+	variables_map vm;
+	command_line_parser parser(argc, argv);
+	auto po = parser.options(opt_desc).run();
+	store(po, vm);
+	notify(vm);
+
 	if(o.ShowHelp)
 	{
 		cout << opt_desc << endl;

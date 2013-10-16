@@ -3,11 +3,13 @@
 #include "../MinimizationBrzozowski.h"
 #include "../MinimizationIncremental.h"
 #include "../MinimizationHybrid.h"
+#include "../MinimizationAlgorithm.h"
 #include "../Dfa.h"
 #include "../Nfa.h"
 #include "../Fsa.h"
 #include "../Set.h"
 #include "../FsmGraphVizWriter.h"
+#include "../FsaFormat.h"
 #include "../FsaFormatReader.h"
 #include "../FsmPlainTextReader.h"
 #include "../FsmPlainTextWriter.h"
@@ -1466,10 +1468,40 @@ int test501()
 {
 	using namespace boost::filesystem;
 	using namespace boost::timer;
+	using namespace boost::program_options;
 
 	cpu_timer timer;
-	path root_path("CorpusAlmeida");
+	string root_path_string;
+	
+	FsaFormat fsa_format;
+	bool show_help;
+	string output_filename;
+	vector<MinimizationAlgorithm> algorithms;
 
+	options_description opt_desc("Allowed options");
+	opt_desc.add_options()
+		("help,?", bool_switch(&show_help)->default_value(false), "Show this information")
+		("path,p", value(&root_path_string), "Root path to search")
+		("output,o", value(&output_filename), "Output filename")
+		("format,f", value(&fsa_format)->default_value(FsaFormat::OneBasedPlainText), "Input format")
+		("algorithm,a", value(&algorithms)->multitoken(), "Algorithms to test")
+		;
+
+
+	variables_map vm;
+	command_line_parser parser(global_argc, global_argv);
+	auto po = parser.options(opt_desc).run();
+	store(po, vm);
+	notify(vm);
+
+	if(show_help)
+	{
+		cout << opt_desc << endl;
+		return 0;
+	}
+
+	if(fsa_format != FsaFormat::OneBasedPlainText) throw invalid_argument("Format not supported");
+		
 	typedef uint16_t TState;
 	typedef uint16_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
@@ -1483,8 +1515,10 @@ int test501()
 	min3.ShowConfiguration = false;
 	min4.ShowConfiguration = false;
 
-	ofstream report("report_501_almeida.csv");
+	ofstream report(output_filename);
 	if(!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
+
+	path root_path(root_path_string);
 
 	report << "alg,n,k,t,file,min_st" << endl;
 
@@ -1515,67 +1549,85 @@ int test501()
 
 			size_t n = nfa.GetStates();
 			size_t k = nfa.GetAlphabetLength();
-			/*
-			TState min_states;
-			timer.start();
-			min1.Minimize(nfa, &min_states, vfinal, vedges);
-			timer.stop();
-			//cout << "Brzozowski " << dfa_filename << ": " << timer.elapsed().wall << endl;
-			report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-			% "Brzozowski"
-			% n
-			% k
-			% timer.elapsed().wall
-			% dfa_filename
-			% static_cast<size_t>(part_b.GetSize())
-			).str() << endl;
-			acum_time_b += timer.elapsed().wall;
-			*/
-			timer.start();
-			min2.Minimize(dfa, part_h);
-			timer.stop();
-			//cout << "Hopcroft " << dfa_filename << ": " << timer.elapsed().wall << endl;
-			report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-				% "Hopcroft"
-				% n
-				% k
-				% timer.elapsed().wall
-				% dfa_filename
-				% static_cast<size_t>(part_h.GetSize())
-				).str()	<< endl;
-			acum_time_h += timer.elapsed().wall;
 
-			timer.start();
-			min3.Minimize(dfa, part_i);
-			timer.stop();
-			//cout << "Incremental " << dfa_filename << ": " << timer.elapsed().wall << endl;
-			report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-				% "Incremental"
+			bool useBrzozowski = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Brzozowski) != algorithms.end();
+			if(useBrzozowski)
+			{
+				throw invalid_argument("brozozowski not supported currently");
+				/*
+				TState min_states;
+				timer.start();
+				min1.Minimize(nfa, &min_states, vfinal, vedges);
+				timer.stop();
+				//cout << "Brzozowski " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+				% "Brzozowski"
 				% n
 				% k
 				% timer.elapsed().wall
 				% dfa_filename
-				% static_cast<size_t>(part_i.GetSize())
+				% static_cast<size_t>(part_b.GetSize())
 				).str() << endl;
-			acum_time_i += timer.elapsed().wall;
+				acum_time_b += timer.elapsed().wall;
+				*/
+			}
 
-			timer.start();
-			min4.Minimize(dfa, part_hi);
-			timer.stop();
-			//cout << "Hybrid " << dfa_filename << ": " << timer.elapsed().wall << endl;
-			report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-				% "Hybrid"
-				% n
-				% k
-				% timer.elapsed().wall
-				% dfa_filename
-				% static_cast<size_t>(part_hi.GetSize())
-				).str() << endl;
-			acum_time_hi += timer.elapsed().wall;
+			bool useHopcroft = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hopcroft) != algorithms.end();
+			if(useHopcroft)
+			{
+				timer.start();
+				min2.Minimize(dfa, part_h);
+				timer.stop();
+				//cout << "Hopcroft " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+					% "Hopcroft"
+					% n
+					% k
+					% timer.elapsed().wall
+					% dfa_filename
+					% static_cast<size_t>(part_h.GetSize())
+					).str()	<< endl;
+				acum_time_h += timer.elapsed().wall;
+			}
 
-			if(part_h.GetSize() != part_i.GetSize()) throw logic_error("different minimal states");
-			if(part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
-			if(part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
+			bool useIncremental = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Incremental) != algorithms.end();
+			if(useIncremental)			
+			{
+				timer.start();
+				min3.Minimize(dfa, part_i);
+				timer.stop();
+				//cout << "Incremental " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+					% "Incremental"
+					% n
+					% k
+					% timer.elapsed().wall
+					% dfa_filename
+					% static_cast<size_t>(part_i.GetSize())
+					).str() << endl;
+				acum_time_i += timer.elapsed().wall;
+			}
+
+			bool useHybrid = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hybrid) != algorithms.end();
+			if(useHybrid)
+			{
+				timer.start();
+				min4.Minimize(dfa, part_hi);
+				timer.stop();
+				//cout << "Hybrid " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+					% "Hybrid"
+					% n
+					% k
+					% timer.elapsed().wall
+					% dfa_filename
+					% static_cast<size_t>(part_hi.GetSize())
+					).str() << endl;
+				acum_time_hi += timer.elapsed().wall;
+			}
+			if(useHopcroft && useIncremental && part_h.GetSize() != part_i.GetSize()) throw logic_error("different minimal states");
+			if(useHopcroft && useHybrid && part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
+			if(useIncremental && useHybrid && part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
 
 			automata_count++;
 		}
