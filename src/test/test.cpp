@@ -12,6 +12,7 @@
 #include "../FsaFormat.h"
 #include "../FsaFormatReader.h"
 #include "../FsmPlainTextReader.h"
+#include "../AlmeidaPlainTextReader.h"
 #include "../FsmPlainTextWriter.h"
 #include "../Determinization.h"
 #include "../NfaGenerator.h"
@@ -20,6 +21,7 @@
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <boost/algorithm/string.hpp>
 #include <array>
 #include <stdexcept>
 
@@ -104,7 +106,7 @@ void write_dfa_info(const TDfa& dfa)
 }
 
 template<typename TFsa>
-TFsa read_text(string filename)
+TFsa read_text(const string& filename)
 {
 	FsmPlainTextReader<TFsa> reader;
 	ifstream fsa_input(filename);
@@ -115,7 +117,7 @@ TFsa read_text(string filename)
 }
 
 template<typename TFsa>
-TFsa read_text_one_based(string filename)
+TFsa read_text_one_based(const string& filename)
 {
 	FsmPlainTextReaderOneBased<TFsa> reader;
 	ifstream fsa_input(filename);
@@ -123,6 +125,29 @@ TFsa read_text_one_based(string filename)
 	auto fsa = reader.Read(fsa_input);
 	fsa_input.close();
 	return fsa;
+}
+
+template<typename TFsa>
+vector<TFsa> read_text_almeida(const string& filename)
+{
+	vector<string> vc;
+	string ext(filename.begin() + filename.find_last_of('.'), filename.end());
+	boost::split(vc, ext, boost::is_any_of("nk"));
+
+	auto states = boost::lexical_cast<typename TFsa::TState>(vc[0]);
+	auto alpha = boost::lexical_cast<typename TFsa::TSymbol>(vc[1]);
+
+	vector<TFsa> vec;
+	AlmeidaPlainTextReader<TFsa> reader;
+	ifstream fsa_input(filename);
+	if(!fsa_input.is_open()) throw invalid_argument("El archivo no pudo ser abierto");
+	while(!fsa_input.eof())
+	{
+		auto fsa = reader.Read(fsa_input, alpha, states);
+		vec.push_back(fsa);
+	}
+	fsa_input.close();
+	return vec;
 }
 
 // Tests Hopcroft 100-199
@@ -1316,7 +1341,7 @@ int test401()
 					{
 						float den = d;
 						cout << "states: "<< states << " alpha: " << alpha << " d:" << d << " i:" << i << " fd:" << finals_density << endl;
-						auto nfa = nfagen.Generate_v2(states, alpha, 1, states*finals_density, &den, rgen);
+						auto nfa = nfagen.Generate_v2(states, alpha, 1, static_cast<TState>(states*finals_density), &den, rgen);
 						auto dfa = determ.Determinize(nfa);
 
 						//write_text(dfa, "automata_test.txt");
@@ -1544,17 +1569,24 @@ int test501()
 			auto dfa_filename = i->path().string();
 			auto nfa = read_text_one_based<TNfa>(dfa_filename);
 			auto dfa = read_text_one_based<TDfa>(dfa_filename);
+			auto dfas = read_text_almeida<TDfa>(dfa_filename);
 
 			//cout << "Read " << dfa_filename << endl;
 
 			size_t n = nfa.GetStates();
 			size_t k = nfa.GetAlphabetLength();
 
+			
+			bool useHopcroft = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hopcroft) != algorithms.end();
+			bool useIncremental = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Incremental) != algorithms.end();
 			bool useBrzozowski = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Brzozowski) != algorithms.end();
+			bool useHybrid = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hybrid) != algorithms.end();
+			
 			if(useBrzozowski)
 			{
 				throw invalid_argument("brozozowski not supported currently");
 				/*
+				//deshabilitado porque en ocasiones tarda demasiado
 				TState min_states;
 				timer.start();
 				min1.Minimize(nfa, &min_states, vfinal, vedges);
@@ -1569,10 +1601,9 @@ int test501()
 				% static_cast<size_t>(part_b.GetSize())
 				).str() << endl;
 				acum_time_b += timer.elapsed().wall;
-				*/
+				//*/
 			}
 
-			bool useHopcroft = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hopcroft) != algorithms.end();
 			if(useHopcroft)
 			{
 				timer.start();
@@ -1589,8 +1620,7 @@ int test501()
 					).str()	<< endl;
 				acum_time_h += timer.elapsed().wall;
 			}
-
-			bool useIncremental = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Incremental) != algorithms.end();
+						
 			if(useIncremental)			
 			{
 				timer.start();
@@ -1607,8 +1637,7 @@ int test501()
 					).str() << endl;
 				acum_time_i += timer.elapsed().wall;
 			}
-
-			bool useHybrid = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hybrid) != algorithms.end();
+						
 			if(useHybrid)
 			{
 				timer.start();
@@ -1625,9 +1654,9 @@ int test501()
 					).str() << endl;
 				acum_time_hi += timer.elapsed().wall;
 			}
-			if(useHopcroft && useIncremental && part_h.GetSize() != part_i.GetSize()) throw logic_error("different minimal states");
-			if(useHopcroft && useHybrid && part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
-			if(useIncremental && useHybrid && part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
+			if(useHopcroft    && useIncremental && part_h.GetSize() != part_i.GetSize())  throw logic_error("different minimal states");
+			if(useHopcroft    && useHybrid      && part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
+			if(useIncremental && useHybrid      && part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
 
 			automata_count++;
 		}
