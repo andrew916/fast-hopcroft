@@ -251,7 +251,7 @@ public:
 	void Minimize(const TDfa& dfa, NumericPartition& part)
 	{
 		using namespace std;
-
+		
 		TState states = dfa.GetStates();
 		part.Clear(states);
 
@@ -264,9 +264,14 @@ public:
 			part.state_to_partition[st] = f ? 0 : 1;
 		}
 		// partitions count, are all finals?
-		if(part.P[1].empty()) { part.new_index = 1; return; }
-		part.new_index = 2;
-
+		part.new_index = 0;
+		if(!part.P[1].empty()) part.new_index++;
+		if(!part.P[0].empty()) part.new_index++; 
+		else {
+			swap(part.P[0], part.P[1]);			
+			replace(part.state_to_partition.begin(), part.state_to_partition.end(), 1, 0);
+		}
+		
 		BitSet<TPairIndex> path((states*states-states)/2);
 		BitSet<TPairIndex> equiv((states*states-states)/2);
 		vector<TSplitter> splitter_stack;

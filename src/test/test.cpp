@@ -110,7 +110,7 @@ TFsa read_text(const string& filename)
 {
 	FsmPlainTextReader<TFsa> reader;
 	ifstream fsa_input(filename);
-	if(!fsa_input.is_open()) throw invalid_argument("El archivo no pudo ser abierto");
+	if(!fsa_input.is_open()) throw logic_error("file could not be opened");
 	auto fsa = reader.Read(fsa_input);
 	fsa_input.close();
 	return fsa;
@@ -121,33 +121,33 @@ TFsa read_text_one_based(const string& filename)
 {
 	FsmPlainTextReaderOneBased<TFsa> reader;
 	ifstream fsa_input(filename);
-	if(!fsa_input.is_open()) throw invalid_argument("El archivo no pudo ser abierto");
+	if(!fsa_input.is_open()) throw logic_error("file could not be opened");
 	auto fsa = reader.Read(fsa_input);
 	fsa_input.close();
 	return fsa;
 }
 
-template<typename TFsa>
-vector<TFsa> read_text_almeida(const string& filename)
+template<typename TFsa> 
+void begin_read_text_almeida(ifstream& fsa_input, const string& filename, typename TFsa::TState* n, typename TFsa::TSymbol* k)
 {
+	// format "n<number>k<number>" skip ".n"
+	string ext(filename.begin() + filename.find_last_of('.') + 2, filename.end());
 	vector<string> vc;
-	string ext(filename.begin() + filename.find_last_of('.'), filename.end());
-	boost::split(vc, ext, boost::is_any_of("nk"));
+	boost::split(vc, ext, boost::is_any_of("nk"), boost::algorithm::token_compress_on);
 
-	auto states = boost::lexical_cast<typename TFsa::TState>(vc[0]);
-	auto alpha = boost::lexical_cast<typename TFsa::TSymbol>(vc[1]);
-
-	vector<TFsa> vec;
+	*n = boost::lexical_cast<typename TFsa::TState>(vc[0]);
+	*k = boost::lexical_cast<typename TFsa::TSymbol>(vc[1]);
 	AlmeidaPlainTextReader<TFsa> reader;
-	ifstream fsa_input(filename);
-	if(!fsa_input.is_open()) throw invalid_argument("El archivo no pudo ser abierto");
-	while(!fsa_input.eof())
-	{
-		auto fsa = reader.Read(fsa_input, alpha, states);
-		vec.push_back(fsa);
-	}
-	fsa_input.close();
-	return vec;
+
+	if(!fsa_input.is_open()) throw logic_error("file could not be opened");
+	reader.SkipHeader(fsa_input);	
+}
+
+template<typename TFsa>
+TFsa read_text_almeida(istream& fsa_input, typename TFsa::TState states, typename TFsa::TSymbol alpha)
+{
+	AlmeidaPlainTextReader<TFsa> reader;
+	return reader.Read(fsa_input, alpha, states);
 }
 
 // Tests Hopcroft 100-199
@@ -1497,8 +1497,7 @@ int test501()
 
 	cpu_timer timer;
 	string root_path_string;
-	
-	FsaFormat fsa_format;
+
 	bool show_help;
 	string output_filename;
 	vector<MinimizationAlgorithm> algorithms;
@@ -1507,8 +1506,7 @@ int test501()
 	opt_desc.add_options()
 		("help,?", bool_switch(&show_help)->default_value(false), "Show this information")
 		("path,p", value(&root_path_string), "Root path to search")
-		("output,o", value(&output_filename), "Output filename")
-		("format,f", value(&fsa_format)->default_value(FsaFormat::OneBasedPlainText), "Input format")
+		("output,o", value(&output_filename), "Output filename")		
 		("algorithm,a", value(&algorithms)->multitoken(), "Algorithms to test")
 		;
 
@@ -1525,8 +1523,6 @@ int test501()
 		return 0;
 	}
 
-	if(fsa_format != FsaFormat::OneBasedPlainText) throw invalid_argument("Format not supported");
-		
 	typedef uint16_t TState;
 	typedef uint16_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
@@ -1555,11 +1551,11 @@ int test501()
 
 	for(auto root_path_iter=directory_iterator(root_path); root_path_iter != directory_iterator(); root_path_iter++)
 	{
-		uint64_t acum_time_b = 0;
-		uint64_t acum_time_h = 0;
-		uint64_t acum_time_i = 0;
-		uint64_t acum_time_hi = 0;
-		uint64_t automata_count = 0;
+		nanosecond_type acum_time_b = 0;
+		nanosecond_type acum_time_h = 0;
+		nanosecond_type acum_time_i = 0;
+		nanosecond_type acum_time_hi = 0;
+		size_t automata_count = 0;
 		if(!is_directory(root_path_iter->status())) continue;
 		cout << "Entering " << root_path_iter->path() << endl;
 		for(auto i=directory_iterator(root_path_iter->path()); i!=directory_iterator(); i++)
@@ -1569,19 +1565,17 @@ int test501()
 			auto dfa_filename = i->path().string();
 			auto nfa = read_text_one_based<TNfa>(dfa_filename);
 			auto dfa = read_text_one_based<TDfa>(dfa_filename);
-			auto dfas = read_text_almeida<TDfa>(dfa_filename);
 
 			//cout << "Read " << dfa_filename << endl;
 
 			size_t n = nfa.GetStates();
 			size_t k = nfa.GetAlphabetLength();
 
-			
 			bool useHopcroft = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hopcroft) != algorithms.end();
 			bool useIncremental = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Incremental) != algorithms.end();
 			bool useBrzozowski = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Brzozowski) != algorithms.end();
 			bool useHybrid = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hybrid) != algorithms.end();
-			
+
 			if(useBrzozowski)
 			{
 				throw invalid_argument("brozozowski not supported currently");
@@ -1620,7 +1614,7 @@ int test501()
 					).str()	<< endl;
 				acum_time_h += timer.elapsed().wall;
 			}
-						
+
 			if(useIncremental)			
 			{
 				timer.start();
@@ -1637,7 +1631,7 @@ int test501()
 					).str() << endl;
 				acum_time_i += timer.elapsed().wall;
 			}
-						
+
 			if(useHybrid)
 			{
 				timer.start();
@@ -1654,6 +1648,7 @@ int test501()
 					).str() << endl;
 				acum_time_hi += timer.elapsed().wall;
 			}
+
 			if(useHopcroft    && useIncremental && part_h.GetSize() != part_i.GetSize())  throw logic_error("different minimal states");
 			if(useHopcroft    && useHybrid      && part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
 			if(useIncremental && useHybrid      && part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
@@ -1676,6 +1671,197 @@ int test501()
 	}
 
 	return 0;
+}
+
+int test503()
+{
+	using namespace boost::filesystem;
+	using namespace boost::timer;
+	using namespace boost::program_options;
+
+	cpu_timer timer;
+	string root_path_string;
+
+	bool show_help;
+	string output_filename;
+	vector<MinimizationAlgorithm> algorithms;
+
+	options_description opt_desc("Allowed options");
+	opt_desc.add_options()
+		("help,?", bool_switch(&show_help)->default_value(false), "Show this information")
+		("path,p", value(&root_path_string), "Root path to search")
+		("output,o", value(&output_filename), "Output filename")		
+		("algorithm,a", value(&algorithms)->multitoken(), "Algorithms to test")
+		;
+
+
+	variables_map vm;
+	command_line_parser parser(global_argc, global_argv);
+	auto po = parser.options(opt_desc).run();
+	store(po, vm);
+	notify(vm);
+
+	if(show_help)
+	{
+		cout << opt_desc << endl;
+		return 0;
+	}
+
+	typedef uint16_t TState;
+	typedef uint16_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	typedef Nfa<TState, TSymbol> TNfa;
+
+	MinimizationHopcroft<TDfa> min2;
+	MinimizationIncremental<TDfa> min3;
+	MinimizationHybrid<TDfa> min4;
+
+	min2.ShowConfiguration = false;
+	min3.ShowConfiguration = false;
+	min4.ShowConfiguration = false;
+
+	ofstream report(output_filename);
+	if(!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
+
+	path root_path(root_path_string);
+
+	report << "alg,n,k,t,file,min_st" << endl;
+
+	vector<TState> vfinal;
+	vector<TNfa::TEdge> vedges;
+	MinimizationIncremental<TDfa>::NumericPartition part_i;
+	MinimizationHybrid<TDfa>::NumericPartition part_hi;
+	MinimizationHopcroft<TDfa>::NumericPartition part_h;
+
+
+	for(auto i=directory_iterator(root_path); i!=directory_iterator(); i++)
+	{
+		if(!is_regular_file(i->status())) continue;
+
+		nanosecond_type acum_time_b = 0;
+		nanosecond_type acum_time_h = 0;
+		nanosecond_type acum_time_i = 0;
+		nanosecond_type acum_time_hi = 0;
+		size_t automata_count = 0;
+
+		auto dfa_filename = i->path().string();
+		cout << "Reading " << dfa_filename << endl;
+
+		TState n; TSymbol k;
+		ifstream fsa_file(dfa_filename);
+		string line;
+		begin_read_text_almeida<TDfa>(fsa_file, dfa_filename, &n, &k);
+		while(!fsa_file.eof())
+		{			
+			getline(fsa_file, line);
+			if(line.empty() || line.front() == '(') continue;
+			stringstream line_stream(line);
+			auto dfa = read_text_almeida<TDfa>(line_stream, n, k);
+
+			//cout << "Read " << dfa_filename << endl;
+
+			bool useHopcroft = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hopcroft) != algorithms.end();
+			bool useIncremental = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Incremental) != algorithms.end();
+			bool useBrzozowski = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Brzozowski) != algorithms.end();
+			bool useHybrid = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hybrid) != algorithms.end();
+
+			if(useBrzozowski)
+			{
+				throw invalid_argument("brozozowski not supported currently");
+				/*
+				//deshabilitado porque en ocasiones tarda demasiado
+				TState min_states;
+				timer.start();
+				min1.Minimize(nfa, &min_states, vfinal, vedges);
+				timer.stop();
+				//cout << "Brzozowski " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+				% "Brzozowski"
+				% n
+				% k
+				% timer.elapsed().wall
+				% dfa_filename
+				% static_cast<size_t>(part_b.GetSize())
+				).str() << endl;
+				acum_time_b += timer.elapsed().wall;
+				//*/
+			}
+
+			if(useHopcroft)
+			{
+				timer.start();
+				min2.Minimize(dfa, part_h);
+				timer.stop();
+				//cout << "Hopcroft " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+					% "Hopcroft"
+					% n
+					% k
+					% timer.elapsed().wall
+					% dfa_filename
+					% static_cast<size_t>(part_h.GetSize())
+					).str()	<< endl;
+				acum_time_h += timer.elapsed().wall;
+			}
+
+			if(useIncremental)			
+			{
+				timer.start();
+				min3.Minimize(dfa, part_i);
+				timer.stop();
+				//cout << "Incremental " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+					% "Incremental"
+					% n
+					% k
+					% timer.elapsed().wall
+					% dfa_filename
+					% static_cast<size_t>(part_i.GetSize())
+					).str() << endl;
+				acum_time_i += timer.elapsed().wall;
+			}
+
+			if(useHybrid)
+			{
+				timer.start();
+				min4.Minimize(dfa, part_hi);
+				timer.stop();
+				//cout << "Hybrid " << dfa_filename << ": " << timer.elapsed().wall << endl;
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+					% "Hybrid"
+					% n
+					% k
+					% timer.elapsed().wall
+					% dfa_filename
+					% static_cast<size_t>(part_hi.GetSize())
+					).str() << endl;
+				acum_time_hi += timer.elapsed().wall;
+			}
+
+			if(useHopcroft    && useIncremental && part_h.GetSize() != part_i.GetSize())  throw logic_error("different minimal states");
+			if(useHopcroft    && useHybrid      && part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
+			if(useIncremental && useHybrid      && part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
+
+			automata_count++;
+		}
+
+		// skip empty folders
+		if(automata_count == 0) continue;
+		acum_time_b /= automata_count;
+		acum_time_h /= automata_count;
+		acum_time_i /= automata_count;
+		acum_time_hi /= automata_count;
+		cout << (boost::format("file: %1% | Promedios: B:%2% H:%3% I:%4% HI:%5%")
+			% i->path().string()
+			% acum_time_b
+			% acum_time_h
+			% acum_time_i
+			% acum_time_hi
+			).str() << endl;
+	}
+
+	return 0;
+
 }
 
 int test502()
@@ -1812,7 +1998,8 @@ int main(int argc, char** argv)
 	global_argc = argc - 1;
 	global_argv = &argv[1];
 	global_argv[0] = argv[0];
-	try{
+	//try
+	{
 #define MACRO_TEST(N) case N: return test##N(); break
 		switch(i)
 		{
@@ -1847,6 +2034,7 @@ int main(int argc, char** argv)
 			MACRO_TEST(500);
 			MACRO_TEST(501);
 			MACRO_TEST(502);
+			MACRO_TEST(503);
 		default:
 			cout << "La prueba indicada no existe" << endl;
 			throw invalid_argument("La prueba no existe");
@@ -1854,12 +2042,13 @@ int main(int argc, char** argv)
 		}
 #undef MACRO_TEST
 	}
+	/*
 	catch(exception ex)
-	{
-		cout << "Error: " << endl;
-		cout << ex.what() << endl;
-		return -1;
-	}
+	//{
+	cout << "Error: " << endl;
+	cout << ex.what() << endl;
+	return -1;
+	}//*/
 
 	return 0;
 }

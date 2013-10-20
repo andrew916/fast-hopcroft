@@ -135,12 +135,9 @@ public:
 	{
 		using namespace std;
 
-		TState final_states_count = dfa.GetFinals().Count();
-		TState non_final_states_count = dfa.GetStates() - final_states_count;
-
-		// Un automata sin estado final?
-		assert(final_states_count > 0);
-
+		TState final_states_count = 0;
+		TState non_final_states_count = 0;
+				
 		// Maximo puede exisitir una particion por cada estado, por ello reservamos de esta forma
 		np.Clear(dfa.GetStates());
 
@@ -150,21 +147,28 @@ public:
 		auto it_nf = back_inserter(np.P[1]);
 		for(TState st=0; st<dfa.GetStates(); st++)
 		{
-			if(dfa.IsFinal(st)) *it_f++ = st;
-			else *it_nf++ = st;
+			if(dfa.IsFinal(st)) { final_states_count++; *it_f++ = st; }
+			else { non_final_states_count++; *it_nf++ = st;  }
 			np.state_to_partition[st] = dfa.IsFinal(st) ? 0 : 1;
 		}
 
 		// partitions count
-		if(np.P[1].empty()) { np.new_index=1; return; }
-		np.new_index = 2;
-
+		np.new_index = 0;
+		if(!np.P[1].empty()) np.new_index++;
+		if(!np.P[0].empty()) np.new_index++; 
+		else 
+		{ 
+			swap(np.P[0], np.P[1]);
+			replace(np.state_to_partition.begin(), np.state_to_partition.end(), 1, 0);
+		}
+		
 		if(ShowConfiguration)
 		{
 			cout << "Initial P=" << to_string(np) << endl;
 		}
 
 		TState min_initial_partition_index = final_states_count < non_final_states_count ? 0 : 1;
+		if(final_states_count == 0 || non_final_states_count == 0) min_initial_partition_index = 0;
 
 		// set containing the next partitions to be processed
 		TSet wait_set_membership(dfa.GetStates());
