@@ -8,16 +8,11 @@
 #include <istream>
 #include <boost/lexical_cast.hpp>
 #include <stdint.h>
-#include "Dfa.h"
+#include "IFsaReader.h"
 
-
-template<typename TFsm>
-class FsaFormatReader
+template<typename TFsa>
+class FsaFormatReader : public IFsaReader<TFsa>
 {
-public:
-	typedef typename TFsm::TState TState;
-	typedef typename TFsm::TSymbol TSymbol;
-
 protected:
 	int state;
 	bool second_step;
@@ -151,16 +146,11 @@ protected:
 	}
 
 public:
-	FsaFormatReader()
+	virtual void ReadHeader(std::istream& is) override
 	{
 	}
 
-	~FsaFormatReader()
-	{
-	}
-
-
-	TFsm Read(std::istream& is)
+	virtual TFsa Read(std::istream& is) override
 	{
 		using namespace std;
 		state = 0;
@@ -213,7 +203,7 @@ public:
 		}
 
 		unsigned alpha_size = (unsigned)alphabet.size();
-		TFsm fsm(alpha_size, number_states);
+		TFsa fsm(alpha_size, number_states);
 		for(auto i : initial_states) fsm.SetInitial(i);
 		for(auto j : final_states) fsm.SetFinal(j);
 		int l = 0;

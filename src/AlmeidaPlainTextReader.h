@@ -4,16 +4,34 @@
 #include <stdexcept>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include "IFsaReader.h"
 
 template<typename TFsa>
-class AlmeidaPlainTextReader
+class AlmeidaPlainTextReader : public IFsaReader<TFsa>
 {
+private:
+	TSymbol alpha;
+	TState states;
+
 public:
+	
+	AlmeidaPlainTextReader(TSymbol _alpha, TState _states)
+		: alpha(_alpha), states(_states)
+	{
+	}
 
-	typedef typename TFsa::TSymbol TSymbol;
-	typedef typename TFsa::TState TState;
+	AlmeidaPlainTextReader() 
+		: alpha(0), states(0)
+	{
+	}
 
-	void SkipHeader(std::istream& str) const
+	void SetParameters(TSymbol _alpha, TState _states)
+	{
+		alpha = _alpha;
+		states = _states;
+	}
+
+	virtual void ReadHeader(std::istream& str) override
 	{
 		using namespace std;
 		using namespace boost::algorithm;
@@ -22,7 +40,7 @@ public:
 		getline(str, line);
 	}
 
-	TFsa Read(std::istream& str, TSymbol alpha, TState states) const
+	virtual TFsa Read(std::istream& str) override
 	{
 		using namespace std;
 		using namespace boost::algorithm;

@@ -3,20 +3,18 @@
 #include <string>
 #include <ostream>
 #include <stdint.h>
+#include "IFsaWriter.h"
 
-template<typename _TFsm>
-class FsmPlainTextWriter
+template<typename TFsa>
+class FsaPlainTextWriter : public IFsaWriter<TFsa>
 {
-public:
-	typedef _TFsm TFsm;
-	typedef typename TFsm::TState TState;
-	typedef typename TFsm::TSymbol TSymbol;
+public:	
 
-protected:
+	virtual void WriteHeader(std::ostream& output) override
+	{
+	}
 
-public:
-	
-	void Write(const TFsm& dfa, std::ostream& output)
+	virtual void Write(const TFsa& dfa, std::ostream& output) override
 	{
 		using namespace std;
 		

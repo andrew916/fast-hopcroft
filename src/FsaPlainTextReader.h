@@ -7,18 +7,17 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include "IFsaReader.h"
 
-template<typename TFsm>
-class FsmPlainTextReader
+template<typename TFsa>
+class FsaPlainTextReader : IFsaReader<TFsa>
 {
 public:
-	typedef typename TFsm::TState TState;
-	typedef typename TFsm::TSymbol TSymbol;
+	virtual void ReadHeader(std::istream& str) override
+	{
+	}
 
-protected:	
-
-public:
-	TFsm Read(std::istream& str)
+	virtual TFsa Read(std::istream& str) override
 	{
 		using namespace std;
 		using boost::split;
@@ -53,7 +52,7 @@ public:
 		}
 
 		// initialization
-		TFsm dfa(static_cast<TSymbol>(alpha), static_cast<TState>(states));
+		TFsa dfa(static_cast<TSymbol>(alpha), static_cast<TState>(states));
 
 		// initial
 		getline(str, line);
@@ -113,17 +112,15 @@ public:
 
 /** One based files do not have initial states.
 */
-template<typename TFsm>
-class FsmPlainTextReaderOneBased
+template<typename TFsa>
+class FsaPlainTextReaderOneBased : IFsaReader<TFsa>
 {
 public:
-	typedef typename TFsm::TState TState;
-	typedef typename TFsm::TSymbol TSymbol;
+	virtual void ReadHeader(std::istream& str) override
+	{
+	}
 
-protected:	
-
-public:
-	TFsm Read(std::istream& str)
+	virtual TFsa Read(std::istream& str) override
 	{
 		using namespace std;
 		using boost::split;
@@ -161,7 +158,7 @@ public:
 		}
 
 		// initialization
-		TFsm dfa(static_cast<TSymbol>(alpha), static_cast<TState>(states));
+		TFsa dfa(static_cast<TSymbol>(alpha), static_cast<TState>(states));
 				
 		dfa.SetInitial(0);
 

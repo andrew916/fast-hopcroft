@@ -1,10 +1,10 @@
 // August 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #include "../Nfa.h"
 #include "../NfaGenerator.h"
-#include "../FsmGraphVizWriter.h"
+#include "../FsaGraphVizWriter.h"
 #include "../FsaFormatReader.h"
-#include "../FsmPlainTextReader.h"
-#include "../FsmPlainTextWriter.h"
+#include "../FsaPlainTextReader.h"
+#include "../FsaPlainTextWriter.h"
 #include "../FsaFormat.h"
 #include <fstream>
 #include <chrono>
@@ -56,7 +56,7 @@ namespace generate_nfa
 
 		NfaGenerator<TNfa, TRandGen> gen;
 		TRandGen rgen(seed);
-		FsmPlainTextWriter<TNfa> writer;
+		FsaPlainTextWriter<TNfa> writer;
 		
 		TNfa nfa = gen.Generate(static_cast<TState>(opt.States), static_cast<TSymbol>(opt.Symbols), 1, 1, opt.Density, rgen);
 		if(opt.Verbose) 

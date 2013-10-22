@@ -5,10 +5,10 @@
 #include "../MinimizationHybrid.h"
 #include "../Dfa.h"
 #include "../Nfa.h"
-#include "../FsmGraphVizWriter.h"
+#include "../FsaGraphVizWriter.h"
 #include "../FsaFormatReader.h"
-#include "../FsmPlainTextReader.h"
-#include "../FsmPlainTextWriter.h"
+#include "../FsaPlainTextReader.h"
+#include "../FsaPlainTextWriter.h"
 #include "../FsaFormat.h"
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
@@ -60,16 +60,16 @@ namespace transcode
 
 		if(opt.InputFormat == FsaFormat::OneBasedPlainText)
 		{			
-			FsmPlainTextReaderOneBased<TFsa> reader;
+			FsaPlainTextReaderOneBased<TFsa> reader;
 			auto fsa = reader.Read(input_file);
 			if(opt.OutputFormat == FsaFormat::ZeroBasedPlainText) 
 			{
-				FsmPlainTextWriter<TFsa> writer;
+				FsaPlainTextWriter<TFsa> writer;
 				writer.Write(fsa, output_file);
 			} 
 			else if(opt.OutputFormat == FsaFormat::GraphViz)
 			{
-				FsmGraphVizWriter<TFsa> writer;
+				FsaGraphVizWriter<TFsa> writer;
 				writer.Write(fsa, output_file);
 			}
 			else
@@ -79,11 +79,11 @@ namespace transcode
 		}
 		else if(opt.InputFormat == FsaFormat::ZeroBasedPlainText)
 		{
-			FsmPlainTextReader<TFsa> reader;
+			FsaPlainTextReader<TFsa> reader;
 			auto fsa = reader.Read(input_file);
 			if(opt.OutputFormat == FsaFormat::GraphViz)
 			{
-				FsmGraphVizWriter<TFsa> writer;
+				FsaGraphVizWriter<TFsa> writer;
 				writer.Write(fsa, output_file);
 			}
 			else 

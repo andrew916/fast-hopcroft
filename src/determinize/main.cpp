@@ -1,16 +1,18 @@
 // August 2013, Jairo Andres Velasco Romero, jairov(at)javerianacali.edu.co
 #include "../Dfa.h"
 #include "../Nfa.h"
-#include "../FsmGraphVizWriter.h"
-#include "../FsmPlainTextReader.h"
-#include "../FsmPlainTextWriter.h"
+#include "../FsaGraphVizWriter.h"
+#include "../FsaPlainTextReader.h"
+#include "../FsaPlainTextWriter.h"
+#include "../FsaFormat.h"
 #include "../Determinization.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
+#include <boost/program_options.hpp>
 #include <string>
 
-namespace convert_nfa_dfa 
+namespace determinize 
 {
 	using namespace std;
 	using boost::format;
@@ -20,67 +22,22 @@ namespace convert_nfa_dfa
 	public:
 		string InputFile;
 		string OutputFile;
-		string DotInputFile;
-		string DotOutputFile;
-		bool EmitDotInputFile;
-		bool EmitDotOutputFile;
+		FsaFormat Format;
 		bool ShowHelp;
 		bool Verbose;
 
-		Options() : EmitDotInputFile(false), EmitDotOutputFile(false), Verbose(false), ShowHelp(false)
+		Options() : Verbose(false), ShowHelp(false), Format(FsaFormat::ZeroBasedPlainText)
 		{
 		}
 	};
 
-
-	void ParseCommandLine(int argc, char** argv, Options& opt)
-	{	
-		for(int i=1; i<argc; i++)
-		{
-			string arg = argv[i];
-			if(arg == "-i")
-			{
-				opt.InputFile = argv[i+1];
-				i++;
-			}
-			else if(arg == "-o")
-			{
-				opt.OutputFile = argv[i+1];
-				i++;
-			}
-			else if(arg == "-dot-in")
-			{
-				opt.EmitDotInputFile = true;
-				opt.DotInputFile = argv[i+1];
-				i++;
-			}
-			else if(arg == "-dot-out")
-			{
-				opt.EmitDotOutputFile = true;
-				opt.DotOutputFile = argv[i+1];
-				i++;
-			}
-			else if(arg == "-v")
-			{
-				opt.Verbose = true;
-			}
-			else if(arg == "-h" || arg == "-?")
-			{
-				opt.ShowHelp = true;
-			}		
-		}
-	}
-
-	void Convert(Options opt)
+	void Convert(const Options& opt)
 	{
 		typedef uint32_t TState;
 		typedef uint8_t TSymbol;
 		typedef Dfa<TState, TSymbol> TDfa;
 		typedef Nfa<TState, TSymbol> TNfa;
-
-		FsmPlainTextReader<TNfa> reader;
-		FsmPlainTextWriter<TDfa> writer;
-
+				
 		ifstream ifs(opt.InputFile);
 		if(!ifs.is_open()) 
 		{
@@ -88,7 +45,10 @@ namespace convert_nfa_dfa
 			return;
 		}
 
-		TNfa nfa = reader.Read(ifs);
+		auto reader = new_reader<TNfa>(opt.Format);
+		reader->ReadHeader(ifs);
+
+		TNfa nfa = reader->Read(ifs);
 
 		if(opt.Verbose) 
 		{		
@@ -111,77 +71,50 @@ namespace convert_nfa_dfa
 			cout << "Error opening file " << opt.OutputFile << endl;
 			return;
 		}
-		writer.Write(dfa, ofs);
+
+		auto writer = new_writer<TDfa>(opt.Format);
+		writer->WriteHeader(ofs);
+		writer->Write(dfa, ofs);
 		ofs.close();
 
 		if(opt.Verbose)
 		{
 			cout << "Written " << opt.OutputFile << endl;
 		}
-
-		if(opt.EmitDotInputFile)
-		{
-			FsmGraphVizWriter<TNfa> wnfa;
-			ofs.open(opt.DotInputFile);
-			if(!ofs.is_open())
-			{
-				cout << "Error opening file " << opt.DotInputFile << endl;
-				return;
-			}
-			wnfa.Write(nfa, ofs, false);
-			ofs.close();
-			if(opt.Verbose)
-			{
-				cout << "Written DOT " << opt.DotInputFile << endl;
-			}
-		}
-		if(opt.EmitDotOutputFile)
-		{
-			ofs.open(opt.DotOutputFile);
-			if(!ofs.is_open())
-			{
-				cout << "Error opening file " << opt.DotOutputFile << endl;
-				return;
-			}
-			FsmGraphVizWriter<TDfa> wdfa;
-			wdfa.Write(dfa, ofs, false);
-			ofs.close();
-			if(opt.Verbose)
-			{
-				cout << "Written DOT " << opt.DotOutputFile << endl;
-			}
-		}
 	}
 
 }
 
-using namespace convert_nfa_dfa;
+using namespace determinize;
 
 int main(int argc, char** argv)
 {	
-	Options opt;
+	using namespace boost::program_options;
 
-	ParseCommandLine(argc, argv, opt);
+	Options o;
 
-	if(opt.ShowHelp)
+	options_description opt_desc("Allowed options");
+	opt_desc.add_options()
+		("help,?", bool_switch(&o.ShowHelp)->default_value(false), "Show this information")
+		("input,i", value(&o.InputFile), "Input FSA file")
+		("output,o", value(&o.OutputFile), "Output FSA file")
+		("format,f", value(&o.Format), "FSA file format to be used")
+		("verbose,v", bool_switch(&o.Verbose), "Verbose mode")
+		;
+
+	variables_map vm;
+	command_line_parser parser(argc, argv);
+	auto po = parser.options(opt_desc).run();
+	store(po, vm);
+	notify(vm);
+
+	if(o.ShowHelp)
 	{
-		cout 
-			<< "Apply determinization algorithm to a NFA" << endl
-			<< "Usage: " << endl
-			<< argv[0] << " -i <infile> -o <outfile> [-dot-in <dotinfile>] [-dot-out <dotoutfile>] [-h|-?] [-v]" << endl
-			<< endl
-			<< "\t-i        <infile>      Input FSA file" << endl
-			<< "\t-o        <outfile>     Output DFA file" << endl
-			<< "\t-dot-in   <dotinfile>   Filename to write DOT file from input FSA" << endl
-			<< "\t-dot-out  <dotoutfile>  Filename to write DOT file from output DFA" << endl
-			<< "\t-h                      Show this help message" << endl
-			<< "\t-v                      Verbose mode" << endl
-			;
-
+		cout << opt_desc << endl;
 		return 0;
 	}
 
-	Convert(opt);
+	Convert(o);
 
 	return 0;
 }

@@ -8,12 +8,12 @@
 #include "../Nfa.h"
 #include "../Fsa.h"
 #include "../Set.h"
-#include "../FsmGraphVizWriter.h"
 #include "../FsaFormat.h"
 #include "../FsaFormatReader.h"
-#include "../FsmPlainTextReader.h"
+#include "../FsaPlainTextReader.h"
 #include "../AlmeidaPlainTextReader.h"
-#include "../FsmPlainTextWriter.h"
+#include "../FsaGraphVizWriter.h"
+#include "../FsaPlainTextWriter.h"
 #include "../Determinization.h"
 #include "../NfaGenerator.h"
 #include <fstream>
@@ -36,7 +36,7 @@ int global_argc;
 template<typename TFsa>
 void write_dot(TFsa fsa, string filename)
 {
-	FsmGraphVizWriter<TFsa> writer;
+	FsaGraphVizWriter<TFsa> writer;
 	ofstream s(filename);
 	if(!s.is_open()) 
 	{
@@ -49,7 +49,7 @@ void write_dot(TFsa fsa, string filename)
 template<typename TFsa>
 void write_text(TFsa fsa, string filename)
 {
-	FsmPlainTextWriter<TFsa> writer;
+	FsaPlainTextWriter<TFsa> writer;
 	ofstream s(filename);
 	if(!s.is_open()) 
 	{
@@ -108,7 +108,7 @@ void write_dfa_info(const TDfa& dfa)
 template<typename TFsa>
 TFsa read_text(const string& filename)
 {
-	FsmPlainTextReader<TFsa> reader;
+	FsaPlainTextReader<TFsa> reader;
 	ifstream fsa_input(filename);
 	if(!fsa_input.is_open()) throw logic_error("file could not be opened");
 	auto fsa = reader.Read(fsa_input);
@@ -119,7 +119,7 @@ TFsa read_text(const string& filename)
 template<typename TFsa>
 TFsa read_text_one_based(const string& filename)
 {
-	FsmPlainTextReaderOneBased<TFsa> reader;
+	FsaPlainTextReaderOneBased<TFsa> reader;
 	ifstream fsa_input(filename);
 	if(!fsa_input.is_open()) throw logic_error("file could not be opened");
 	auto fsa = reader.Read(fsa_input);
@@ -137,17 +137,17 @@ void begin_read_text_almeida(ifstream& fsa_input, const string& filename, typena
 
 	*n = boost::lexical_cast<typename TFsa::TState>(vc[0]);
 	*k = boost::lexical_cast<typename TFsa::TSymbol>(vc[1]);
-	AlmeidaPlainTextReader<TFsa> reader;
+	AlmeidaPlainTextReader<TFsa> reader(*n, *k);
 
 	if(!fsa_input.is_open()) throw logic_error("file could not be opened");
-	reader.SkipHeader(fsa_input);	
+	reader.ReadHeader(fsa_input);	
 }
 
 template<typename TFsa>
 TFsa read_text_almeida(istream& fsa_input, typename TFsa::TState states, typename TFsa::TSymbol alpha)
 {
-	AlmeidaPlainTextReader<TFsa> reader;
-	return reader.Read(fsa_input, alpha, states);
+	AlmeidaPlainTextReader<TFsa> reader(states, alpha);
+	return reader.Read(fsa_input);
 }
 
 // Tests Hopcroft 100-199

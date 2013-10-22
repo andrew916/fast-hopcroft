@@ -2,20 +2,24 @@
 
 #include <fstream>
 #include <string>
-#include "Dfa.h"
+#include "IFsaWriter.h"
 
-template<typename TFsm>
-class FsmGraphVizWriter
+template<typename TFsa>
+class FsaGraphVizWriter : public IFsaWriter<TFsa>
 {
 public:	
-	typedef typename TFsm::TSet TSet;
-	typedef typename TFsm::TSymbol TSymbol;
-	typedef typename TFsm::TState TState;
+	typedef typename TFsa::TSet TSet;
+
+	virtual void WriteHeader(std::ostream& output) override
+	{
+	}
+
+	virtual void Write(const TFsa& fsa, std::ostream& output) override
+	{
+		WriteStream(fsa, output);
+	}
 	
-protected:
-public:
-	
-	void Write(const TFsm& dfa, std::ofstream& out, bool ignoreZeroState = false)
+	void WriteStream(const TFsa& dfa, std::ostream& out, bool ignoreZeroState = false)
 	{
 		using namespace std;
 
@@ -24,7 +28,7 @@ public:
 		static const string initialFinalStyle = "style=\"filled,bold,dashed\"";
 
 		out << "/* Generated with FastHopcroft */" << endl;
-		out << "digraph \"NDFA\" {" << endl;
+		out << "digraph \"FSA\" {" << endl;
 		out << "  rankdir=LR" << endl;
 		out << "  node [shape=box width=0.1 height=0.1 fontname=Arial]" << endl;
 		out << "  edge [fontname=Arial]" << endl;

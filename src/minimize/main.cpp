@@ -6,10 +6,10 @@
 #include "../MinimizationAlgorithm.h"
 #include "../Dfa.h"
 #include "../Nfa.h"
-#include "../FsmGraphVizWriter.h"
+#include "../FsaGraphVizWriter.h"
 #include "../FsaFormatReader.h"
-#include "../FsmPlainTextReader.h"
-#include "../FsmPlainTextWriter.h"
+#include "../FsaPlainTextReader.h"
+#include "../FsaPlainTextWriter.h"
 #include <fstream>
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
@@ -54,10 +54,9 @@ namespace minimize
 		typedef Dfa<TState, TSymbol> TDfa;
 		typedef Nfa<TState, TSymbol> TFsa;
 
-		FsmPlainTextReader<TDfa> reader_dfa;
-		FsmPlainTextReader<TFsa> reader_fsa;
-		FsmPlainTextWriter<TDfa> writer;
-
+		FsaPlainTextReader<TDfa> reader_dfa;
+		FsaPlainTextReader<TFsa> reader_fsa;
+		FsaPlainTextWriter<TDfa> writer;
 
 		ifstream ifs(opt.InputFile);
 		if(!ifs.is_open())
