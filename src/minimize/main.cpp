@@ -3,6 +3,7 @@
 #include "../MinimizationBrzozowski.h"
 #include "../MinimizationIncremental.h"
 #include "../MinimizationHybrid.h"
+#include "../MinimizationAtomic.h"
 #include "../MinimizationAlgorithm.h"
 #include "../Dfa.h"
 #include "../Nfa.h"
