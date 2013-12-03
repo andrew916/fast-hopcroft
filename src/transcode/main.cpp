@@ -125,11 +125,12 @@ int main(int argc, char** argv)
 		cout << opt_desc << endl;
 		return 0;
 	}
-	try{
-		if(!o.ShowHelp && o.InputFile.empty()) throw invalid_argument("missing input file param");
-		if(!o.ShowHelp && o.OutputFile.empty()) throw invalid_argument("missing output file param");
-		if(!o.ShowHelp && o.InputFormat == FsaFormat::None) throw invalid_argument("missing input format param");
-		if(!o.ShowHelp && o.OutputFormat == FsaFormat::None) throw invalid_argument("missing input format param");
+	try
+	{
+		if(o.InputFile.empty()) throw invalid_argument("missing input file param");
+		if(o.OutputFile.empty()) throw invalid_argument("missing output file param");
+		if(o.InputFormat == FsaFormat::None) throw invalid_argument("missing input format param");
+		if(o.OutputFormat == FsaFormat::None) throw invalid_argument("missing input format param");
 
 		Transcode(o);
 	}
