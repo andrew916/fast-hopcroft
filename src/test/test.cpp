@@ -3,6 +3,7 @@
 #include "../MinimizationBrzozowski.h"
 #include "../MinimizationIncremental.h"
 #include "../MinimizationHybrid.h"
+#include "../MinimizationAtomic.h"
 #include "../MinimizationAlgorithm.h"
 #include "../Dfa.h"
 #include "../Nfa.h"
@@ -1690,10 +1691,9 @@ int test503()
 	opt_desc.add_options()
 		("help,?", bool_switch(&show_help)->default_value(false), "Show this information")
 		("path,p", value(&root_path_string), "Root path to search")
-		("output,o", value(&output_filename), "Output filename")		
+		("output,o", value(&output_filename), "Output filename")
 		("algorithm,a", value(&algorithms)->multitoken(), "Algorithms to test")
 		;
-
 
 	variables_map vm;
 	command_line_parser parser(global_argc, global_argv);
@@ -1715,10 +1715,12 @@ int test503()
 	MinimizationHopcroft<TDfa> min2;
 	MinimizationIncremental<TDfa> min3;
 	MinimizationHybrid<TDfa> min4;
+	MinimizationAtomic<TDfa> min5;
 
 	min2.ShowConfiguration = false;
 	min3.ShowConfiguration = false;
 	min4.ShowConfiguration = false;
+	min5.ShowConfiguration = false;
 
 	ofstream report(output_filename);
 	if(!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
@@ -1732,7 +1734,7 @@ int test503()
 	MinimizationIncremental<TDfa>::NumericPartition part_i;
 	MinimizationHybrid<TDfa>::NumericPartition part_hi;
 	MinimizationHopcroft<TDfa>::NumericPartition part_h;
-
+	size_t numMinStates;
 
 	for(auto i=directory_iterator(root_path); i!=directory_iterator(); i++)
 	{
@@ -1742,6 +1744,7 @@ int test503()
 		nanosecond_type acum_time_h = 0;
 		nanosecond_type acum_time_i = 0;
 		nanosecond_type acum_time_hi = 0;
+		nanosecond_type acum_time_a = 0;
 		size_t automata_count = 0;
 
 		auto dfa_filename = i->path().string();
@@ -1764,6 +1767,7 @@ int test503()
 			bool useIncremental = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Incremental) != algorithms.end();
 			bool useBrzozowski = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Brzozowski) != algorithms.end();
 			bool useHybrid = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hybrid) != algorithms.end();
+			bool useAtomic = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Atomic) != algorithms.end();
 
 			if(useBrzozowski)
 			{
@@ -1838,9 +1842,18 @@ int test503()
 				acum_time_hi += timer.elapsed().wall;
 			}
 
+			if(useAtomic)
+			{
+				timer.start();
+				auto mdfa = min5.Minimize(dfa);
+				timer.stop();
+				numMinStates = mdfa.GetStates();
+			}
+
 			if(useHopcroft    && useIncremental && part_h.GetSize() != part_i.GetSize())  throw logic_error("different minimal states");
 			if(useHopcroft    && useHybrid      && part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
 			if(useIncremental && useHybrid      && part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
+			if(useAtomic      && useHopcroft    && numMinStates     != part_h.GetSize())  throw logic_error("different minimal states");
 
 			automata_count++;
 		}
@@ -1889,6 +1902,9 @@ int test502()
 	min_hi.ShowConfiguration = true;
 	MinimizationHybrid<TDfa>::NumericPartition part_hi;
 
+	MinimizationAtomic<TDfa> min_at;
+	min_at.ShowConfiguration = true;
+
 	ofstream report("report_501.csv");
 	if(!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
 
@@ -1935,6 +1951,14 @@ int test502()
 	r = min_hi.to_string(part_hi);
 	report_hybrid << r;
 	report_hybrid.close();
+
+	timer.start();
+	auto dfa_at = min_at.Minimize(dfa);
+	timer.stop();
+	cout << "Atomic: " << timer.elapsed().wall << endl;;
+	ofstream report_atomic("report_atomic.txt");
+	report_atomic << static_cast<size_t>(dfa_at.GetStates()) << endl;
+	report_atomic.close();
 
 	return 0;
 }
