@@ -136,7 +136,18 @@ namespace minimize
 				cout << "Partition count: " << static_cast<size_t>(partition.GetSize()) << endl;
 			}
 			if(!opt.SkipSynthOutput) min_dfa = min.BuildDfa(dfa, partition);
-		}		
+		} else if(opt.Algorithm == MinimizationAlgorithm::Atomic)
+		{
+			MinimizationAtomic<TDfa, TDfa> min;
+			min.ShowConfiguration = false;
+			timer.start();
+			min_dfa = min.Minimize(dfa);
+			timer.stop();
+			if(opt.Verbose)
+			{
+				cout << "Minimum state count: " << static_cast<size_t>(min_dfa.GetStates()) << endl;
+			}
+		}
 
 		if(opt.Verbose)
 		{

@@ -5,6 +5,7 @@
 #include "Dfa.h"
 #include <vector>
 #include <tuple>
+#include <string>
 
 /// Atomic FSA Minimization Algorithm
 template<typename _TFsa, typename _TDfa = Dfa<typename _TFsa::TState, typename _TFsa::TSymbol>>
@@ -20,9 +21,28 @@ public:
 
 	typedef Determinization<TFsa, TFsa> TDeterminization;
 
+	bool ShowConfiguration;
+
 private:
 
 public:
+
+	template<typename T>
+	std::string to_string(const std::list<T>& l) const
+	{
+		using namespace std;
+		string str;
+		str.append("{");
+		int cont=0;
+		for(auto i=l.begin(); i!=l.end(); i++)
+		{
+			if(cont++ > 0) str.append(", ");
+			size_t st = static_cast<size_t>(*i);
+			str.append(std::to_string(st));
+		}
+		str.append("}");
+		return str;	
+	}
 
 	void InverseReplicaOfInverse(const TFsa& fsa, 		
 		std::vector<std::list<TState>>& QQ, 
@@ -64,6 +84,11 @@ public:
 			// si de un split restan cero es porque es un bloque repetido
 			if(splits[currentBlock] == 0) continue;
 
+			if(ShowConfiguration)
+			{
+				cout << "block: " << static_cast<size_t>(currentBlock) << " " << to_string(P) << endl;
+			}
+
 			for(auto a=0; a<fsa.GetAlphabetLength(); a++)
 			{
 				// calcular delta(P,a)
@@ -74,14 +99,20 @@ public:
 					delta.UnionWith(d);
 				}
 
+				if(ShowConfiguration)
+				{
+					cout << "delta(P, " << static_cast<size_t>(a) << ") = " << to_string(P) << endl;
+				}
+
 				// obtiene los splitters de la delta directa
 				// loose_block usa cero porque nunca el bloque cero es usable (siempre tiene al menos los etados finales)
-				TAtomicState loose_block = 0; 
+				TAtomicState loose_block = 0;				
+				TAtomicState insertionPoint = blocks;
 				already.Clear();
 				for(auto i=delta.GetIterator(); !i.IsEnd(); i.MoveNext())
 				{
 					auto q = i.GetCurrent();
-										
+
 					// asegura un bloque para el estado q					
 					auto sp = invQQ[q];
 					TAtomicState dest;
@@ -93,7 +124,7 @@ public:
 						dest = loose_block;
 
 						if(fsa.IsInitial(q)) II.push_back(dest);
-					} 
+					}
 					else 
 					{
 						// Ya antes habiamos usado el bloque Q
@@ -101,9 +132,9 @@ public:
 
 						// Usamos el bloque Q para intenar partir delta
 						const auto& Q = QQ[sp];
-						
+
 						list<TState> Qp;
-																		
+
 						// identifica si el bloque efectivamente particionara o 
 						// esta repetido en Q
 						bool isRepeat = true;
@@ -115,15 +146,15 @@ public:
 								isRepeat = false;								
 							} else {
 								Qp.push_back(*j);
-								initial ||= fsa.IsInitial(*j);
+								initial = initial || fsa.IsInitial(*j);
 							}
 						}
 
 						already.Add(sp);
-						
+
 						// si ya estaba repetido seguimos adelante
 						if(isRepeat) continue;
-						
+
 						dest = blocks++;
 						auto& Qdest = QQ[dest];
 						Qdest.splice(Qdest.begin(), Qp);
@@ -133,6 +164,15 @@ public:
 						if(initial) II.push_back(dest);
 					}					
 					transitions.push_back(make_tuple(dest, a, currentBlock));
+				}
+				if(ShowConfiguration)
+				{
+					cout << "NewSplits = ";
+					for(auto i=insertionPoint; i<blocks; i++)
+					{						
+						cout << "[" << static_cast<size_t>(i) << "]" << to_string(QQ[i]) << " ";
+					}
+					cout << endl;
 				}
 			}
 		}
