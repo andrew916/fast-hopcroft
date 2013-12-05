@@ -3,23 +3,25 @@
 
 #include "Determinization.h"
 #include "Dfa.h"
+#include "Nfa.h"
 #include <vector>
 #include <tuple>
 #include <string>
 
 /// Atomic FSA Minimization Algorithm
-template<typename _TFsa, typename _TDfa = Dfa<typename _TFsa::TState, typename _TFsa::TSymbol>>
+template<typename _TDfa = Dfa<typename _TFsa::TState, typename _TFsa::TSymbol>>
 class MinimizationAtomic
 {
-public:
-	typedef _TFsa TFsa;
+public:	
 	typedef _TDfa TDfa;
-	typedef typename TFsa::TSet TSet;
-	typedef typename TFsa::TState TState;
-	typedef typename TFsa::TSymbol TSymbol;
-	typedef typename TFsa::TState TAtomicState;
+	typedef typename TDfa::TSet TSet;
+	typedef typename TDfa::TState TState;
+	typedef typename TDfa::TSymbol TSymbol;
+	typedef typename TDfa::TState TAtomicState;
 
-	typedef Determinization<TFsa, TFsa> TDeterminization;
+	typedef Nfa<TState, TSymbol> TNfa;
+
+	typedef Determinization<TDfa, TNfa> TDeterminization;
 
 	bool ShowConfiguration;
 
@@ -44,7 +46,7 @@ public:
 		return str;	
 	}
 
-	void InverseReplicaOfInverse(const TFsa& fsa, 		
+	void InverseReplicaOfInverse(const TDfa& fsa, 		
 		std::vector<std::list<TState>>& QQ, 
 		std::vector<TAtomicState>& invQQ,
 		std::vector<std::tuple<TAtomicState,TSymbol,TAtomicState>>& transitions, 
@@ -178,7 +180,7 @@ public:
 		}
 	}
 
-	TDfa Minimize(const TFsa& fsa)
+	TDfa Minimize(const TDfa& fsa)
 	{	
 		using namespace std;
 
@@ -192,7 +194,7 @@ public:
 
 		InverseReplicaOfInverse(fsa, QQ, invQQ, transitions, II, splits, blocks);
 
-		TFsa fsa_i(fsa.GetAlphabetLength(), QQ.size());
+		TNfa fsa_i(fsa.GetAlphabetLength(), QQ.size());
 		fsa_i.SetFinal(0);
 		for(auto i=II.begin(); i!=II.end(); i++)
 		{

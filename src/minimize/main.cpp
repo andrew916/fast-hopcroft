@@ -138,7 +138,7 @@ namespace minimize
 			if(!opt.SkipSynthOutput) min_dfa = min.BuildDfa(dfa, partition);
 		} else if(opt.Algorithm == MinimizationAlgorithm::Atomic)
 		{
-			MinimizationAtomic<TDfa, TDfa> min;
+			MinimizationAtomic<TDfa> min;
 			min.ShowConfiguration = false;
 			timer.start();
 			min_dfa = min.Minimize(dfa);
