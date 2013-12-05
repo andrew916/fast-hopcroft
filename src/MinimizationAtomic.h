@@ -50,29 +50,27 @@ public:
 		std::vector<std::list<TState>>& QQ, 
 		std::vector<TAtomicState>& invQQ,
 		std::vector<std::tuple<TAtomicState,TSymbol,TAtomicState>>& transitions, 
-		std::vector<TAtomicState>& II, 
-		std::vector<TState>& splits,
-		TAtomicState& blocks
+		std::vector<TAtomicState>& II		
 		)
 	{
 		using namespace std;
 		const TState INVALID_IDX = -1;
 
+		QQ.resize(1);
+		QQ.reserve(fsa.GetStates()*2 + 1);
+
 		invQQ.resize(fsa.GetStates());
-		QQ.resize(fsa.GetStates() * 2);
 		fill(invQQ.begin(), invQQ.end(), INVALID_IDX);
 
-		II.clear();
-
+		QQ[0].clear();
 		for(auto i=fsa.GetFinals().GetIterator(); !i.IsEnd(); i.MoveNext())
 		{
 			TState q = i.GetCurrent();
 			QQ[0].push_back(q);
 			invQQ[q] = 0;
 		}
-
-		// empieza al menos con el bloque que contiene los finales
-		blocks = 1;
+		
+		II.clear();
 
 		// esta garantizado que el atomico tiene cuando mucho el doble de estados
 		TSet already(fsa.GetStates() * 2);		
@@ -80,11 +78,9 @@ public:
 		// los estados de la delta directa
 		TSet delta(fsa.GetStates());
 
-		for(TAtomicState currentBlock = 0; currentBlock < blocks; currentBlock++)
+		for(TAtomicState currentBlock = 0; currentBlock < QQ.size(); currentBlock++)
 		{
 			auto& P = QQ[currentBlock];
-			// si de un split restan cero es porque es un bloque repetido
-			if(splits[currentBlock] == 0) continue;
 
 			if(ShowConfiguration)
 			{
@@ -103,13 +99,13 @@ public:
 
 				if(ShowConfiguration)
 				{
-					cout << "delta(P, " << static_cast<size_t>(a) << ") = " << to_string(P) << endl;
+					cout << "delta(P, a=" << static_cast<size_t>(a) << ") = " << to_string(P) << endl;
 				}
 
 				// obtiene los splitters de la delta directa
 				// loose_block usa cero porque nunca el bloque cero es usable (siempre tiene al menos los etados finales)
-				TAtomicState loose_block = 0;				
-				TAtomicState insertionPoint = blocks;
+				TAtomicState looseBlock = 0;
+				TAtomicState insertionPoint = QQ.size();
 				already.Clear();
 				for(auto i=delta.GetIterator(); !i.IsEnd(); i.MoveNext())
 				{
@@ -120,10 +116,14 @@ public:
 					TAtomicState dest;
 					if(sp == INVALID_IDX)
 					{
-						if(loose_block == 0) loose_block = blocks++;
-						QQ[loose_block].push_back(q);
-						invQQ[q] = loose_block;
-						dest = loose_block;
+						if(looseBlock == 0) 
+						{ 
+							looseBlock = QQ.size();
+							QQ.emplace_back(); 							
+						}
+						QQ[looseBlock].push_back(q);
+						invQQ[q] = looseBlock;
+						dest = looseBlock;
 
 						if(fsa.IsInitial(q)) II.push_back(dest);
 					}
@@ -157,7 +157,8 @@ public:
 						// si ya estaba repetido seguimos adelante
 						if(isRepeat) continue;
 
-						dest = blocks++;
+						dest = QQ.size();
+						QQ.emplace_back();
 						auto& Qdest = QQ[dest];
 						Qdest.splice(Qdest.begin(), Qp);
 						for(auto i=Qdest.begin(); i!=Qdest.end(); i++)
@@ -170,8 +171,8 @@ public:
 				if(ShowConfiguration)
 				{
 					cout << "NewSplits = ";
-					for(auto i=insertionPoint; i<blocks; i++)
-					{						
+					for(auto i=insertionPoint; i<QQ.size(); i++)
+					{
 						cout << "[" << static_cast<size_t>(i) << "]" << to_string(QQ[i]) << " ";
 					}
 					cout << endl;
@@ -189,10 +190,8 @@ public:
 		vector<TAtomicState> invQQ;
 		vector<tuple<TAtomicState,TSymbol,TAtomicState>> transitions;
 		vector<TAtomicState> II;
-		vector<TState> splits;
-		TAtomicState blocks;
-
-		InverseReplicaOfInverse(fsa, QQ, invQQ, transitions, II, splits, blocks);
+		
+		InverseReplicaOfInverse(fsa, QQ, invQQ, transitions, II);
 
 		TNfa fsa_i(fsa.GetAlphabetLength(), QQ.size());
 		fsa_i.SetFinal(0);

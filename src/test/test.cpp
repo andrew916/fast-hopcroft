@@ -18,6 +18,7 @@
 #include "../Determinization.h"
 #include "../NfaGenerator.h"
 #include <fstream>
+#include <map>
 #include <boost/timer/timer.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
@@ -147,7 +148,7 @@ void begin_read_text_almeida(ifstream& fsa_input, const string& filename, typena
 template<typename TFsa>
 TFsa read_text_almeida(istream& fsa_input, typename TFsa::TState states, typename TFsa::TSymbol alpha)
 {
-	AlmeidaPlainTextReader<TFsa> reader(states, alpha);
+	AlmeidaPlainTextReader<TFsa> reader(alpha, states);
 	return reader.Read(fsa_input);
 }
 
@@ -1712,16 +1713,6 @@ int test503()
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
 
-	MinimizationHopcroft<TDfa> min2;
-	MinimizationIncremental<TDfa> min3;
-	MinimizationHybrid<TDfa> min4;
-	MinimizationAtomic<TDfa> min5;
-
-	min2.ShowConfiguration = false;
-	min3.ShowConfiguration = false;
-	min4.ShowConfiguration = false;
-	min5.ShowConfiguration = false;
-
 	ofstream report(output_filename);
 	if(!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
 
@@ -1731,20 +1722,14 @@ int test503()
 
 	vector<TState> vfinal;
 	vector<TNfa::TEdge> vedges;
-	MinimizationIncremental<TDfa>::NumericPartition part_i;
-	MinimizationHybrid<TDfa>::NumericPartition part_hi;
-	MinimizationHopcroft<TDfa>::NumericPartition part_h;
-	size_t numMinStates;
+
+	map<MinimizationAlgorithm, size_t> statesCount;
+	map<MinimizationAlgorithm, nanosecond_type> acumTime;
 
 	for(auto i=directory_iterator(root_path); i!=directory_iterator(); i++)
 	{
 		if(!is_regular_file(i->status())) continue;
 
-		nanosecond_type acum_time_b = 0;
-		nanosecond_type acum_time_h = 0;
-		nanosecond_type acum_time_i = 0;
-		nanosecond_type acum_time_hi = 0;
-		nanosecond_type acum_time_a = 0;
 		size_t automata_count = 0;
 
 		auto dfa_filename = i->path().string();
@@ -1755,7 +1740,7 @@ int test503()
 		string line;
 		begin_read_text_almeida<TDfa>(fsa_file, dfa_filename, &n, &k);
 		while(!fsa_file.eof())
-		{			
+		{
 			getline(fsa_file, line);
 			if(line.empty() || line.front() == '(') continue;
 			stringstream line_stream(line);
@@ -1787,12 +1772,17 @@ int test503()
 				% dfa_filename
 				% static_cast<size_t>(part_b.GetSize())
 				).str() << endl;
-				acum_time_b += timer.elapsed().wall;
+				acumTime[MinimizationAlgorithm::Brzozowski] += timer.elapsed().wall;
+				statesCount[MinimizationAlgorithm::Brzozowski] = min_states;
 				//*/
 			}
 
 			if(useHopcroft)
-			{
+			{	
+				MinimizationHopcroft<TDfa> min2;
+				MinimizationHopcroft<TDfa>::NumericPartition part_h;
+				min2.ShowConfiguration = false;
+
 				timer.start();
 				min2.Minimize(dfa, part_h);
 				timer.stop();
@@ -1805,11 +1795,17 @@ int test503()
 					% dfa_filename
 					% static_cast<size_t>(part_h.GetSize())
 					).str()	<< endl;
-				acum_time_h += timer.elapsed().wall;
+				if(acumTime.find(MinimizationAlgorithm::Hopcroft)==acumTime.end()) acumTime[MinimizationAlgorithm::Hopcroft] = 0;
+				acumTime[MinimizationAlgorithm::Hopcroft] += timer.elapsed().wall;
+				statesCount[MinimizationAlgorithm::Hopcroft] = part_h.GetSize();
 			}
 
 			if(useIncremental)			
 			{
+				MinimizationIncremental<TDfa> min3;
+				MinimizationIncremental<TDfa>::NumericPartition part_i;
+				min3.ShowConfiguration = false;
+
 				timer.start();
 				min3.Minimize(dfa, part_i);
 				timer.stop();
@@ -1822,11 +1818,17 @@ int test503()
 					% dfa_filename
 					% static_cast<size_t>(part_i.GetSize())
 					).str() << endl;
-				acum_time_i += timer.elapsed().wall;
+				if(acumTime.find(MinimizationAlgorithm::Incremental)==acumTime.end()) acumTime[MinimizationAlgorithm::Incremental] = 0;
+				acumTime[MinimizationAlgorithm::Incremental] += timer.elapsed().wall;
+				statesCount[MinimizationAlgorithm::Incremental] = part_i.GetSize();
 			}
 
 			if(useHybrid)
 			{
+				MinimizationHybrid<TDfa> min4;
+				MinimizationHybrid<TDfa>::NumericPartition part_hi;
+				min4.ShowConfiguration = false;	
+
 				timer.start();
 				min4.Minimize(dfa, part_hi);
 				timer.stop();
@@ -1839,38 +1841,50 @@ int test503()
 					% dfa_filename
 					% static_cast<size_t>(part_hi.GetSize())
 					).str() << endl;
-				acum_time_hi += timer.elapsed().wall;
+				if(acumTime.find(MinimizationAlgorithm::Hybrid)==acumTime.end()) acumTime[MinimizationAlgorithm::Hybrid] = 0;
+				acumTime[MinimizationAlgorithm::Hybrid] += timer.elapsed().wall;
+				statesCount[MinimizationAlgorithm::Hybrid] = part_hi.GetSize();
 			}
 
 			if(useAtomic)
 			{
+				MinimizationAtomic<TDfa> min5;
+				min5.ShowConfiguration = false;
+
 				timer.start();
 				auto mdfa = min5.Minimize(dfa);
 				timer.stop();
-				numMinStates = mdfa.GetStates();
+				if(acumTime.find(MinimizationAlgorithm::Atomic)==acumTime.end()) acumTime[MinimizationAlgorithm::Atomic] = 0;
+				acumTime[MinimizationAlgorithm::Atomic] += timer.elapsed().wall;
+				statesCount[MinimizationAlgorithm::Atomic] = mdfa.GetStates();
 			}
 
-			if(useHopcroft    && useIncremental && part_h.GetSize() != part_i.GetSize())  throw logic_error("different minimal states");
-			if(useHopcroft    && useHybrid      && part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
-			if(useIncremental && useHybrid      && part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
-			if(useAtomic      && useHopcroft    && numMinStates     != part_h.GetSize())  throw logic_error("different minimal states");
+			bool fail = false;
+			for(auto j=statesCount.begin(); j!=statesCount.end(); j++)
+			{
+				for(auto k=statesCount.begin(); k!=statesCount.end(); k++)
+				{
+					if(j->first == k->first) continue;
+					if(j->second != k->second)
+					{
+						cout << "ERROR: No coincide " << j->first << " y " << k->first << endl;
+						fail = true;
+					}
+				}
+			}
+			if(fail) throw logic_error("No conicide el numero de estados en los automatas minimos");
 
 			automata_count++;
 		}
 
 		// skip empty folders
 		if(automata_count == 0) continue;
-		acum_time_b /= automata_count;
-		acum_time_h /= automata_count;
-		acum_time_i /= automata_count;
-		acum_time_hi /= automata_count;
-		cout << (boost::format("file: %1% | Promedios: B:%2% H:%3% I:%4% HI:%5%")
-			% i->path().string()
-			% acum_time_b
-			% acum_time_h
-			% acum_time_i
-			% acum_time_hi
-			).str() << endl;
+		for(auto j=acumTime.begin(); j!=acumTime.end(); j++)
+		{
+			auto avg = j->second / automata_count;
+			cout << j->first << ": " << avg << endl;
+			cout << (boost::format("file %1% | time avg = %2%") % i->path().string() % avg).str() << endl;
+		}		
 	}
 
 	return 0;
