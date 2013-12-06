@@ -4,6 +4,7 @@
 #include "Determinization.h"
 #include "Dfa.h"
 #include "Nfa.h"
+#include <unordered_set>
 #include <vector>
 #include <tuple>
 #include <string>
@@ -46,8 +47,25 @@ public:
 		return str;	
 	}
 
+	std::string to_string(const TSet& s) const
+	{
+		using namespace std;
+		string str;
+		str.append("{");
+		int cont=0;
+		for(auto i=s.GetIterator(); !i.IsEnd(); i.MoveNext())
+		{
+			if(cont++ > 0) str.append(", ");
+			size_t st = static_cast<size_t>(i.GetCurrent());
+			str.append(std::to_string(st));
+		}
+		str.append("}");
+		return str;
+	}
+
 	void InverseReplicaOfInverse(const TDfa& fsa, 		
-		std::vector<std::list<TState>>& QQ, 
+		std::unordered_set<TSet>& QQ,
+		std::unordered_set<TSet>& LL,
 		std::vector<TAtomicState>& invQQ,
 		std::vector<std::tuple<TAtomicState,TSymbol,TAtomicState>>& transitions, 
 		std::vector<TAtomicState>& II		
@@ -56,31 +74,25 @@ public:
 		using namespace std;
 		const TState INVALID_IDX = -1;
 
-		QQ.resize(1);
-		QQ.reserve(fsa.GetStates()*2 + 1);
+		QQ.clear();
+		LL.clear();
 
 		invQQ.resize(fsa.GetStates());
 		fill(invQQ.begin(), invQQ.end(), INVALID_IDX);
 
-		QQ[0].clear();
-		for(auto i=fsa.GetFinals().GetIterator(); !i.IsEnd(); i.MoveNext())
-		{
-			TState q = i.GetCurrent();
-			QQ[0].push_back(q);
-			invQQ[q] = 0;
-		}
+		QQ.insert(fsa.GetFinals());
+		LL.insert(fsa.GetFinals());
 		
 		II.clear();
-
-		// esta garantizado que el atomico tiene cuando mucho el doble de estados
-		TSet already(fsa.GetStates() * 2);		
-
+				
 		// los estados de la delta directa
-		TSet delta(fsa.GetStates());
+		TSet delta(fsa.GetStates());		
+		unordered_set<TSet> PP, PmQ, newQQ;
 
-		for(TAtomicState currentBlock = 0; currentBlock < QQ.size(); currentBlock++)
+		while(!LL.empty())
 		{
-			auto& P = QQ[currentBlock];
+			const auto& P = *LL.begin();
+			LL.erase(LL.begin());
 
 			if(ShowConfiguration)
 			{
@@ -99,75 +111,35 @@ public:
 
 				if(ShowConfiguration)
 				{
-					cout << "delta(P, a=" << static_cast<size_t>(a) << ") = " << to_string(P) << endl;
+					cout << "delta(P, a=" << static_cast<size_t>(a) << ") = " << to_string(delta) << endl;
 				}
 
 				// obtiene los splitters de la delta directa
 				// loose_block usa cero porque nunca el bloque cero es usable (siempre tiene al menos los etados finales)
 				TAtomicState looseBlock = 0;
 				TAtomicState insertionPoint = QQ.size();
-				already.Clear();
+				PP.Clear();
 				for(auto i=delta.GetIterator(); !i.IsEnd(); i.MoveNext())
 				{
 					auto q = i.GetCurrent();
 
 					// asegura un bloque para el estado q					
 					auto sp = invQQ[q];
-					TAtomicState dest;
-					if(sp == INVALID_IDX)
-					{
-						if(looseBlock == 0) 
-						{ 
-							looseBlock = QQ.size();
-							QQ.emplace_back(); 							
-						}
-						QQ[looseBlock].push_back(q);
-						invQQ[q] = looseBlock;
-						dest = looseBlock;
+					
+					if(sp == INVALID_IDX) continue;
 
-						if(fsa.IsInitial(q)) II.push_back(dest);
-					}
-					else 
-					{
-						// Ya antes habiamos usado el bloque Q
-						if(already.Contains(sp)) continue;
-
-						// Usamos el bloque Q para intenar partir delta
-						const auto& Q = QQ[sp];
-
-						list<TState> Qp;
-
-						// identifica si el bloque efectivamente particionara o 
-						// esta repetido en Q
-						bool isRepeat = true;
-						bool initial = false;
-						for(auto j=Q.begin(); j!=Q.end(); j++)
-						{
-							if(!delta.TestAndRemove(*j)) 
-							{
-								isRepeat = false;								
-							} else {
-								Qp.push_back(*j);
-								initial = initial || fsa.IsInitial(*j);
-							}
-						}
-
-						already.Add(sp);
-
-						// si ya estaba repetido seguimos adelante
-						if(isRepeat) continue;
-
-						dest = QQ.size();
-						QQ.emplace_back();
-						auto& Qdest = QQ[dest];
-						Qdest.splice(Qdest.begin(), Qp);
-						for(auto i=Qdest.begin(); i!=Qdest.end(); i++)
-							invQQ[*i] = dest;
-
-						if(initial) II.push_back(dest);
-					}					
-					transitions.push_back(make_tuple(dest, a, currentBlock));
+					auto rp = TSet::Intersect(delta, P);
+					auto rn = TSet::Difference(delta, rp);
+					PP.Add(rp);
+					PP.Add(rn);
 				}
+				uordered_set_difference(PP.begin(), PP.end(), QQ.begin(), QQ.end(), PmQ.begin());
+				for(auto i=PP.begin(); i!=PP.end(); i++) 
+				{
+					auto Spime = QQ.insert(*i); // QQ U PP
+					transitions.push_back(make_tuple(Sprime->first, a, itP));
+				}
+								
 				if(ShowConfiguration)
 				{
 					cout << "NewSplits = ";
