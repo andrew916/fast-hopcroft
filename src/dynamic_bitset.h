@@ -505,6 +505,16 @@ public:
 		}
 	}
 
+	void difference_with(const dynamic_bitset_type& bt)
+	{
+		auto i = bt.storage.begin();
+		auto j = storage.begin();
+		while(i!=bt.storage.end())
+		{
+			*j++ &= ~*i++;
+		}
+	}
+
 	bool none() const
 	{
 		for(auto i : storage)

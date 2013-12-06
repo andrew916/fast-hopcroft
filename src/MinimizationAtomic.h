@@ -5,6 +5,7 @@
 #include "Dfa.h"
 #include "Nfa.h"
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 #include <tuple>
 #include <string>
@@ -23,6 +24,10 @@ public:
 	typedef Nfa<TState, TSymbol> TNfa;
 
 	typedef Determinization<TDfa, TNfa> TDeterminization;
+
+	typedef std::unordered_set<TSet, typename TSet::hash> TSetOfSets;
+	typedef typename TSetOfSets::iterator TSetOfSetsIterator;
+	typedef std::tuple<TSetOfSetsIterator, TSymbol, TSetOfSetsIterator> TTransition;
 
 	bool ShowConfiguration;
 
@@ -63,49 +68,50 @@ public:
 		return str;
 	}
 
-	void InverseReplicaOfInverse(const TDfa& fsa, 		
-		std::unordered_set<TSet>& QQ,
-		std::unordered_set<TSet>& LL,
-		std::vector<TAtomicState>& invQQ,
-		std::vector<std::tuple<TAtomicState,TSymbol,TAtomicState>>& transitions, 
-		std::vector<TAtomicState>& II		
+	void InverseReplicaOfInverse(const TDfa& fsa,
+		TSetOfSets& QQ,		
+		std::vector<TTransition>& transitions,
+		std::vector<TSetOfSetsIterator>& II
 		)
 	{
 		using namespace std;
 		const TState INVALID_IDX = -1;
 
+		vector<TAtomicState> invQQ;
+
 		QQ.clear();
-		LL.clear();
+
+		vector<TSetOfSetsIterator> LL;
 
 		invQQ.resize(fsa.GetStates());
 		fill(invQQ.begin(), invQQ.end(), INVALID_IDX);
 
 		QQ.insert(fsa.GetFinals());
-		LL.insert(fsa.GetFinals());
-		
+		LL.push_back(QQ.begin());
+
 		II.clear();
-				
+
 		// los estados de la delta directa
-		TSet delta(fsa.GetStates());		
-		unordered_set<TSet> PP, PmQ, newQQ;
+		TSet delta(fsa.GetStates());
+		TSetOfSets PP, PmQ;
 
 		while(!LL.empty())
 		{
 			const auto& P = *LL.begin();
-			LL.erase(LL.begin());
 
 			if(ShowConfiguration)
 			{
-				cout << "block: " << static_cast<size_t>(currentBlock) << " " << to_string(P) << endl;
+				cout << "block: " << to_string(*P) << endl;
 			}
 
 			for(auto a=0; a<fsa.GetAlphabetLength(); a++)
 			{
 				// calcular delta(P,a)
 				delta.Clear();
-				for(auto q=P.begin(); q!=P.end(); q++)
+				for(auto itQ=P->GetIterator(); !itQ.IsEnd(); itQ.MoveNext())
 				{
-					auto d = fsa.GetPredecessors(*q, a);
+					auto q = itQ.GetCurrent();
+					const auto& d = fsa.GetPredecessors(q, a);
 					delta.UnionWith(d);
 				}
 
@@ -114,41 +120,27 @@ public:
 					cout << "delta(P, a=" << static_cast<size_t>(a) << ") = " << to_string(delta) << endl;
 				}
 
-				// obtiene los splitters de la delta directa
-				// loose_block usa cero porque nunca el bloque cero es usable (siempre tiene al menos los etados finales)
-				TAtomicState looseBlock = 0;
-				TAtomicState insertionPoint = QQ.size();
-				PP.Clear();
-				for(auto i=delta.GetIterator(); !i.IsEnd(); i.MoveNext())
-				{
-					auto q = i.GetCurrent();
+				auto rp = TSet::Intersect(delta, *P);
+				auto rn = TSet::Difference(delta, rp);
 
-					// asegura un bloque para el estado q					
-					auto sp = invQQ[q];
-					
-					if(sp == INVALID_IDX) continue;
+				auto Sprime = QQ.insert(rp); // QQ U PP
+				transitions.push_back(make_tuple(Sprime.first, a, P));
 
-					auto rp = TSet::Intersect(delta, P);
-					auto rn = TSet::Difference(delta, rp);
-					PP.Add(rp);
-					PP.Add(rn);
-				}
-				uordered_set_difference(PP.begin(), PP.end(), QQ.begin(), QQ.end(), PmQ.begin());
-				for(auto i=PP.begin(); i!=PP.end(); i++) 
+				// si insertó es porque es nueva, hay que procesarla luego
+				if(Sprime.second) 
 				{
-					auto Spime = QQ.insert(*i); // QQ U PP
-					transitions.push_back(make_tuple(Sprime->first, a, itP));
-				}
-								
-				if(ShowConfiguration)
+					LL.push_back(Sprime.first);					
+				}				
+			}
+
+			if(ShowConfiguration)
+			{
+				cout << "NewSplits = ";
+				for(auto i=QQ.begin(); i!=QQ.end(); i++)
 				{
-					cout << "NewSplits = ";
-					for(auto i=insertionPoint; i<QQ.size(); i++)
-					{
-						cout << "[" << static_cast<size_t>(i) << "]" << to_string(QQ[i]) << " ";
-					}
-					cout << endl;
+					cout << to_string(*i) << " ";
 				}
+				cout << endl;
 			}
 		}
 	}
@@ -158,23 +150,22 @@ public:
 		using namespace std;
 
 		TDeterminization det;
-		vector<list<TState>> QQ;
-		vector<TAtomicState> invQQ;
-		vector<tuple<TAtomicState,TSymbol,TAtomicState>> transitions;
-		vector<TAtomicState> II;
-		
-		InverseReplicaOfInverse(fsa, QQ, invQQ, transitions, II);
+		TSetOfSets QQ;
+		vector<TTransition> transitions;
+		vector<TSetOfSetsIterator> II;
+
+		InverseReplicaOfInverse(fsa, QQ, transitions, II);
 
 		TNfa fsa_i(fsa.GetAlphabetLength(), QQ.size());
 		fsa_i.SetFinal(0);
 		for(auto i=II.begin(); i!=II.end(); i++)
 		{
-			fsa_i.SetInitial(*i);
+			//fsa_i.SetInitial();
 		}
 
 		for(auto i=transitions.begin(); i!=transitions.end(); i++)
 		{
-			fsa_i.SetTransition(get<0>(*i), get<1>(*i), get<2>(*i));
+			//fsa_i.SetTransition(get<0>(*i), get<1>(*i), get<2>(*i));
 		}
 
 		TDeterminization::TDfaState dfaNewStates;
