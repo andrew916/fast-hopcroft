@@ -80,6 +80,7 @@ public:
 		vector<TAtomicState> invQQ;
 
 		QQ.clear();
+		QQ.reserve(fsa.GetStates()*2+1);
 
 		vector<TSetOfSetsIterator> LL;
 
@@ -94,18 +95,19 @@ public:
 		// los estados de la delta directa
 		TSet delta(fsa.GetStates());
 		TSetOfSets PP, PmQ;
+		ShowConfiguration = true;
 
 		while(!LL.empty())
-		{
-			const auto& P = *LL.begin();
-
+		{			
 			if(ShowConfiguration)
 			{
-				cout << "block: " << to_string(*P) << endl;
+				cout << "block: " << to_string(*(LL[0])) << endl;
 			}
 
 			for(auto a=0; a<fsa.GetAlphabetLength(); a++)
 			{
+				const auto& P = *LL.begin();
+
 				// calcular delta(P,a)
 				delta.Clear();
 				for(auto itQ=P->GetIterator(); !itQ.IsEnd(); itQ.MoveNext())
@@ -123,19 +125,22 @@ public:
 				auto rp = TSet::Intersect(delta, *P);
 				auto rn = TSet::Difference(delta, rp);
 
+				if(rp.IsEmpty()) continue;
+
 				auto Sprime = QQ.insert(rp); // QQ U PP
-				transitions.push_back(make_tuple(Sprime.first, a, P));
+				transitions.push_back(make_tuple(Sprime.first, a, P));				
 
 				// si insertó es porque es nueva, hay que procesarla luego
 				if(Sprime.second) 
 				{
-					LL.push_back(Sprime.first);					
-				}				
+					LL.push_back(Sprime.first);
+				}
 			}
+			LL.erase(LL.begin());
 
 			if(ShowConfiguration)
 			{
-				cout << "NewSplits = ";
+				cout << "Splits = ";
 				for(auto i=QQ.begin(); i!=QQ.end(); i++)
 				{
 					cout << to_string(*i) << " ";
@@ -158,14 +163,23 @@ public:
 
 		TNfa fsa_i(fsa.GetAlphabetLength(), QQ.size());
 		fsa_i.SetFinal(0);
+
+		unordered_map<TSet, TAtomicState, TSet::hash> est;
+		
+		for(auto i=QQ.begin(); i!=QQ.end(); i++)
+		{
+			pair<TSet, TAtomicState> o(*i, est.size());
+			est.insert(o);
+		}
+
 		for(auto i=II.begin(); i!=II.end(); i++)
 		{
-			//fsa_i.SetInitial();
+			fsa_i.SetInitial(est[**i]);
 		}
 
 		for(auto i=transitions.begin(); i!=transitions.end(); i++)
 		{
-			//fsa_i.SetTransition(get<0>(*i), get<1>(*i), get<2>(*i));
+			fsa_i.SetTransition(est[*get<0>(*i)], get<1>(*i), est[*get<2>(*i)]);
 		}
 
 		TDeterminization::TDfaState dfaNewStates;
