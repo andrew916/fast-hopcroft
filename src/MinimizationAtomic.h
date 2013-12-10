@@ -100,7 +100,7 @@ public:
 		transitions.clear();	
 		// los estados de la delta directa
 		TSet delta(fsa.GetStates());
-		//TSetOfSets PP;
+		TSetOfSets PP, PP2;
 		ShowConfiguration = true;
 
 		while(!LL.empty())
@@ -109,7 +109,7 @@ public:
 
 			if(ShowConfiguration)
 			{
-				cout << "block: " << to_string(P) << endl;
+				cout << "P = " << to_string(P) << endl;
 			}
 
 			for(auto a=0; a<fsa.GetAlphabetLength(); a++)
@@ -129,31 +129,43 @@ public:
 					cout << "delta(P, a=" << static_cast<size_t>(a) << ") = " << to_string(delta) << endl;
 				}
 
-				// paper line: 10
+				// paper line: 10, splits	
+				PP.clear();
 				for(auto i=QQ.begin(); i!=QQ.end(); i++)
 				{
 					const auto& S = *i;
 
 					auto rp = TSet::Intersect(delta, S);
 					auto rn = TSet::Difference(delta, rp);
-					if(!rp.IsEmpty() && !rn.IsEmpty()) {
-						auto d = QQ.insert(rp);
-						if(d.second) LL.push_back(d.first);
-						if(!TSet::Intersect(fsa.GetInitials(), rp).IsEmpty()) FF.push_back(d.first);
-						transitions.push_back(make_tuple(d.first, a, *LL.begin()));
 
-						d = QQ.insert(rn);		
-						if(d.second) LL.push_back(d.first);
-						if(!TSet::Intersect(fsa.GetInitials(), rn).IsEmpty()) FF.push_back(d.first);
-						transitions.push_back(make_tuple(d.first, a, *LL.begin()));
-					}
-				}			
+					if(PP.empty()) 
+					{
+						if(!rp.IsEmpty()) PP.insert(rp);
+						if(!rn.IsEmpty()) PP.insert(rn);
+					} else {
+						//PP2.clear();
+						for(auto j=PP.begin(); j!=PP.end(); j++)
+						{
+							auto tmp = TSet::Intersect(rp, *j);
+							if(!tmp.IsEmpty()) PP.insert(tmp);
+
+							tmp = TSet::Intersect(rn, tmp);
+							if(!tmp.IsEmpty()) PP.insert(tmp);
+						}
+						//swap(PP, PP2);
+					}					
+				}
+				for(auto i=PP.begin(); i!=PP.end(); i++)
+				{
+					auto d = QQ.insert(*i);
+					if(d.second) LL.push_back(d.first);
+				}
 			}
 			LL.pop_front();
 
 			if(ShowConfiguration)
 			{
-				cout << "Splits = ";
+				cout << "Q = ";
 				for(auto i=QQ.begin(); i!=QQ.end(); i++)
 				{
 					cout << to_string(*i) << " ";
