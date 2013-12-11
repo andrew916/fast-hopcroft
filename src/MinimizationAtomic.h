@@ -11,7 +11,7 @@
 #include <string>
 
 /// Atomic FSA Minimization Algorithm
-template<typename _TDfa = Dfa<typename _TFsa::TState, typename _TFsa::TSymbol>>
+template<typename _TDfa>
 class MinimizationAtomic
 {
 public:	
@@ -68,7 +68,8 @@ public:
 		return str;
 	}
 
-	/* El automata resultante es el inverso de la replica del inverso de fsa
+	/* 
+	El automata resultante es el inverso de la replica del inverso de fsa
 	QQ Particion de estados resultantes
 	transitions Transiciones resultantes (d'^-1)
 	II Estados iniciales del automata resultante (FF en el paper)
@@ -101,8 +102,7 @@ public:
 		// los estados de la delta directa
 		TSet delta(fsa.GetStates());
 		TSetOfSets PP, PP2;
-		ShowConfiguration = true;
-
+		
 		while(!LL.empty())
 		{
 			const auto& P = *LL.back();
@@ -119,7 +119,7 @@ public:
 				delta.Clear();
 				for(auto i=P.GetIterator(); !i.IsEnd(); i.MoveNext())
 				{
-					auto q = i.GetCurrent();
+					const auto q = i.GetCurrent();
 					const auto& d = fsa.GetPredecessors(q, a);
 					delta.UnionWith(d);
 				}
@@ -135,30 +135,35 @@ public:
 				{
 					const auto& S = *i;
 
-					auto rp = TSet::Intersect(delta, S);
-					auto rn = TSet::Difference(delta, rp);
+					const auto rp = TSet::Intersect(delta, S);
+					const auto rn = TSet::Difference(delta, rp);
 
 					if(PP.empty()) 
 					{
 						if(!rp.IsEmpty()) PP.insert(rp);
 						if(!rn.IsEmpty()) PP.insert(rn);
 					} else {
-						//PP2.clear();
+						PP2.clear();
 						for(auto j=PP.begin(); j!=PP.end(); j++)
 						{
 							auto tmp = TSet::Intersect(rp, *j);
-							if(!tmp.IsEmpty()) PP.insert(tmp);
+							if(!tmp.IsEmpty()) PP2.insert(tmp);
 
-							tmp = TSet::Intersect(rn, tmp);
-							if(!tmp.IsEmpty()) PP.insert(tmp);
+							tmp = TSet::Intersect(rn, *j);
+							if(!tmp.IsEmpty()) PP2.insert(tmp);
 						}
-						//swap(PP, PP2);
+						swap(PP, PP2);
 					}					
 				}
 				for(auto i=PP.begin(); i!=PP.end(); i++)
 				{
-					auto d = QQ.insert(*i);
+					const auto d = QQ.insert(*i);
 					if(d.second) LL.push_back(d.first);
+					transitions.push_back(make_tuple(LL.back(), a, d.first));
+					if(!TSet::Intersect(fsa.GetInitials(), *i).IsEmpty())
+					{
+						FF.push_back(d.first);
+					}
 				}
 			}
 			LL.pop_front();
@@ -204,7 +209,7 @@ public:
 
 		for(auto i=transitions.begin(); i!=transitions.end(); i++)
 		{
-			fsa_i.SetTransition(est[*get<0>(*i)], get<1>(*i), est[*get<2>(*i)]);
+			fsa_i.SetTransition(est[*get<2>(*i)], get<1>(*i), est[*get<0>(*i)]);
 		}
 
 		TDeterminization::TDfaState dfaNewStates;

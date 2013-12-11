@@ -23,8 +23,6 @@ private:
 public:
 	void Determinize(const TNfa& nfa, TDfaState* new_states_count, TVectorDfaState& final_states, TVectorDfaEdge& new_edges)
 	{	
-		assert(!nfa.GetInitials().IsEmpty());
-
 		using namespace std;
 		
 		typedef unordered_map<TSet, TDfaState, TSetHash> TStatesMap;
@@ -43,14 +41,17 @@ public:
 		
 		// inserta los estados iniciales en ambas colecciones
 		// como un solo conjunto de estados
-		new_states_map.insert(make_pair(nfa.GetInitials(), 0));
-		new_states_lst.push_back(nfa.GetInitials());
-
-		if(!TNfa::TSet::Intersect(nfa.GetInitials(), nfa.GetFinals()).IsEmpty()) 
+		if(!nfa.GetInitials().IsEmpty()) 
 		{
-			// si alguno de los estados iniciales es tambien final
-			// este primer estado es final
-			final_states.push_back(0);
+			new_states_map.insert(make_pair(nfa.GetInitials(), 0));
+			new_states_lst.push_back(nfa.GetInitials());
+		
+			if(!TNfa::TSet::Intersect(nfa.GetInitials(), nfa.GetFinals()).IsEmpty()) 
+			{
+				// si alguno de los estados iniciales es tambien final
+				// este primer estado es final
+				final_states.push_back(0);
+			}
 		}
 		
 		TSet next(nfa.GetStates());

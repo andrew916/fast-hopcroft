@@ -1491,200 +1491,17 @@ int test500()
 	return 0;
 }
 
-int test501()
-{
-	using namespace boost::filesystem;
-	using namespace boost::timer;
-	using namespace boost::program_options;
-
-	cpu_timer timer;
-	string root_path_string;
-
-	bool show_help;
-	string output_filename;
-	vector<MinimizationAlgorithm> algorithms;
-
-	options_description opt_desc("Allowed options");
-	opt_desc.add_options()
-		("help,?", bool_switch(&show_help)->default_value(false), "Show this information")
-		("path,p", value(&root_path_string), "Root path to search")
-		("output,o", value(&output_filename), "Output filename")		
-		("algorithm,a", value(&algorithms)->multitoken(), "Algorithms to test")
-		;
-
-
-	variables_map vm;
-	command_line_parser parser(global_argc, global_argv);
-	auto po = parser.options(opt_desc).run();
-	store(po, vm);
-	notify(vm);
-
-	if(show_help)
-	{
-		cout << opt_desc << endl;
-		return 0;
-	}
-
-	typedef uint16_t TState;
-	typedef uint16_t TSymbol;
-	typedef Dfa<TState, TSymbol> TDfa;
-	typedef Nfa<TState, TSymbol> TNfa;
-
-	MinimizationHopcroft<TDfa> min2;
-	MinimizationIncremental<TDfa> min3;
-	MinimizationHybrid<TDfa> min4;
-
-	min2.ShowConfiguration = false;
-	min3.ShowConfiguration = false;
-	min4.ShowConfiguration = false;
-
-	ofstream report(output_filename);
-	if(!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
-
-	path root_path(root_path_string);
-
-	report << "alg,n,k,t,file,min_st" << endl;
-
-	vector<TState> vfinal;
-	vector<TNfa::TEdge> vedges;
-	MinimizationIncremental<TDfa>::NumericPartition part_i;
-	MinimizationHybrid<TDfa>::NumericPartition part_hi;
-	MinimizationHopcroft<TDfa>::NumericPartition part_h;
-
-	for(auto root_path_iter=directory_iterator(root_path); root_path_iter != directory_iterator(); root_path_iter++)
-	{
-		nanosecond_type acum_time_b = 0;
-		nanosecond_type acum_time_h = 0;
-		nanosecond_type acum_time_i = 0;
-		nanosecond_type acum_time_hi = 0;
-		size_t automata_count = 0;
-		if(!is_directory(root_path_iter->status())) continue;
-		cout << "Entering " << root_path_iter->path() << endl;
-		for(auto i=directory_iterator(root_path_iter->path()); i!=directory_iterator(); i++)
-		{
-			if(!is_regular_file(i->status())) continue;
-
-			auto dfa_filename = i->path().string();
-			auto nfa = read_text_one_based<TNfa>(dfa_filename);
-			auto dfa = read_text_one_based<TDfa>(dfa_filename);
-
-			//cout << "Read " << dfa_filename << endl;
-
-			size_t n = nfa.GetStates();
-			size_t k = nfa.GetAlphabetLength();
-
-			bool useHopcroft = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hopcroft) != algorithms.end();
-			bool useIncremental = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Incremental) != algorithms.end();
-			bool useBrzozowski = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Brzozowski) != algorithms.end();
-			bool useHybrid = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hybrid) != algorithms.end();
-
-			if(useBrzozowski)
-			{
-				throw invalid_argument("brozozowski not supported currently");
-				/*
-				//deshabilitado porque en ocasiones tarda demasiado
-				TState min_states;
-				timer.start();
-				min1.Minimize(nfa, &min_states, vfinal, vedges);
-				timer.stop();
-				//cout << "Brzozowski " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-				% "Brzozowski"
-				% n
-				% k
-				% timer.elapsed().wall
-				% dfa_filename
-				% static_cast<size_t>(part_b.GetSize())
-				).str() << endl;
-				acum_time_b += timer.elapsed().wall;
-				//*/
-			}
-
-			if(useHopcroft)
-			{
-				timer.start();
-				min2.Minimize(dfa, part_h);
-				timer.stop();
-				//cout << "Hopcroft " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-					% "Hopcroft"
-					% n
-					% k
-					% timer.elapsed().wall
-					% dfa_filename
-					% static_cast<size_t>(part_h.GetSize())
-					).str()	<< endl;
-				acum_time_h += timer.elapsed().wall;
-			}
-
-			if(useIncremental)			
-			{
-				timer.start();
-				min3.Minimize(dfa, part_i);
-				timer.stop();
-				//cout << "Incremental " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-					% "Incremental"
-					% n
-					% k
-					% timer.elapsed().wall
-					% dfa_filename
-					% static_cast<size_t>(part_i.GetSize())
-					).str() << endl;
-				acum_time_i += timer.elapsed().wall;
-			}
-
-			if(useHybrid)
-			{
-				timer.start();
-				min4.Minimize(dfa, part_hi);
-				timer.stop();
-				//cout << "Hybrid " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
-					% "Hybrid"
-					% n
-					% k
-					% timer.elapsed().wall
-					% dfa_filename
-					% static_cast<size_t>(part_hi.GetSize())
-					).str() << endl;
-				acum_time_hi += timer.elapsed().wall;
-			}
-
-			if(useHopcroft    && useIncremental && part_h.GetSize() != part_i.GetSize())  throw logic_error("different minimal states");
-			if(useHopcroft    && useHybrid      && part_h.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
-			if(useIncremental && useHybrid      && part_i.GetSize() != part_hi.GetSize()) throw logic_error("different minimal states");
-
-			automata_count++;
-		}
-		// skip empty folders
-		if(automata_count == 0) continue;
-		acum_time_b /= automata_count;
-		acum_time_h /= automata_count;
-		acum_time_i /= automata_count;
-		acum_time_hi /= automata_count;
-		cout << (boost::format("folder: %1% | Promedios: B:%2% H:%3% I:%4% HI:%5%")
-			% root_path_iter->path().string()
-			% acum_time_b
-			% acum_time_h
-			% acum_time_i
-			% acum_time_hi
-			).str() << endl;
-	}
-
-	return 0;
-}
-
 int test503()
 {
 	using namespace boost::filesystem;
 	using namespace boost::timer;
 	using namespace boost::program_options;
+	using boost::format;
 
 	cpu_timer timer;
 	string root_path_string;
 
-	bool show_help;
+	bool show_help, almeida_format;
 	string output_filename;
 	vector<MinimizationAlgorithm> algorithms;
 
@@ -1692,6 +1509,7 @@ int test503()
 	opt_desc.add_options()
 		("help,?", bool_switch(&show_help)->default_value(false), "Show this information")
 		("path,p", value(&root_path_string), "Root path to search")
+		("almeida_format", bool_switch(&almeida_format)->default_value(false), "Use Almeida format")
 		("output,o", value(&output_filename), "Output filename")
 		("algorithm,a", value(&algorithms)->multitoken(), "Algorithms to test")
 		;
@@ -1726,35 +1544,26 @@ int test503()
 	map<MinimizationAlgorithm, size_t> statesCount;
 	map<MinimizationAlgorithm, nanosecond_type> acumTime;
 
-	for(auto i=directory_iterator(root_path); i!=directory_iterator(); i++)
-	{
-		if(!is_regular_file(i->status())) continue;
+	vector<path> v;
+	copy(directory_iterator(root_path), directory_iterator(), back_inserter(v));
 
+	sort(v.begin(), v.end(), [](const path& a, const path& b){ 
+		const string aa=a.string(), bb=b.string(); 
+		return aa.size() < bb.size();
+	});
+	for(auto i=v.begin(); i!=v.end(); i++)
+	{		
 		size_t automata_count = 0;
 
-		auto dfa_filename = i->path().string();
-		cout << "Reading " << dfa_filename << endl;
-
-		TState n; TSymbol k;
-		ifstream fsa_file(dfa_filename);
-		string line;
-		begin_read_text_almeida<TDfa>(fsa_file, dfa_filename, &n, &k);
-		while(!fsa_file.eof())
+		auto fnc = [&](const TDfa& dfa, const string& dfa_filename) 
 		{
-			getline(fsa_file, line);
-			if(line.empty() || line.front() == '(') continue;
-			stringstream line_stream(line);
-			auto dfa = read_text_almeida<TDfa>(line_stream, n, k);
+			MinimizationAlgorithm algo;
+			TState n = dfa.GetStates();
+			TSymbol k = dfa.GetAlphabetLength();
 
-			//cout << "Read " << dfa_filename << endl;
-
-			bool useHopcroft = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hopcroft) != algorithms.end();
-			bool useIncremental = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Incremental) != algorithms.end();
-			bool useBrzozowski = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Brzozowski) != algorithms.end();
-			bool useHybrid = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Hybrid) != algorithms.end();
-			bool useAtomic = find(algorithms.begin(), algorithms.end(), MinimizationAlgorithm::Atomic) != algorithms.end();
-
-			if(useBrzozowski)
+			// BRZOZOWSKI
+			algo = MinimizationAlgorithm::Brzozowski;
+			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
 			{
 				throw invalid_argument("brozozowski not supported currently");
 				/*
@@ -1772,12 +1581,15 @@ int test503()
 				% dfa_filename
 				% static_cast<size_t>(part_b.GetSize())
 				).str() << endl;
-				acumTime[MinimizationAlgorithm::Brzozowski] += timer.elapsed().wall;
-				statesCount[MinimizationAlgorithm::Brzozowski] = min_states;
+				if(acumTime.find(algo)==acumTime.end()) acumTime[algo] = 0;
+				acumTime[algo] += timer.elapsed().wall;
+				statesCount[algo] = min_states;
 				//*/
 			}
 
-			if(useHopcroft)
+			// HOPCROFT
+			algo = MinimizationAlgorithm::Hopcroft;
+			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
 			{	
 				MinimizationHopcroft<TDfa> min2;
 				MinimizationHopcroft<TDfa>::NumericPartition part_h;
@@ -1795,12 +1607,14 @@ int test503()
 					% dfa_filename
 					% static_cast<size_t>(part_h.GetSize())
 					).str()	<< endl;
-				if(acumTime.find(MinimizationAlgorithm::Hopcroft)==acumTime.end()) acumTime[MinimizationAlgorithm::Hopcroft] = 0;
-				acumTime[MinimizationAlgorithm::Hopcroft] += timer.elapsed().wall;
-				statesCount[MinimizationAlgorithm::Hopcroft] = part_h.GetSize();
+				if(acumTime.find(algo)==acumTime.end()) acumTime[algo] = 0;
+				acumTime[algo] += timer.elapsed().wall;
+				statesCount[algo] = part_h.GetSize();
 			}
 
-			if(useIncremental)			
+			// INCREMENTAL
+			algo = MinimizationAlgorithm::Incremental;
+			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())	
 			{
 				MinimizationIncremental<TDfa> min3;
 				MinimizationIncremental<TDfa>::NumericPartition part_i;
@@ -1818,12 +1632,14 @@ int test503()
 					% dfa_filename
 					% static_cast<size_t>(part_i.GetSize())
 					).str() << endl;
-				if(acumTime.find(MinimizationAlgorithm::Incremental)==acumTime.end()) acumTime[MinimizationAlgorithm::Incremental] = 0;
-				acumTime[MinimizationAlgorithm::Incremental] += timer.elapsed().wall;
-				statesCount[MinimizationAlgorithm::Incremental] = part_i.GetSize();
+				if(acumTime.find(algo)==acumTime.end()) acumTime[algo] = 0;
+				acumTime[algo] += timer.elapsed().wall;
+				statesCount[algo] = part_i.GetSize();
 			}
 
-			if(useHybrid)
+			// HYBRID
+			algo = MinimizationAlgorithm::Hybrid;
+			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
 			{
 				MinimizationHybrid<TDfa> min4;
 				MinimizationHybrid<TDfa>::NumericPartition part_hi;
@@ -1841,22 +1657,24 @@ int test503()
 					% dfa_filename
 					% static_cast<size_t>(part_hi.GetSize())
 					).str() << endl;
-				if(acumTime.find(MinimizationAlgorithm::Hybrid)==acumTime.end()) acumTime[MinimizationAlgorithm::Hybrid] = 0;
-				acumTime[MinimizationAlgorithm::Hybrid] += timer.elapsed().wall;
-				statesCount[MinimizationAlgorithm::Hybrid] = part_hi.GetSize();
+				if(acumTime.find(algo)==acumTime.end()) acumTime[algo] = 0;
+				acumTime[algo] += timer.elapsed().wall;
+				statesCount[algo] = part_hi.GetSize();
 			}
 
-			if(useAtomic)
+			// ATOMIC
+			algo = MinimizationAlgorithm::Atomic;
+			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
 			{
 				MinimizationAtomic<TDfa> min5;
-				min5.ShowConfiguration = false;
+				min5.ShowConfiguration = true;
 
 				timer.start();
 				auto mdfa = min5.Minimize(dfa);
 				timer.stop();
-				if(acumTime.find(MinimizationAlgorithm::Atomic)==acumTime.end()) acumTime[MinimizationAlgorithm::Atomic] = 0;
-				acumTime[MinimizationAlgorithm::Atomic] += timer.elapsed().wall;
-				statesCount[MinimizationAlgorithm::Atomic] = mdfa.GetStates();
+				if(acumTime.find(algo)==acumTime.end()) acumTime[algo] = 0;
+				acumTime[algo] += timer.elapsed().wall;
+				statesCount[algo] = mdfa.GetStates();
 			}
 
 			bool fail = false;
@@ -1867,28 +1685,64 @@ int test503()
 					if(j->first == k->first) continue;
 					if(j->second != k->second)
 					{
-						cout << "ERROR: No coincide " << j->first << " y " << k->first << endl;
+						auto msg = format("ERROR: No coincide %1% (%2%) con %3% (%4%)") 
+							% j->first
+							% j->second
+							% k->first
+							% k->second;
+						cout << msg.str() << endl;
 						fail = true;
 					}
 				}
 			}
 			if(fail) throw logic_error("No conicide el numero de estados en los automatas minimos");
 
-			automata_count++;
-		}
+			automata_count++;					
+		};
 
+		if(almeida_format) 
+		{
+			if(!is_regular_file(*i)) continue;
+			auto dfa_filename = i->string();
+			cout << "Reading " << dfa_filename << endl;
+
+			ifstream fsa_file(dfa_filename);
+			string line;
+			TState n; TSymbol k;
+			begin_read_text_almeida<TDfa>(fsa_file, dfa_filename, &n, &k);
+			while(!fsa_file.eof())
+			{
+				getline(fsa_file, line);
+				if(line.empty() || line.front() == '(') continue;
+				stringstream line_stream(line);
+				auto dfa = read_text_almeida<TDfa>(line_stream, n, k);
+				fnc(dfa, dfa_filename);				
+			}			
+		} 
+		else 
+		{
+			if(!is_directory(*i)) continue;
+			cout << "Entering " << *i << endl;			
+			for(auto j=directory_iterator(*i); j!=directory_iterator(); j++)
+			{				
+				if(!is_regular_file(*j)) continue;
+				const auto dfa_filename = j->path().string();
+				auto nfa = read_text_one_based<TNfa>(dfa_filename);
+				auto dfa = read_text_one_based<TDfa>(dfa_filename);
+				fnc(dfa, dfa_filename);
+			}
+		}	
 		// skip empty folders
 		if(automata_count == 0) continue;
 		for(auto j=acumTime.begin(); j!=acumTime.end(); j++)
 		{
 			auto avg = j->second / automata_count;
 			cout << j->first << ": " << avg << endl;
-			cout << (boost::format("file %1% | time avg = %2%") % i->path().string() % avg).str() << endl;
-		}		
+			cout << (boost::format("file %1% | time avg = %2%") % i->string() % avg).str() << endl;
+		}
 	}
 
 	return 0;
-
 }
 
 int test502()
@@ -2070,7 +1924,6 @@ int main(int argc, char** argv)
 			MACRO_TEST(401);
 
 			MACRO_TEST(500);
-			MACRO_TEST(501);
 			MACRO_TEST(502);
 			MACRO_TEST(503);
 		default:
