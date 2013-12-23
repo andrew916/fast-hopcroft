@@ -98,7 +98,7 @@ public:
 		using namespace std;
 		// el dfa solo puede ser creado aqui porque no es mutable
 		TDfa dfa(symbols, states);
-		dfa.SetInitial(0);
+		if(states > 0) dfa.SetInitial(0);
 		for(auto f : final_states)
 		{
 			dfa.SetFinal(f);

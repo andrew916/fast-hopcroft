@@ -86,7 +86,7 @@ public:
 		list<TSetOfSetsIterator> LL;
 
 		QQ.clear();
-		QQ.reserve(fsa.GetStates()*2+1);
+		QQ.reserve(fsa.GetStates()*2);
 		QQ.insert(fsa.GetFinals());
 		LL.push_back(QQ.begin());
 
@@ -104,8 +104,9 @@ public:
 		TSetOfSets PP, PP2;
 		
 		while(!LL.empty())
-		{
-			const auto& P = *LL.back();
+		{			
+			const auto Piter = LL.front();
+			const auto& P = *Piter;
 
 			if(ShowConfiguration)
 			{
@@ -157,12 +158,20 @@ public:
 				}
 				for(auto i=PP.begin(); i!=PP.end(); i++)
 				{
-					const auto d = QQ.insert(*i);
+					const auto d = QQ.insert(*i);					
+					transitions.push_back(make_tuple(Piter, a, d.first));
+					if(ShowConfiguration) 
+					{
+						cout << to_string(P) << " -> " << static_cast<size_t>(a) << " -> " << to_string(*d.first) << endl;
+					}
 					if(d.second) LL.push_back(d.first);
-					transitions.push_back(make_tuple(LL.back(), a, d.first));
 					if(!TSet::Intersect(fsa.GetInitials(), *i).IsEmpty())
 					{
 						FF.push_back(d.first);
+						if(ShowConfiguration)
+						{
+							cout << "Final " << to_string(*d.first) << endl;
+						}
 					}
 				}
 			}
@@ -178,6 +187,7 @@ public:
 				cout << endl;
 			}
 		}
+		if(ShowConfiguration) cout << "atomic done" << endl;
 	}
 
 	TDfa Minimize(const TDfa& fsa)

@@ -97,6 +97,8 @@ public:
 			fsa.SetFinal(qf);
 		}
 
+		fsa.SetInitial(0);
+
 		return fsa;
 	}
 

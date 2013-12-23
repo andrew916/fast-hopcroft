@@ -1560,6 +1560,13 @@ int test503()
 			MinimizationAlgorithm algo;
 			TState n = dfa.GetStates();
 			TSymbol k = dfa.GetAlphabetLength();
+			statesCount.clear();
+
+			if(dfa.GetFinals().IsEmpty()) 
+			{
+				cout << "Skip because ATOMIC can't handle DFA without finals" << endl;
+				return;
+			}
 
 			// BRZOZOWSKI
 			algo = MinimizationAlgorithm::Brzozowski;
@@ -1663,11 +1670,11 @@ int test503()
 			}
 
 			// ATOMIC
-			algo = MinimizationAlgorithm::Atomic;
+			algo = MinimizationAlgorithm::Atomic;			
 			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
 			{
 				MinimizationAtomic<TDfa> min5;
-				min5.ShowConfiguration = true;
+				min5.ShowConfiguration = false;
 
 				timer.start();
 				auto mdfa = min5.Minimize(dfa);
@@ -1715,7 +1722,7 @@ int test503()
 				getline(fsa_file, line);
 				if(line.empty() || line.front() == '(') continue;
 				stringstream line_stream(line);
-				auto dfa = read_text_almeida<TDfa>(line_stream, n, k);
+				auto dfa = read_text_almeida<TDfa>(line_stream, n, k);				
 				fnc(dfa, dfa_filename);				
 			}			
 		} 
