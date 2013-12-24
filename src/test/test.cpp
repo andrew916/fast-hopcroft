@@ -1260,8 +1260,8 @@ int test401()
 
 	bool show_help;
 	bool enable_all;
-	bool hoproft_verbose, incremental_verbose, hybrid_verbose;
-	bool hopcroft_enable, incremental_enable, hybrid_enable;
+	bool hoproft_verbose, incremental_verbose, hybrid_verbose, atomic_verbose;
+	bool hopcroft_enable, incremental_enable, hybrid_enable, atomic_enable;
 	string output_file;
 	int seed, redundancy;
 
@@ -1274,13 +1274,15 @@ int test401()
 	opt_desc.add_options()
 		("help,?", bool_switch(&show_help)->default_value(false), "Show this information")
 		("all", bool_switch(&enable_all)->default_value(false), "Enable use all algorithms produces the same results")
-		("hopcroft", value(&hopcroft_enable)->default_value(true), "Enable use Hopcroft algorithm")
-		("incremental", value(&incremental_enable)->default_value(false), "Enable use Incremental algorithm")
-		("hybrid", value(&hybrid_enable)->default_value(false), "Enable use Hybrid algorithm")
+		("hopcroft", bool_switch(&hopcroft_enable)->default_value(true), "Enable use Hopcroft algorithm")
+		("incremental", bool_switch(&incremental_enable)->default_value(false), "Enable use Incremental algorithm")
+		("hybrid", bool_switch(&hybrid_enable)->default_value(false), "Enable use Hybrid algorithm")
+		("atomic", bool_switch(&atomic_enable)->default_value(false), "Enable use Atomic algorithm")
 		("seed", value(&seed)->default_value(5000), "Seed for MT19937 random number generator")
 		("hopcroft-verbose", value(&hoproft_verbose)->default_value(false), "Verbosity for Hopcroft")
 		("incremental-verbose", value(&incremental_verbose)->default_value(false), "Verbosity for Incremental algorithm")
 		("hybrid-verbose", value(&hybrid_verbose)->default_value(false), "Verbosity for Hybrid algorithm")
+		("atomic-verbose", value(&atomic_verbose)->default_value(false), "Verbosity for Atomic algorithm")
 		("output,o", value(&output_file)->default_value("report_401.csv"), "Output file")
 		("alphas,a", value(&alphas)->multitoken(), "Alphabet to test")
 		("states,s", value(&states_set)->multitoken(), "States number to test")
@@ -1302,7 +1304,7 @@ int test401()
 		cout << opt_desc << endl;
 		return 0;
 	}
-	if(enable_all) hopcroft_enable = incremental_enable = hybrid_enable = true; 
+	if(enable_all) hopcroft_enable = incremental_enable = hybrid_enable = atomic_enable = true; 
 	else if(!hopcroft_enable && !incremental_enable && !hybrid_enable) throw invalid_option_value("None algorithm enabled");
 
 	if(redundancy == 0) throw invalid_option_value("Invalid redundancy");
@@ -1327,6 +1329,9 @@ int test401()
 	MinimizationIncremental<TDfa>::NumericPartition p_i;
 	min_i.ShowConfiguration = incremental_verbose;
 
+	MinimizationAtomic<TDfa> min_at;
+	min_at.ShowConfiguration = atomic_verbose;
+
 	cpu_timer timer;
 
 	mt19937 rgen(seed);
@@ -1349,8 +1354,8 @@ int test401()
 						//write_text(dfa, "automata_test.txt");
 						//write_dot(dfa, "automata_test.dot");
 
-						nanosecond_type t_h=0, t_i=0, t_hy=0;
-						TState c_h=0, c_i=0, c_hy=0;
+						nanosecond_type t_h=0, t_i=0, t_hy=0, t_at=0;
+						TState c_h=0, c_i=0, c_hy=0, c_at=0;
 
 						if(hopcroft_enable)
 						{
@@ -1376,7 +1381,15 @@ int test401()
 							t_hy = timer.elapsed().wall;
 							c_hy = p_hi.GetSize();
 						}
-						auto fmt = boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%")
+						if(atomic_enable)
+						{
+							timer.start();
+							auto d = min_at.Minimize(dfa);
+							timer.stop();
+							t_at = timer.elapsed().wall;
+							c_at = d.GetStates();
+						}
+						auto fmt = boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%")
 							% states 
 							% alpha
 							% den
@@ -1388,12 +1401,16 @@ int test401()
 							% c_i
 							% t_hy
 							% c_hy
+							% t_at
+							% c_at
 							;
 						report << fmt.str() << endl;
 
 						if(hopcroft_enable && incremental_enable && (c_h != c_i))  throw invalid_argument("Hopcroft differs of Incremental");
 						if(hopcroft_enable && hybrid_enable &&      (c_h != c_hy)) throw invalid_argument("Hopcroft differs of Hybrid");
 						if(incremental_enable && hybrid_enable &&   (c_i != c_hy)) throw invalid_argument("Incremental differs of Hybrid");
+						if(atomic_enable && hopcroft_enable &&      (c_h != c_at)) throw invalid_argument("Atomic differs of Hopcroft");
+						if(atomic_enable && hybrid_enable &&      (c_hy != c_at)) throw invalid_argument("Atomic differs of Hybrid");
 					}
 
 					return 0;
