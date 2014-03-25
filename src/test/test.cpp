@@ -1855,6 +1855,60 @@ int test502()
 	return 0;
 }
 
+int test504()
+{
+	using namespace boost::filesystem;
+	using namespace boost::timer;
+
+	cpu_timer timer;	
+
+	typedef uint16_t TState;
+	typedef uint16_t TSymbol;
+	typedef Dfa<TState, TSymbol> TDfa;
+	typedef Nfa<TState, TSymbol> TNfa;
+	
+	ofstream report("report_504.csv");
+	if (!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
+
+	report << "alg,n,k,t,file" << endl;
+	
+	for (int i = 100; i <= 10000; i+=100)
+	{
+		MinimizationHopcroft<TDfa> min_h;
+		min_h.ShowConfiguration = false;
+		MinimizationHopcroft<TDfa>::NumericPartition part_h;
+
+		MinimizationHybrid<TDfa> min_hi;
+		min_hi.ShowConfiguration = false;
+		MinimizationHybrid<TDfa>::NumericPartition part_hi;
+
+		string dfa_filename = string("experimento_03-2013\\k10\\") + to_string(i) + ".afd";
+		auto dfa = read_text_one_based<TDfa>(dfa_filename);
+		cout << "Read " << dfa_filename << endl;
+
+		TState n = dfa.GetStates();
+		TSymbol k = dfa.GetAlphabetLength();
+	
+		timer.start();
+		min_h.Minimize(dfa, part_h);
+		timer.stop();
+		cout << "Hopcroft: " << timer.elapsed().wall << " " << part_h.GetSize() << endl;;				
+
+		report << "hopcroft," << n << "," << k << "," << timer.elapsed().wall << "," << dfa_filename << endl;
+
+		timer.start();
+		min_hi.Minimize(dfa, part_hi);
+		timer.stop();
+		cout << "Hybrid: " << timer.elapsed().wall << " " << part_hi.GetSize() << endl;;
+
+		report << "hybrid," << n << "," << k << "," << timer.elapsed().wall << "," << dfa_filename << endl;
+	}
+
+	report.close();
+
+	return 0;
+}
+
 // Test Set 50-60
 
 int test50()
@@ -1950,6 +2004,7 @@ int main(int argc, char** argv)
 			MACRO_TEST(500);
 			MACRO_TEST(502);
 			MACRO_TEST(503);
+			MACRO_TEST(504);
 		default:
 			cout << "La prueba indicada no existe" << endl;
 			throw invalid_argument("La prueba no existe");
