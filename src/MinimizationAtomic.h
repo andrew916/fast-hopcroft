@@ -201,14 +201,14 @@ public:
 
 		ReplicaOfInverse(fsa, QQ, transitions, II);
 
-		TNfa fsa_i(fsa.GetAlphabetLength(), QQ.size());
+		TNfa fsa_i(fsa.GetAlphabetLength(), static_cast<TState>(QQ.size()));
 		fsa_i.SetFinal(0);
 
 		unordered_map<TSet, TAtomicState, TSet::hash> est;
 
 		for(auto i=QQ.begin(); i!=QQ.end(); i++)
 		{
-			pair<TSet, TAtomicState> o(*i, est.size());
+			pair<TSet, TAtomicState> o(*i, static_cast<TAtomicState>(est.size()));
 			est.insert(o);
 		}
 

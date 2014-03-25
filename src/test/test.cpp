@@ -1180,7 +1180,7 @@ int test400()
 	cout << "Genera multiples NFA con diferentes numeros de estados y simbolos, los minimiza, los guarda y escribe un reporte." << endl;
 
 	typedef uint16_t TState;
-	typedef uint8_t TSymbol;
+	typedef uint16_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
 	typedef MinimizationHopcroft<TDfa> TMinimizer;
@@ -1423,7 +1423,7 @@ int test500()
 	cout << "Prueba la determinizacion y la minimizacion Hopcroft, Brzozowski e Incremental" << endl;
 
 	typedef uint16_t TState;
-	typedef uint8_t TSymbol;
+	typedef uint16_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
 	NfaGenerator<TNfa, mt19937> nfagen;

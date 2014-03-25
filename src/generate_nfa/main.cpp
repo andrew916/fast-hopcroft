@@ -41,7 +41,7 @@ namespace generate_nfa
 	void GenerateNfa(const Options& opt)
 	{
 		typedef uint16_t TState;
-		typedef uint8_t TSymbol;
+		typedef uint16_t TSymbol;
 		typedef Nfa<TState, TSymbol> TNfa;
 		typedef mt19937 TRandGen;
 
