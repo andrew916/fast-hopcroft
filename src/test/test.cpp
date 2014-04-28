@@ -1872,6 +1872,7 @@ int test504()
 
 	report << "alg,n,k,t,file" << endl;
 	
+	for (int j = 1; j <= 10; j++)
 	for (int i = 100; i <= 10000; i+=100)
 	{
 		MinimizationHopcroft<TDfa> min_h;
@@ -1882,7 +1883,7 @@ int test504()
 		min_hi.ShowConfiguration = false;
 		MinimizationHybrid<TDfa>::NumericPartition part_hi;
 
-		string dfa_filename = string("experimento_03-2013\\k10\\") + to_string(i) + ".afd";
+		string dfa_filename = string("experimento-25-03-2014\\k10\\") + to_string(i) + "-" + to_string(j) + ".afd";
 		auto dfa = read_text_one_based<TDfa>(dfa_filename);
 		cout << "Read " << dfa_filename << endl;
 

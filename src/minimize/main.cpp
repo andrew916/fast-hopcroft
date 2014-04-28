@@ -33,14 +33,16 @@ namespace minimize
 		MinimizationAlgorithm Algorithm;
 		string InputFile;
 		string OutputFile;
+		string AppendTimeInformation;
 		bool SkipSynthOutput;
 		bool ShowHelp;
 		bool Verbose;
 
-		Options() : 
-			SkipSynthOutput(true), 
-			ShowHelp(false), 
-			Verbose(false), 
+		Options() :
+			SkipSynthOutput(true),
+			ShowHelp(false),
+			Verbose(false),
+			AppendTimeInformation(),
 			Algorithm(MinimizationAlgorithm::Hopcroft)
 		{
 		}
@@ -51,7 +53,7 @@ namespace minimize
 	{
 		using boost::timer::cpu_timer;
 		typedef uint16_t TState;
-		typedef uint8_t TSymbol;	
+		typedef uint8_t TSymbol;
 		typedef Dfa<TState, TSymbol> TDfa;
 		typedef Nfa<TState, TSymbol> TFsa;
 
@@ -59,8 +61,12 @@ namespace minimize
 		FsaPlainTextReader<TFsa> reader_fsa;
 		FsaPlainTextWriter<TDfa> writer;
 
+		TState minimum_states;
+		TState original_states;
+		size_t original_alphabet;
+
 		ifstream ifs(opt.InputFile);
-		if(!ifs.is_open())
+		if (!ifs.is_open())
 		{
 			cout << "Error opening file " << opt.InputFile << endl;
 			return -1;
@@ -72,17 +78,20 @@ namespace minimize
 		TDfa dfa = reader_dfa.Read(ifs);
 		ifs.close();
 
-		if(opt.Verbose) 
+		original_states = dfa.GetStates();
+		original_alphabet = static_cast<size_t>(dfa.GetAlphabetLength());
+
+		if (opt.Verbose)
 		{
 			cout << "Read " << opt.InputFile << endl;
-			cout << "Found FSA with " << static_cast<size_t>(dfa.GetStates()) << " states and " << static_cast<size_t>(dfa.GetAlphabetLength()) << " symbols" << endl;
+			cout << "Found FSA with " << original_states << " states and " << dfa.GetAlphabetLength() << " symbols" << endl;
 		}
 
 		cpu_timer timer;
 		// TODO: apply polymorphism to reduce code lines
-		TDfa min_dfa(0,0);
+		TDfa min_dfa(0, 0);
 		timer.start();
-		if(opt.Algorithm == MinimizationAlgorithm::Hopcroft)
+		if (opt.Algorithm == MinimizationAlgorithm::Hopcroft)
 		{
 			MinimizationHopcroft<TDfa> min;
 			MinimizationHopcroft<TDfa>::NumericPartition partition;
@@ -90,28 +99,29 @@ namespace minimize
 			timer.start();
 			min.Minimize(dfa, partition);
 			timer.stop();
-			if(opt.Verbose) {
-				cout << "Partition count: " << static_cast<size_t>(partition.GetSize()) << endl;
+			minimum_states = partition.GetSize();
+			if (opt.Verbose) {
+				cout << "Partition count: " << minimum_states << endl;
 			}
-			if(!opt.SkipSynthOutput) min_dfa = min.BuildDfa(dfa, partition);
+			if (!opt.SkipSynthOutput) min_dfa = min.BuildDfa(dfa, partition);
 		}
-		else if(opt.Algorithm == MinimizationAlgorithm::Brzozowski)
+		else if (opt.Algorithm == MinimizationAlgorithm::Brzozowski)
 		{
-			MinimizationBrzozowski<TFsa, TDfa> min;			
+			MinimizationBrzozowski<TFsa, TDfa> min;
 			MinimizationBrzozowski<TFsa, TDfa>::TVectorDfaState vfinal;
 			MinimizationBrzozowski<TFsa, TDfa>::TVectorDfaEdge vedges;
 
-			TState states;
 			timer.start();
-			min.Minimize(fsa, &states, vfinal, vedges);
+			min.Minimize(fsa, &minimum_states, vfinal, vedges);
 			timer.stop();
-			if(opt.Verbose)
+
+			if (opt.Verbose)
 			{
-				cout << "Minimum state count: " << static_cast<size_t>(states) << endl;
+				cout << "Minimum state count: " << minimum_states << endl;
 			}
-			if(!opt.SkipSynthOutput) min_dfa = min.BuildDfa(fsa.GetAlphabetLength(), states, vfinal, vedges);
+			if (!opt.SkipSynthOutput) min_dfa = min.BuildDfa(fsa.GetAlphabetLength(), minimum_states, vfinal, vedges);
 		}
-		else if(opt.Algorithm == MinimizationAlgorithm::Incremental)
+		else if (opt.Algorithm == MinimizationAlgorithm::Incremental)
 		{
 			MinimizationIncremental<TDfa> min;
 			MinimizationIncremental<TDfa>::NumericPartition partition;
@@ -119,12 +129,13 @@ namespace minimize
 			timer.start();
 			min.Minimize(dfa, partition);
 			timer.stop();
-			if(opt.Verbose) {
-				cout << "Partition count: " << static_cast<size_t>(partition.GetSize()) << endl;
+			minimum_states = partition.GetSize();
+			if (opt.Verbose) {
+				cout << "Partition count: " << minimum_states << endl;
 			}
-			if(!opt.SkipSynthOutput) min_dfa = min.BuildDfa(dfa, partition);
+			if (!opt.SkipSynthOutput) min_dfa = min.BuildDfa(dfa, partition);
 		}
-		else if(opt.Algorithm == MinimizationAlgorithm::Hybrid)
+		else if (opt.Algorithm == MinimizationAlgorithm::Hybrid)
 		{
 			MinimizationHybrid<TDfa> min;
 			MinimizationHybrid<TDfa>::NumericPartition partition;
@@ -132,32 +143,35 @@ namespace minimize
 			timer.start();
 			min.Minimize(dfa, partition);
 			timer.stop();
-			if(opt.Verbose) {
-				cout << "Partition count: " << static_cast<size_t>(partition.GetSize()) << endl;
+			minimum_states = partition.GetSize();
+			if (opt.Verbose) {
+				cout << "Partition count: " << minimum_states << endl;
 			}
-			if(!opt.SkipSynthOutput) min_dfa = min.BuildDfa(dfa, partition);
-		} else if(opt.Algorithm == MinimizationAlgorithm::Atomic)
+			if (!opt.SkipSynthOutput) min_dfa = min.BuildDfa(dfa, partition);
+		}
+		else if (opt.Algorithm == MinimizationAlgorithm::Atomic)
 		{
 			MinimizationAtomic<TDfa> min;
 			min.ShowConfiguration = false;
 			timer.start();
 			min_dfa = min.Minimize(dfa);
 			timer.stop();
-			if(opt.Verbose)
+			minimum_states = min_dfa.GetStates();
+			if (opt.Verbose)
 			{
-				cout << "Minimum state count: " << static_cast<size_t>(min_dfa.GetStates()) << endl;
+				cout << "Minimum state count: " << minimum_states << endl;
 			}
 		}
 
-		if(opt.Verbose)
+		if (opt.Verbose)
 		{
 			cout << "Minimization took: " << timer.format() << endl;
 		}
 
-		if(!opt.SkipSynthOutput)
+		if (!opt.SkipSynthOutput)
 		{
 			ofstream ofs(opt.OutputFile);
-			if(!ofs.is_open())
+			if (!ofs.is_open())
 			{
 				cout << "Error with output file: " << opt.OutputFile << endl;
 				return -1;
@@ -165,14 +179,29 @@ namespace minimize
 			writer.Write(min_dfa, ofs);
 			ofs.close();
 
-			if(opt.Verbose)
+			if (opt.Verbose)
 			{
 				cout << "Written " << opt.OutputFile << endl;
 			}
 		}
+		if (!opt.AppendTimeInformation.empty())
+		{
+			ofstream ofs(opt.AppendTimeInformation, ios::app);
+			if (!ofs.is_open())
+			{
+				cout << "Error with log info file: " << opt.AppendTimeInformation << endl;
+				return -1;
+			}
+			ofs << opt.InputFile
+				<< "," << opt.Algorithm
+				<< "," << original_states
+				<< "," << original_alphabet
+				<< "," << minimum_states
+				<< "," << timer.elapsed().wall
+				<< endl;
+		}
 		return 0;
 	}
-
 }
 
 using namespace minimize;
@@ -186,6 +215,7 @@ int main(int argc, char** argv)
 		("algorithm,a", value(&o.Algorithm)->default_value(MinimizationAlgorithm::Hopcroft), "Minimization algorithm")
 		("input,i", value(&o.InputFile), "Input file")
 		("output,o", value(&o.OutputFile), "Output file")
+		("append_log,w", value(&o.AppendTimeInformation)->default_value(""), "CSV file to append time and minimization result")
 		("skip_synth,s", bool_switch(&o.SkipSynthOutput)->default_value(false), "Skip synthetize output")
 		("verbose,v", bool_switch(&o.Verbose), "Verbose mode")
 		;
@@ -196,7 +226,7 @@ int main(int argc, char** argv)
 	store(po, vm);
 	notify(vm);
 
-	if(o.ShowHelp)
+	if (o.ShowHelp)
 	{
 		cout << opt_desc << endl;
 		return 0;
