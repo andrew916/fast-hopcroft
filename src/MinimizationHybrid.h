@@ -79,8 +79,8 @@ private:
 		TState cq = part.Find(q);
 		TState t = cp < cq ? cp : cq;
 		TState s = cp < cq ? cq : cp;
-		auto pt& = part.GetPartition(t);
-		auto ps& = part.GetPartition(s);
+		auto& pt = part.GetPartition(t);
+		auto& ps = part.GetPartition(s);
 		for (auto i = ps.begin(); i != ps.end(); i++)
 		{
 			part.state_to_partition[*i] = t;
@@ -89,8 +89,8 @@ private:
 		return t;
 	}
 
-	// Try splits all partition using the splitter indicated by partition index and letter.
-	// If split is performed on specific partition, it modifies two iterators in order to be able to continue
+	// Try splits all block partition using the splitter indicated by partition index and letter.
+	// If split is performed on specific block, it modifies two iterators in order to be able to continue
 	// iteration on next item inside original partition
 	void Split(const TDfa& dfa, NumericPartition& part, TState splitter_partition_idx, TSymbol splitter_letter, typename std::vector<std::list<TState>>::iterator cur_part, typename std::list<TState>::iterator& i_p, typename std::list<TState>::iterator& i_q) const
 	{
@@ -183,9 +183,10 @@ private:
 	// 2: Pending back reference
 	int AreEquivalent(TState p, TState q,
 		const TDfa& dfa,
-		const NumericPartition& pi, const NumericPartition& ro,
+		NumericPartition& pi, NumericPartition& ro,
 		BitSet<TPairIndex>& expl,
-		BitSet<TPairIndex>& tocheck, std::vector<TSplitter>& tocheck_stack)
+		BitSet<TPairIndex>& tocheck, std::vector<TSplitter>& tocheck_stack,
+		std::vector<std::tuple<TState,TSymbol>> splitter_stack)
 	{
 		assert(p < q);
 		using namespace std;
@@ -212,7 +213,7 @@ private:
 			if (pp != pq)
 			{
 				TState minP = pi.GetPartition(pp).size() < pi.GetPartition(pq).size() ? pp : pq;
-				Split(dfa, pi, minP, a);
+				splitter_stack.push_back(make_tuple(minP, a));
 				return 0;
 			}
 			else if (expl.Contains(GetPairIndex(sp, sq)))
@@ -225,11 +226,11 @@ private:
 			}
 			else if (ro.Find(sp) != ro.Find(sq))
 			{
-				int r = AreEquivalent(sp, sq);
+				int r = AreEquivalent(sp, sq, dfa, pi, ro, expl, tocheck, tocheck_stack, splitter_stack);
 				if (r == 0)
 				{
 					TState minP = pi.GetPartition(pp).size() < pi.GetPartition(pq).size() ? pp : pq;
-					Split(dfa, pi, minP, a);
+					splitter_stack.push_back(make_tuple(minP, a));
 					return 0;
 				}
 				else if (r == 1)
@@ -335,10 +336,13 @@ public:
 			replace(part.state_to_partition.begin(), part.state_to_partition.end(), 1, 0);
 		}
 
+		// El numero de pares de estados sin repetir es el
+		// numero de componentes en una matriz triangular
+		// El area de un triangulo
 		BitSet<TPairIndex> expl((states*states - states) / 2);
 		BitSet<TPairIndex> tocheck((states*states - states) / 2);
 		vector<TSplitter> tocheck_stack;
-		vector<TSplitter> splitter_stack;
+		vector<tuple<TState, TSymbol>> splitter_stack;
 
 		for (auto cur_part = part.P.begin(); cur_part != next(part.P.begin(), part.new_index); cur_part++)
 		{
@@ -364,11 +368,11 @@ public:
 				assert(part.Find(p) == part.Find(q));
 
 				expl.Clear();
-				tocheck.Clear();
+				assert(tocheck.IsEmpty());
 				tocheck_stack.clear();
 				splitter_stack.clear();
 
-				bool isEquiv = AreEquivalent(p, q, dfa, part, ro, expl, tocheck, tocheck_stack);
+				int isEquiv = AreEquivalent(p, q, dfa, part, ro, expl, tocheck, tocheck_stack, splitter_stack);
 				if (ShowConfiguration)
 				{
 					cout << (isEquiv ? "YES" : "NO") << endl;
@@ -385,22 +389,27 @@ public:
 						i_q = next(i_p, 1);
 					}
 				}
-
-				while (!splitter_stack.empty())
+				for(auto ssi = splitter_stack.begin(); ssi != splitter_stack.end(); ssi++)
 				{
-					TSplitter s = splitter_stack.back();
-					splitter_stack.pop_back();
+					TState p; TSymbol a;
+					tie(p, a) = *ssi;
+					Split(dfa, part, p, a, cur_part, i_p, i_q);
+				}
+				while (!tocheck_stack.empty())
+				{
+					TSplitter s = tocheck_stack.back();
+					tocheck_stack.pop_back();
 
 					TState s1 = get<0>(s);
 					TState s2 = get<1>(s);
 					TSymbol a = get<2>(s);
 
-					p1 = part.Find(s1);
-					p2 = part.Find(s2);
+					TState p1 = part.Find(s1);
+					TState p2 = part.Find(s2);
 
 					if (p1 == p2)
 					{
-						Merge(ro, s1, s2)
+						Merge(ro, s1, s2);
 					}
 					else
 					{
