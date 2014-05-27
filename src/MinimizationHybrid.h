@@ -193,6 +193,7 @@ private:
 		
 		TPairIndex root_pair = GetPairIndex(p, q);
 		expl.Add(root_pair);
+
 		bool already_seen = false;
 		bool found = false;
 		TSymbol a;
@@ -219,16 +220,17 @@ private:
 			{
 				TState minP = pi.GetPartition(pp).size() < pi.GetPartition(pq).size() ? pp : pq;
 				splitter_stack.push_back(make_tuple(minP, a));
+				if(ShowConfiguration) cout << "NO" << endl;
 				return 0;
 			}
 			else if (expl.Contains(GetPairIndex(sp, sq))) // need back reference?
 			{
-				if (!tocheck.TestAndAdd(GetPairIndex(p, q)))
+				if (!tocheck.TestAndAdd(GetPairIndex(sp, sq)))
 				{
-					tocheck_stack.push_back(make_tuple(p, q, a));
+					tocheck_stack.push_back(make_tuple(sp, sq, a));
 					if (ShowConfiguration)
 					{
-						cout << "Already seen: (" << sp << ", " << sq << "), annotate (" << p << ", " << q << "), " << a << endl;
+						cout << "Already seen: (" << sp << ", " << sq << "), annotate (" << sp << ", " << sq << "), " << a << endl;
 					}
 				}
 				already_seen = true;
@@ -250,13 +252,19 @@ private:
 				{
 					if (!tocheck.TestAndAdd(GetPairIndex(sp, sq)))
 					{
+						if(ShowConfiguration) cout << "annotate (" << sp << ", " << sq << "), " << a << endl;
 						tocheck_stack.push_back(make_tuple(sp, sq, a));
 					}
 					already_seen = true;
 				}
 			}
 		}
-		if (already_seen) return 2;
+		if (already_seen) 
+		{ 
+			if(ShowConfiguration) cout << "BACKREF" << endl;
+			return 2; 
+		}
+		if(ShowConfiguration) cout << "YES, no counter evidence found" << endl;
 		return 1;
 	}
 
@@ -319,19 +327,22 @@ public:
 	void Minimize(const TDfa& dfa, NumericPartition& part)
 	{
 		using namespace std;
-		ShowConfiguration = true;
+
 		TState states = dfa.GetStates();
 		part.Clear(states);
 		NumericPartition ro;
 		ro.Clear(states);
 
 		// Inicializa funcion inversa para obtener la particion a la que pertenece un estado
-		auto it_f = back_inserter(part.P[0]), it_nf = back_inserter(part.P[1]);
+		const int finalsBlock = 1;
+		const int nonFinalsBlock = 0;
+		assert(finalsBlock != nonFinalsBlock);
+		auto it_f = back_inserter(part.P[finalsBlock]), it_nf = back_inserter(part.P[nonFinalsBlock]);
 		for (TState st = 0; st < states; st++)
 		{
 			auto f = dfa.IsFinal(st);
 			if (f) *it_f++ = st;	else *it_nf++ = st;
-			part.state_to_partition[st] = f ? 0 : 1;
+			part.state_to_partition[st] = f ? finalsBlock : nonFinalsBlock;
 
 			ro.state_to_partition[st] = st;
 			ro.P[st].push_back(st);

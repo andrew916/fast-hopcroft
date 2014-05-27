@@ -929,7 +929,7 @@ int test303()
 
 int test600()
 {	
-	cout << "Esta prueba minimiza un automata sencillo usando Incremental y escribe el resultado en un archivo test6.dot" << endl;
+	cout << "Esta prueba minimiza un automata sencillo usando Hybrid y escribe el resultado en un archivo test6.dot" << endl;
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
@@ -1012,7 +1012,6 @@ int test601()
 
 int test610()
 {
-
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState,TSymbol> TDfa;
@@ -1056,9 +1055,188 @@ int test610()
 	return 0;
 }
 
+
+int test611()
+{
+	/*
+  -> 0 | 1  2  7
+  <- 1 |10  3  4
+  <- 2 | 5  4  7
+  <- 3 | 3  1  7
+     4 | 6  2  7
+  <- 5 | 7  2  7
+  <- 6 |11  3  8
+ 	 7 | 7  7  7
+	 8 | 6  9  7
+     9 | 7  9  7
+    10 |12 12 12
+	11 |13 13 13
+	12 | 1  1  1
+	13 | 6  6  6
+	*/
+	typedef uint16_t TState;
+	typedef uint16_t TSymbol;
+	typedef Dfa<TState,TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;	
+	TDfa dfa(3, 14);
+
+	dfa.SetInitial(0);
+
+	dfa.SetFinal(1);
+	dfa.SetFinal(2);
+	dfa.SetFinal(3);
+	dfa.SetFinal(5);
+	dfa.SetFinal(6);
+
+	dfa.SetTransition(0,0,1);
+	dfa.SetTransition(0,1,2);
+	dfa.SetTransition(0,2,7);
+	dfa.SetTransition(1,0,10);
+	dfa.SetTransition(1,1,3);
+	dfa.SetTransition(1,2,4);
+	dfa.SetTransition(2,0,5);
+	dfa.SetTransition(2,1,4);
+	dfa.SetTransition(2,2,7);
+	dfa.SetTransition(3,0,3);
+	dfa.SetTransition(3,1,1);
+	dfa.SetTransition(3,2,7);
+	dfa.SetTransition(4,0,6);
+	dfa.SetTransition(4,1,2);
+	dfa.SetTransition(4,2,7);
+	dfa.SetTransition(5,0,7);
+	dfa.SetTransition(5,1,2);
+	dfa.SetTransition(5,2,7);
+	dfa.SetTransition(6,0,11);
+	dfa.SetTransition(6,1,3);
+	dfa.SetTransition(6,2,8);
+	dfa.SetTransition(7,0,7);
+	dfa.SetTransition(7,1,7);
+	dfa.SetTransition(7,2,7);
+	dfa.SetTransition(8,0,6);
+	dfa.SetTransition(8,1,9);
+	dfa.SetTransition(8,2,7);
+	dfa.SetTransition(9,0,7);
+	dfa.SetTransition(9,1,9);
+	dfa.SetTransition(9,2,7);
+	dfa.SetTransition(10,0,12);
+	dfa.SetTransition(10,1,12);
+	dfa.SetTransition(10,2,12);
+	dfa.SetTransition(11,0,13);
+	dfa.SetTransition(11,1,13);
+	dfa.SetTransition(11,2,13);
+	dfa.SetTransition(12,0,1);
+	dfa.SetTransition(12,1,1);
+	dfa.SetTransition(12,2,1);
+	dfa.SetTransition(13,0,6);
+	dfa.SetTransition(13,1,6);
+	dfa.SetTransition(13,2,6);
+
+	mini.ShowConfiguration=true;
+	write_dot(dfa, "test_611.dot");
+	auto dfa_min = mini.Minimize(dfa);
+	write_dot(dfa_min, "test_611_min.dot");
+
+	return 0;
+}
+
+
+int test612()
+{
+	/*
+ -> 0 | 1  2
+	1 | 3  4
+ <- 2 | 4  3
+	3 | 1  3
+	4 | 4  1
+	*/
+	typedef uint16_t TState;
+	typedef uint16_t TSymbol;
+	typedef Dfa<TState,TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;	
+	TDfa dfa(2, 5);
+
+	dfa.SetInitial(0);
+
+	dfa.SetFinal(2);
+
+	dfa.SetTransition(0,0,1);
+	dfa.SetTransition(0,1,2);
+	dfa.SetTransition(1,0,3);
+	dfa.SetTransition(1,1,4);
+	dfa.SetTransition(2,0,4);
+	dfa.SetTransition(2,1,3);
+	dfa.SetTransition(3,0,1);
+	dfa.SetTransition(3,1,3);
+	dfa.SetTransition(4,0,4);
+	dfa.SetTransition(4,1,1);
+
+	mini.ShowConfiguration=true;
+	write_dot(dfa, "test_612.dot");
+	auto dfa_min = mini.Minimize(dfa);
+	write_dot(dfa_min, "test_612_min.dot");
+
+	return 0;
+}
+
+   
+int test613()
+{
+	/*
+->  0 |  1   2
+    1 |  3   4
+<-  2 |  5   9
+    3 |  1   3
+    4 |  4   1
+    5 |  7   8 
+<-  6 |  8   7 
+    7 |  5   7
+    8 |  8   5
+    9 |  7   6
+	*/
+
+	typedef uint16_t TState;
+	typedef uint16_t TSymbol;
+	typedef Dfa<TState,TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;	
+	TDfa dfa(2, 10);
+
+	dfa.SetInitial(0);
+
+	dfa.SetFinal(2);
+	dfa.SetFinal(6);
+
+	dfa.SetTransition(0,0,1);
+	dfa.SetTransition(0,1,2);
+	dfa.SetTransition(1,0,3);
+	dfa.SetTransition(1,1,4);
+	dfa.SetTransition(2,0,5);
+	dfa.SetTransition(2,1,9);
+	dfa.SetTransition(3,0,1);
+	dfa.SetTransition(3,1,3);
+	dfa.SetTransition(4,0,4);
+	dfa.SetTransition(4,1,1);
+	dfa.SetTransition(5,0,7);
+	dfa.SetTransition(5,1,8);
+	dfa.SetTransition(6,0,8);
+	dfa.SetTransition(6,1,7);
+	dfa.SetTransition(7,0,5);
+	dfa.SetTransition(7,1,7);
+	dfa.SetTransition(8,0,8);
+	dfa.SetTransition(8,1,5);
+	dfa.SetTransition(9,0,7);
+	dfa.SetTransition(9,1,6);
+
+	mini.ShowConfiguration=true;
+	write_dot(dfa, "test_613.dot");
+	auto dfa_min = mini.Minimize(dfa);
+	write_dot(dfa_min, "test_613_min.dot");
+
+	return 0;
+}
+
 int test602()
 {
-	cout << "Esta prueba minimiza un automata sencillo usando Incremental y escribe el resultado en un archivo test3.dot" << endl;
+	cout << "Esta prueba minimiza un automata sencillo usando Hybrid y escribe el resultado en un archivo test3.dot" << endl;
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
@@ -1172,6 +1350,7 @@ int test603()
 
 	return 0;
 }
+
 
 // Test automata generation 400-499
 
@@ -1422,7 +1601,7 @@ int test401()
 						if(atomic_enable && hybrid_enable &&        (c_hy != c_at)) throw invalid_argument("Atomic differs of Hybrid");
 					}
 
-	return 0;
+					return 0;
 }
 
 // Test performance 500-599
@@ -1875,48 +2054,48 @@ int test504()
 	typedef uint16_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
-	
+
 	ofstream report("report_504.csv");
 	if (!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
 
 	report << "alg,n,k,t,file" << endl;
-	
+
 	for (int j = 1; j <= 10; j++)
-	for (int i = 100; i <= 10000; i+=100)
-	{
-		MinimizationHopcroft<TDfa> min_h;
-		min_h.ShowConfiguration = false;
-		MinimizationHopcroft<TDfa>::NumericPartition part_h;
+		for (int i = 100; i <= 10000; i+=100)
+		{
+			MinimizationHopcroft<TDfa> min_h;
+			min_h.ShowConfiguration = false;
+			MinimizationHopcroft<TDfa>::NumericPartition part_h;
 
-		MinimizationHybrid<TDfa> min_hi;
-		min_hi.ShowConfiguration = false;
-		MinimizationHybrid<TDfa>::NumericPartition part_hi;
+			MinimizationHybrid<TDfa> min_hi;
+			min_hi.ShowConfiguration = false;
+			MinimizationHybrid<TDfa>::NumericPartition part_hi;
 
-		string dfa_filename = string("experimento-25-03-2014\\k10\\") + to_string(i) + "-" + to_string(j) + ".afd";
-		auto dfa = read_text_one_based<TDfa>(dfa_filename);
-		cout << "Read " << dfa_filename << endl;
+			string dfa_filename = string("experimento-25-03-2014\\k10\\") + to_string(i) + "-" + to_string(j) + ".afd";
+			auto dfa = read_text_one_based<TDfa>(dfa_filename);
+			cout << "Read " << dfa_filename << endl;
 
-		TState n = dfa.GetStates();
-		TSymbol k = dfa.GetAlphabetLength();
-	
-		timer.start();
-		min_h.Minimize(dfa, part_h);
-		timer.stop();
-		cout << "Hopcroft: " << timer.elapsed().wall << " " << part_h.GetSize() << endl;;				
+			TState n = dfa.GetStates();
+			TSymbol k = dfa.GetAlphabetLength();
 
-		report << "hopcroft," << n << "," << k << "," << timer.elapsed().wall << "," << dfa_filename << endl;
+			timer.start();
+			min_h.Minimize(dfa, part_h);
+			timer.stop();
+			cout << "Hopcroft: " << timer.elapsed().wall << " " << part_h.GetSize() << endl;;				
 
-		timer.start();
-		min_hi.Minimize(dfa, part_hi);
-		timer.stop();
-		cout << "Hybrid: " << timer.elapsed().wall << " " << part_hi.GetSize() << endl;;
+			report << "hopcroft," << n << "," << k << "," << timer.elapsed().wall << "," << dfa_filename << endl;
 
-		report << "hybrid," << n << "," << k << "," << timer.elapsed().wall << "," << dfa_filename << endl;
-	}
+			timer.start();
+			min_hi.Minimize(dfa, part_hi);
+			timer.stop();
+			cout << "Hybrid: " << timer.elapsed().wall << " " << part_hi.GetSize() << endl;;
 
-	report.close();
+			report << "hybrid," << n << "," << k << "," << timer.elapsed().wall << "," << dfa_filename << endl;
+		}
 
-	return 0;
+		report.close();
+
+		return 0;
 }
 
 // Test Set 50-60
@@ -1978,8 +2157,10 @@ int main(int argc, char** argv)
 	global_argc = argc - 1;
 	global_argv = &argv[1];
 	global_argv[0] = argv[0];
-	//try
+#if !_DEBUG
+	try
 	{
+#endif
 #define MACRO_TEST(N) case N: return test##N(); break
 		switch(i)
 		{
@@ -2007,6 +2188,9 @@ int main(int argc, char** argv)
 			MACRO_TEST(602);
 			MACRO_TEST(603);
 			MACRO_TEST(610);
+			MACRO_TEST(611);
+			MACRO_TEST(612);
+			MACRO_TEST(613);
 
 			MACRO_TEST(400);
 			MACRO_TEST(401);
@@ -2021,14 +2205,16 @@ int main(int argc, char** argv)
 			return -1;
 		}
 #undef MACRO_TEST
+
+#if !_DEBUG
 	}
-	/*
 	catch(exception ex)
-	//{
-	cout << "Error: " << endl;
-	cout << ex.what() << endl;
-	return -1;
-	}//*/
+	{
+		cout << "Error: " << endl;
+		cout << ex.what() << endl;
+		return -1;
+	}
+#endif
 
 	return 0;
 }
