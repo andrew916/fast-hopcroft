@@ -186,7 +186,7 @@ private:
 		NumericPartition& pi, NumericPartition& ro,
 		BitSet<TPairIndex>& expl,
 		BitSet<TPairIndex>& tocheck, std::vector<TSplitter>& tocheck_stack,
-		std::vector<std::tuple<TState,TSymbol>> splitter_stack)
+		std::vector<std::tuple<TState,TSymbol>>& splitter_stack)
 	{
 		assert(p < q);
 		using namespace std;
@@ -228,7 +228,7 @@ private:
 					tocheck_stack.push_back(make_tuple(p, q, a));
 					if (ShowConfiguration)
 					{
-						cout << "Already seen: (" << p << ", " << q << ") " << a << endl;
+						cout << "Already seen: (" << sp << ", " << sq << "), annotate (" << p << ", " << q << "), " << a << endl;
 					}
 				}
 				already_seen = true;
