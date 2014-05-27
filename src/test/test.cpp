@@ -1295,9 +1295,18 @@ int test401()
 
 	variables_map vm;
 	command_line_parser parser(global_argc, global_argv);
-	auto po = parser.options(opt_desc).run();
-	store(po, vm);
-	notify(vm);
+	try
+	{
+		auto po = parser.options(opt_desc).run();
+		store(po, vm);
+		notify(vm);
+	}
+	catch (exception e)
+	{
+		string s = e.what();
+		cout << "Error: " << s << endl;
+		return -1;
+	}
 
 	if(show_help)
 	{
@@ -1406,14 +1415,14 @@ int test401()
 							;
 						report << fmt.str() << endl;
 
-						if(hopcroft_enable && incremental_enable && (c_h != c_i))  throw invalid_argument("Hopcroft differs of Incremental");
-						if(hopcroft_enable && hybrid_enable &&      (c_h != c_hy)) throw invalid_argument("Hopcroft differs of Hybrid");
-						if(incremental_enable && hybrid_enable &&   (c_i != c_hy)) throw invalid_argument("Incremental differs of Hybrid");
-						if(atomic_enable && hopcroft_enable &&      (c_h != c_at)) throw invalid_argument("Atomic differs of Hopcroft");
-						if(atomic_enable && hybrid_enable &&      (c_hy != c_at)) throw invalid_argument("Atomic differs of Hybrid");
+						if(hopcroft_enable && incremental_enable && (c_h != c_i))   throw invalid_argument("Hopcroft differs of Incremental");
+						if(hopcroft_enable && hybrid_enable &&      (c_h != c_hy))  throw invalid_argument("Hopcroft differs of Hybrid");
+						if(incremental_enable && hybrid_enable &&   (c_i != c_hy))  throw invalid_argument("Incremental differs of Hybrid");
+						if(atomic_enable && hopcroft_enable &&      (c_h != c_at))  throw invalid_argument("Atomic differs of Hopcroft");
+						if(atomic_enable && hybrid_enable &&        (c_hy != c_at)) throw invalid_argument("Atomic differs of Hybrid");
 					}
 
-					return 0;
+	return 0;
 }
 
 // Test performance 500-599

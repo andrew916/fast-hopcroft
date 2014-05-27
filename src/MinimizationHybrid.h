@@ -190,11 +190,7 @@ private:
 	{
 		assert(p < q);
 		using namespace std;
-		if (ShowConfiguration)
-		{
-			cout << "Test equiv (" << static_cast<size_t>(p) << ", " << static_cast<size_t>(q) << ")" << endl;
-		}
-
+		
 		TPairIndex root_pair = GetPairIndex(p, q);
 		expl.Add(root_pair);
 		bool already_seen = false;
@@ -202,25 +198,38 @@ private:
 		TSymbol a;
 		for (a = 0; a<dfa.GetAlphabetLength(); a++)
 		{
+			if (ShowConfiguration) cout << "Test equiv ((" << p << ", " << q << "), " << a << ")";
+
 			TState sp = dfa.GetSuccessor(p, a);
 			TState sq = dfa.GetSuccessor(q, a);
-			if (sp > sq) std::swap(sp, sq);
-			//if (sp == sq) continue; // condicion sospechosa
+			
+			if (ShowConfiguration) cout << " => (" << sp << ", " << sq << ")";			
+			if (ShowConfiguration && sp == sq) cout << endl;
 
+			if (sp == sq) continue; // same state is same partition, no inequivalent evidence
+
+			tie(sp, sq) = NormalizedPair(sp, sq);
+			
 			TState pp = pi.Find(sp);
 			TState pq = pi.Find(sq);
 
-			if (pp != pq)
+			if (ShowConfiguration) cout << " blocks: " << pp << ", " << pq << endl;
+
+			if (pp != pq) // different class!!, inequivalent states
 			{
 				TState minP = pi.GetPartition(pp).size() < pi.GetPartition(pq).size() ? pp : pq;
 				splitter_stack.push_back(make_tuple(minP, a));
 				return 0;
 			}
-			else if (expl.Contains(GetPairIndex(sp, sq)))
+			else if (expl.Contains(GetPairIndex(sp, sq))) // need back reference?
 			{
 				if (!tocheck.TestAndAdd(GetPairIndex(p, q)))
 				{
 					tocheck_stack.push_back(make_tuple(p, q, a));
+					if (ShowConfiguration)
+					{
+						cout << "Already seen: (" << p << ", " << q << ") " << a << endl;
+					}
 				}
 				already_seen = true;
 			}
@@ -329,6 +338,7 @@ public:
 		}
 		// partitions count, are all finals?
 		part.new_index = 0;
+		ro.new_index = states;
 		if (!part.P[1].empty()) part.new_index++;
 		if (!part.P[0].empty()) part.new_index++;
 		else {
@@ -355,7 +365,9 @@ public:
 			{
 				if (ShowConfiguration)
 				{
-					cout << "pair: " << static_cast<size_t>(*i_p) << ", " << static_cast<size_t>(*i_q) << endl;
+					cout << "pair: " << static_cast<size_t>(*i_p) << ", " << static_cast<size_t>(*i_q) << endl;				
+					cout << "P=" << to_string(part) << endl;
+					cout << "ro=" << to_string(ro) << endl;
 				}
 
 				assert(distance(i_p, i_q) > 0);
@@ -368,32 +380,31 @@ public:
 				assert(part.Find(p) == part.Find(q));
 
 				expl.Clear();
-				assert(tocheck.IsEmpty());
+				tocheck.Clear();
 				tocheck_stack.clear();
 				splitter_stack.clear();
 
 				int isEquiv = AreEquivalent(p, q, dfa, part, ro, expl, tocheck, tocheck_stack, splitter_stack);
 				if (ShowConfiguration)
 				{
-					cout << (isEquiv ? "YES" : "NO") << endl;
+					switch (isEquiv)
+					{
+					case 0: cout << "NO" << endl; break;
+					case 1: cout << "YES" << endl; break;
+					default: cout << "BACKREF" << endl; break;
+					}					
 				}
 				if (isEquiv)
 				{
 					// merge equivalent states
-					TState t = Merge(ro, p, q);
-
-					i_q++;
-					if (i_q == cur_part->end())
-					{
-						i_p++;
-						i_q = next(i_p, 1);
-					}
+					TState t = Merge(ro, p, q);					
 				}
 				for(auto ssi = splitter_stack.begin(); ssi != splitter_stack.end(); ssi++)
 				{
 					TState p; TSymbol a;
 					tie(p, a) = *ssi;
 					Split(dfa, part, p, a, cur_part, i_p, i_q);
+					if (ShowConfiguration) cout << "P=" << to_string(part) << endl;
 				}
 				while (!tocheck_stack.empty())
 				{
@@ -414,12 +425,21 @@ public:
 					else
 					{
 						TState min_part = part.P[p1].size() < part.P[p2].size() ? p1 : p2;
-						Split(dfa, part, min_part, a, cur_part, i_p, i_q);
-						if (ShowConfiguration)
-						{
-							cout << "P=" << to_string(part) << endl;
-						}
+						Split(dfa, part, min_part, a, cur_part, i_p, i_q);						
 					}
+
+					if (ShowConfiguration)
+					{
+						cout << "P=" << to_string(part) << endl;
+					}
+				}
+
+				// advance
+				i_q++;
+				if (i_q == cur_part->end())
+				{
+					i_p++;
+					i_q = next(i_p, 1);
 				}
 			}
 		}
