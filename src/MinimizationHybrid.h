@@ -95,7 +95,7 @@ private:
 	void Split(const TDfa& dfa, NumericPartition& part, TState splitter_partition_idx, TSymbol splitter_letter, typename std::vector<std::list<TState>>::iterator cur_part, typename std::list<TState>::iterator& i_p, typename std::list<TState>::iterator& i_q) const
 	{
 		using namespace std;
-
+		
 		// calcula d_inverse para el conjunto de estados y letra indicado
 		BitSet<TState> pred_states(dfa.GetStates());
 		BitSet<TState> block_split(dfa.GetStates());
@@ -319,7 +319,7 @@ public:
 	void Minimize(const TDfa& dfa, NumericPartition& part)
 	{
 		using namespace std;
-
+		ShowConfiguration = true;
 		TState states = dfa.GetStates();
 		part.Clear(states);
 		NumericPartition ro;
@@ -365,7 +365,7 @@ public:
 			{
 				if (ShowConfiguration)
 				{
-					cout << "pair: " << static_cast<size_t>(*i_p) << ", " << static_cast<size_t>(*i_q) << endl;				
+					cout << "pair: " << static_cast<size_t>(*i_p) << ", " << static_cast<size_t>(*i_q) << endl;
 					cout << "P=" << to_string(part) << endl;
 					cout << "ro=" << to_string(ro) << endl;
 				}
@@ -392,20 +392,21 @@ public:
 					case 0: cout << "NO" << endl; break;
 					case 1: cout << "YES" << endl; break;
 					default: cout << "BACKREF" << endl; break;
-					}					
+					}
 				}
 				if (isEquiv)
 				{
 					// merge equivalent states
-					TState t = Merge(ro, p, q);					
+					TState t = Merge(ro, p, q);
 				}
-				for(auto ssi = splitter_stack.begin(); ssi != splitter_stack.end(); ssi++)
+				for (auto ssi = splitter_stack.begin(); ssi != splitter_stack.end(); ssi++)
 				{
 					TState p; TSymbol a;
 					tie(p, a) = *ssi;
 					Split(dfa, part, p, a, cur_part, i_p, i_q);
 					if (ShowConfiguration) cout << "P=" << to_string(part) << endl;
 				}
+				if (ShowConfiguration) cout << "Begin resolve pending refs" << endl;
 				while (!tocheck_stack.empty())
 				{
 					TSplitter s = tocheck_stack.back();
@@ -425,21 +426,17 @@ public:
 					else
 					{
 						TState min_part = part.P[p1].size() < part.P[p2].size() ? p1 : p2;
-						Split(dfa, part, min_part, a, cur_part, i_p, i_q);						
-					}
-
-					if (ShowConfiguration)
-					{
-						cout << "P=" << to_string(part) << endl;
+						Split(dfa, part, min_part, a, cur_part, i_p, i_q);
+						if (ShowConfiguration) cout << "P=" << to_string(part) << endl;
 					}
 				}
+				if (ShowConfiguration) cout << "Complete resolve pending refs" << endl;
 
 				// advance
-				i_q++;
-				if (i_q == cur_part->end())
+				if (i_q != cur_part->end())
 				{
 					i_p++;
-					i_q = next(i_p, 1);
+					i_q++;
 				}
 			}
 		}
