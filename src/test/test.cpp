@@ -1013,7 +1013,7 @@ int test601()
 int test610()
 {
 	typedef uint16_t TState;
-	typedef uint8_t TSymbol;
+	typedef uint16_t TSymbol;
 	typedef Dfa<TState,TSymbol> TDfa;
 	MinimizationHybrid<TDfa> mini;	
 	TDfa dfa(2, 10);
@@ -1051,6 +1051,11 @@ int test610()
 	write_dot(dfa, "test_610.dot");
 	auto dfa_min = mini.Minimize(dfa);
 	write_dot(dfa_min, "test_610_min.dot");
+
+	MinimizationHopcroft<TDfa> minih;
+	auto dfa_min_ref = minih.Minimize(dfa);
+	write_dot(dfa_min_ref, "test_610_min_ref.dot");
+	assert(dfa_min.GetStates() == dfa_min_ref.GetStates());
 
 	return 0;
 }
@@ -1136,6 +1141,11 @@ int test611()
 	auto dfa_min = mini.Minimize(dfa);
 	write_dot(dfa_min, "test_611_min.dot");
 
+	MinimizationHopcroft<TDfa> minih;
+	auto dfa_min_ref = minih.Minimize(dfa);
+	write_dot(dfa_min_ref, "test_611_min_ref.dot");
+	assert(dfa_min.GetStates() == dfa_min_ref.GetStates());
+
 	return 0;
 }
 
@@ -1174,6 +1184,11 @@ int test612()
 	write_dot(dfa, "test_612.dot");
 	auto dfa_min = mini.Minimize(dfa);
 	write_dot(dfa_min, "test_612_min.dot");
+
+	MinimizationHopcroft<TDfa> minih;
+	auto dfa_min_ref = minih.Minimize(dfa);
+	write_dot(dfa_min_ref, "test_612_min_ref.dot");
+	assert(dfa_min.GetStates() == dfa_min_ref.GetStates());
 
 	return 0;
 }
@@ -1230,6 +1245,11 @@ int test613()
 	write_dot(dfa, "test_613.dot");
 	auto dfa_min = mini.Minimize(dfa);
 	write_dot(dfa_min, "test_613_min.dot");
+
+	MinimizationHopcroft<TDfa> minih;
+	auto dfa_min_ref = minih.Minimize(dfa);
+	write_dot(dfa_min_ref, "test_613_min_ref.dot");
+	assert(dfa_min.GetStates() == dfa_min_ref.GetStates());
 
 	return 0;
 }

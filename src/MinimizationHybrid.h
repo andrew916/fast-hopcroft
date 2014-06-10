@@ -92,7 +92,7 @@ private:
 	// Try splits all block partition using the splitter indicated by partition index and letter.
 	// If split is performed on specific block, it modifies two iterators in order to be able to continue
 	// iteration on next item inside original partition
-	void Split(const TDfa& dfa, NumericPartition& part, TState splitter_partition_idx, TSymbol splitter_letter, typename std::vector<std::list<TState>>::iterator cur_part, typename std::list<TState>::iterator& i_p, typename std::list<TState>::iterator& i_q) const
+	void Split(const TDfa& dfa, NumericPartition& part, TState splitter_partition_idx, TSymbol splitter_letter, typename std::vector<std::list<TState>>::iterator cur_part, typename std::list<TState>::iterator& i_p, typename std::list<TState>::iterator& i_q, bool* advanced) const
 	{
 		using namespace std;
 		
@@ -141,22 +141,12 @@ private:
 						{
 							i_p = j;
 							if (i_p != cur_part->end()) i_q = next(i_p, 1);
+							*advanced = true;
 						}
 						else if (k == i_q)
 						{
-							i_q = j;
-							if (i_q == cur_part->end())
-							{
-								i_p++;
-								if (i_p == k) i_p = j; // end
-								else {
-									i_q = next(i_p, 1);
-									if (i_q == k){
-										i_q = j; // end
-										i_p = j; // end
-									}
-								}
-							}
+							i_q = j;	
+							*advanced = true;
 						}
 						assert(i_p != k);
 						assert(i_q != k);
@@ -364,7 +354,7 @@ public:
 		BitSet<TPairIndex> tocheck((states*states - states) / 2);
 		vector<TSplitter> tocheck_stack;
 		vector<tuple<TState, TSymbol>> splitter_stack;
-
+				
 		for (auto cur_part = part.P.begin(); cur_part != next(part.P.begin(), part.new_index); cur_part++)
 		{
 			assert(cur_part->size() > 0);
@@ -373,14 +363,7 @@ public:
 			auto i_p = cur_part->begin();
 			auto i_q = next(i_p, 1);
 			while (i_p != cur_part->end() && i_q != cur_part->end())
-			{
-				if (ShowConfiguration)
-				{
-					cout << "pair: " << static_cast<size_t>(*i_p) << ", " << static_cast<size_t>(*i_q) << endl;
-					cout << "P=" << to_string(part) << endl;
-					cout << "ro=" << to_string(ro) << endl;
-				}
-
+			{				
 				assert(distance(i_p, i_q) > 0);
 
 				TState p, q;
@@ -390,65 +373,72 @@ public:
 				assert(dfa.IsFinal(p) == dfa.IsFinal(q));
 				assert(part.Find(p) == part.Find(q));
 
-				expl.Clear();
-				tocheck.Clear();
-				tocheck_stack.clear();
-				splitter_stack.clear();
-
-				int isEquiv = AreEquivalent(p, q, dfa, part, ro, expl, tocheck, tocheck_stack, splitter_stack);
-				if (ShowConfiguration)
+				bool splitAdvancedIterators = false;
+				if (ro.Find(p) != ro.Find(q))
 				{
-					switch (isEquiv)
+					if (ShowConfiguration)
 					{
-					case 0: cout << "NO" << endl; break;
-					case 1: cout << "YES" << endl; break;
-					default: cout << "BACKREF" << endl; break;
+						cout << "pair: " << *i_p << ", " << *i_q << endl;
+						cout << "P=" << to_string(part) << endl;
+						cout << "rho=" << to_string(ro) << endl;
 					}
-				}
-				if (isEquiv)
-				{
-					// merge equivalent states
-					TState t = Merge(ro, p, q);
-				}
-				for (auto ssi = splitter_stack.begin(); ssi != splitter_stack.end(); ssi++)
-				{
-					TState p; TSymbol a;
-					tie(p, a) = *ssi;
-					Split(dfa, part, p, a, cur_part, i_p, i_q);
-					if (ShowConfiguration) cout << "P=" << to_string(part) << endl;
-				}
-				if (ShowConfiguration) cout << "Begin resolve pending refs" << endl;
-				while (!tocheck_stack.empty())
-				{
-					TSplitter s = tocheck_stack.back();
-					tocheck_stack.pop_back();
 
-					TState s1 = get<0>(s);
-					TState s2 = get<1>(s);
-					TSymbol a = get<2>(s);
+					expl.Clear();
+					tocheck.Clear();
+					tocheck_stack.clear();
+					splitter_stack.clear();
 
-					TState p1 = part.Find(s1);
-					TState p2 = part.Find(s2);
-
-					if (p1 == p2)
+					int isEquiv = AreEquivalent(p, q, dfa, part, ro, expl, tocheck, tocheck_stack, splitter_stack);
+					if (isEquiv)
 					{
-						Merge(ro, s1, s2);
-					}
-					else
+						// merge equivalent states
+						TState t = Merge(ro, p, q);
+					}					
+					for (auto ssi = splitter_stack.begin(); ssi != splitter_stack.end(); ssi++)
 					{
-						TState min_part = part.P[p1].size() < part.P[p2].size() ? p1 : p2;
-						Split(dfa, part, min_part, a, cur_part, i_p, i_q);
+						TState p; TSymbol a;
+						tie(p, a) = *ssi;
+						Split(dfa, part, p, a, cur_part, i_p, i_q, &splitAdvancedIterators);
 						if (ShowConfiguration) cout << "P=" << to_string(part) << endl;
 					}
-				}
-				if (ShowConfiguration) cout << "Complete resolve pending refs" << endl;
+					if (ShowConfiguration) cout << "Begin resolve pending refs" << endl;
+					while (!tocheck_stack.empty())
+					{
+						TSplitter s = tocheck_stack.back();
+						tocheck_stack.pop_back();
 
-				// advance
-				if (i_q != cur_part->end())
-				{
-					i_p++;
+						TState s1 = get<0>(s);
+						TState s2 = get<1>(s);
+						TSymbol a = get<2>(s);
+
+						TState p1 = part.Find(s1);
+						TState p2 = part.Find(s2);
+
+						if (p1 == p2)
+						{
+							Merge(ro, s1, s2);
+						}
+						else
+						{
+							TState min_part = part.P[p1].size() < part.P[p2].size() ? p1 : p2;
+							Split(dfa, part, min_part, a, cur_part, i_p, i_q, &splitAdvancedIterators);
+							if (ShowConfiguration) cout << "P=" << to_string(part) << endl;
+						}
+					}
+					if (ShowConfiguration) cout << "Complete resolve pending refs" << endl;
+				}
+				// advance logic
+				if (!splitAdvancedIterators) {
 					i_q++;
 				}
+				if (i_q == cur_part->end()) // advance then is in the end?
+				{
+					i_q = ++i_p; // advance p
+					if (i_p != cur_part->end()) // p is safe?
+					{
+						i_q++; // set q to next one
+					}
+				}				
 			}
 		}
 		if (ShowConfiguration)
