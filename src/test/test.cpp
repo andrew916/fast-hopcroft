@@ -40,7 +40,7 @@ void write_dot(TFsa fsa, string filename)
 {
 	FsaGraphVizWriter<TFsa> writer;
 	ofstream s(filename);
-	if(!s.is_open()) 
+	if (!s.is_open())
 	{
 		throw invalid_argument("El archivo no pudo ser abierto");
 	}
@@ -53,7 +53,7 @@ void write_text(TFsa fsa, string filename)
 {
 	FsaPlainTextWriter<TFsa> writer;
 	ofstream s(filename);
-	if(!s.is_open()) 
+	if (!s.is_open())
 	{
 		throw invalid_argument("El archivo no pudo ser abierto");
 	}
@@ -68,11 +68,11 @@ void write_dfa_info(const TDfa& dfa)
 	typedef typename TDfa::TSymbol TSymbol;
 	// Transitions
 	cout << "Transitions" << endl;
-	for(TState s=0; s<dfa.GetStates(); s++)
+	for (TState s = 0; s < dfa.GetStates(); s++)
 	{
 		size_t state = static_cast<size_t>(s);
 		cout << state << " | ";
-		for(TSymbol a=0; a<dfa.GetAlphabetLength(); a++)
+		for (TSymbol a = 0; a < dfa.GetAlphabetLength(); a++)
 		{
 			TState tgt = dfa.GetSuccessor(s, a);
 			size_t target = static_cast<size_t>(tgt);
@@ -83,24 +83,24 @@ void write_dfa_info(const TDfa& dfa)
 	}
 	cout << endl;
 	cout << "Inverse delta" << endl;
-	for(TState s=0; s<dfa.GetStates(); s++)
+	for (TState s = 0; s < dfa.GetStates(); s++)
 	{
 		size_t state = static_cast<size_t>(s);
 		cout << state << " | ";
-		for(TSymbol a=0; a<dfa.GetAlphabetLength(); a++)
+		for (TSymbol a = 0; a<dfa.GetAlphabetLength(); a++)
 		{
 			auto pred = dfa.GetPredecessors(s, a);
 			int cont = 0;
 			cout << "{";
-			for(auto i=pred.GetIterator(); !i.IsEnd(); i.MoveNext())
+			for (auto i = pred.GetIterator(); !i.IsEnd(); i.MoveNext())
 			{
-				if(cont++ > 0) cout << ",";
+				if (cont++ > 0) cout << ",";
 				size_t target = static_cast<size_t>(i.GetCurrent());
 				cout << target;
-			}			
+			}
 			cout << "}";
 			cont -= 3 + cont;
-			while(cont++ < dfa.GetStates()) cout << " "; // padding			
+			while (cont++ < dfa.GetStates()) cout << " "; // padding			
 		}
 		cout << endl;
 	}
@@ -112,7 +112,7 @@ TFsa read_text(const string& filename)
 {
 	FsaPlainTextReader<TFsa> reader;
 	ifstream fsa_input(filename);
-	if(!fsa_input.is_open()) throw logic_error("file could not be opened");
+	if (!fsa_input.is_open()) throw logic_error("file could not be opened");
 	auto fsa = reader.Read(fsa_input);
 	fsa_input.close();
 	return fsa;
@@ -123,13 +123,13 @@ TFsa read_text_one_based(const string& filename)
 {
 	FsaPlainTextReaderOneBased<TFsa> reader;
 	ifstream fsa_input(filename);
-	if(!fsa_input.is_open()) throw logic_error("file could not be opened");
+	if (!fsa_input.is_open()) throw logic_error("file could not be opened");
 	auto fsa = reader.Read(fsa_input);
 	fsa_input.close();
 	return fsa;
 }
 
-template<typename TFsa> 
+template<typename TFsa>
 void begin_read_text_almeida(ifstream& fsa_input, const string& filename, typename TFsa::TState* n, typename TFsa::TSymbol* k)
 {
 	// format "n<number>k<number>" skip ".n"
@@ -141,8 +141,8 @@ void begin_read_text_almeida(ifstream& fsa_input, const string& filename, typena
 	*k = boost::lexical_cast<typename TFsa::TSymbol>(vc[1]);
 	AlmeidaPlainTextReader<TFsa> reader(*n, *k);
 
-	if(!fsa_input.is_open()) throw logic_error("file could not be opened");
-	reader.ReadHeader(fsa_input);	
+	if (!fsa_input.is_open()) throw logic_error("file could not be opened");
+	reader.ReadHeader(fsa_input);
 }
 
 template<typename TFsa>
@@ -155,17 +155,17 @@ TFsa read_text_almeida(istream& fsa_input, typename TFsa::TState states, typenam
 // Tests Hopcroft 100-199
 
 int test100()
-{	
+{
 	cout << "Esta prueba minimiza un automata sencillo usando Hopcroft y escribe el resultado en un archivo test1.dot" << endl;
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHopcroft<TDfa> mini;	
+	MinimizationHopcroft<TDfa> mini;
 	TDfa dfa(2, 4);
 
 	//   / 2 \
-	// 0 - 1 - 3
+		// 0 - 1 - 3
 	dfa.SetInitial(0);
 	dfa.SetFinal(3);
 
@@ -182,7 +182,7 @@ int test100()
 	dfa.SetTransition(3, 1, 3);
 
 	MinimizationHopcroft<TDfa>::NumericPartition out_partitions;
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	mini.Minimize(dfa, out_partitions);
 
 	// asegura que la cantidad de estados al final es menor
@@ -200,8 +200,8 @@ int test101()
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	typedef Dfa<TState,TSymbol> TDfa;
-	MinimizationHopcroft<TDfa> mini;	
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationHopcroft<TDfa> mini;
 	//    / 1 - 3
 	//  0
 	//    \ 2 - 4
@@ -227,7 +227,7 @@ int test101()
 	dfa.SetTransition(4, 1, 4);
 
 	MinimizationHopcroft<TDfa>::NumericPartition out_partitions;
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	mini.Minimize(dfa, out_partitions);
 
 	// asegura que la cantidad de estados al final es menor
@@ -246,13 +246,13 @@ int test102()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHopcroft<TDfa> mini;	
+	MinimizationHopcroft<TDfa> mini;
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /
 	//   1 -3 - 6 - 9  - 12
 	//    \
-	//      4 - 7 - 10 - 13
+		//      4 - 7 - 10 - 13
 	TDfa dfa(3, 14);
 
 	dfa.SetInitial(1);
@@ -277,7 +277,7 @@ int test102()
 	dfa.SetTransition(10, 2, 13);
 
 	MinimizationHopcroft<TDfa>::NumericPartition out_partitions;
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	mini.Minimize(dfa, out_partitions);
 
 	// asegura que la cantidad de estados al final es menor
@@ -296,13 +296,13 @@ int test103()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHopcroft<TDfa> mini;	
+	MinimizationHopcroft<TDfa> mini;
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /       \   /
 	//   1 -3 - 6 - 9  - 12
 	//    \       \   \
-	//      4 - 7 - 10 - 13
+		//      4 - 7 - 10 - 13
 	Dfa<TState, TSymbol> dfa(3, 14);
 
 	dfa.SetInitial(1);
@@ -318,9 +318,9 @@ int test103()
 	dfa.SetTransition(3, 0, 6);
 	dfa.SetTransition(4, 0, 7);
 
-	dfa.SetTransition(5, 0, 8);		
-	dfa.SetTransition(5, 1, 9);		
-	dfa.SetTransition(5, 2, 9);		
+	dfa.SetTransition(5, 0, 8);
+	dfa.SetTransition(5, 1, 9);
+	dfa.SetTransition(5, 2, 9);
 
 	dfa.SetTransition(6, 1, 9);
 	dfa.SetTransition(6, 0, 10);
@@ -343,7 +343,7 @@ int test103()
 	dfa.SetTransition(10, 2, 13);
 
 	MinimizationHopcroft<TDfa>::NumericPartition out_partitions;
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	mini.Minimize(dfa, out_partitions);
 
 	// asegura que la cantidad de estados al final es menor
@@ -362,7 +362,7 @@ int test104()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHopcroft<TDfa> mini;	
+	MinimizationHopcroft<TDfa> mini;
 	MinimizationHopcroft<TDfa>::NumericPartition np;
 	FsaFormatReader<TDfa> parser;
 	vector<string> files;
@@ -438,14 +438,14 @@ int test104()
 	files.push_back("afd\\009_n16384k2.afd");
 
 	ifstream afd;
-	ofstream report ("report.txt");
-	Dfa<uint16_t, uint8_t> dfa(0,0);
+	ofstream report("report.txt");
+	Dfa<uint16_t, uint8_t> dfa(0, 0);
 	mini.ShowConfiguration = false;
 
-	for(auto filename : files) 
+	for (auto filename : files)
 	{
 		afd.open(filename);
-		if(afd.fail())  
+		if (afd.fail())
 		{
 			cout << "No se pudo abrir el archivo: " << filename << endl;
 			cout << endl;
@@ -481,17 +481,17 @@ int test104()
 // Tests Brzozowski 200-299
 
 int test200()
-{	
+{
 	cout << "Esta prueba minimiza un automata sencillo usando Brzozowski y escribe el resultado en un archivo test6.dot" << endl;
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Nfa<TState, TSymbol> TDfa;
-	MinimizationBrzozowski<TDfa> mini;	
+	MinimizationBrzozowski<TDfa> mini;
 	TDfa dfa(2, 4);
 
 	//   / 2 \
-	// 0 - 1 - 3
+		// 0 - 1 - 3
 	dfa.SetInitial(0);
 	dfa.SetFinal(3);
 
@@ -524,9 +524,9 @@ int test201()
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	typedef Nfa<TState,TSymbol> TNfa;
-	typedef Dfa<TState,TSymbol> TDfa;
-	MinimizationBrzozowski<TNfa, TDfa> mini;	
+	typedef Nfa<TState, TSymbol> TNfa;
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationBrzozowski<TNfa, TDfa> mini;
 	//    / 1 - 3
 	//  0
 	//    \ 2 - 4
@@ -569,14 +569,14 @@ int test202()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	typedef Nfa<TState,TSymbol> TNfa;
-	MinimizationBrzozowski<TNfa, TDfa> mini;	
+	typedef Nfa<TState, TSymbol> TNfa;
+	MinimizationBrzozowski<TNfa, TDfa> mini;
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /
 	//   1 -3 - 6 - 9  - 12
 	//    \
-	//      4 - 7 - 10 - 13
+		//      4 - 7 - 10 - 13
 	TNfa dfa(3, 14);
 
 	dfa.SetInitial(1);
@@ -618,14 +618,14 @@ int test203()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	typedef Nfa<TState,TSymbol> TNfa;
-	MinimizationBrzozowski<TNfa, TDfa> mini;	
+	typedef Nfa<TState, TSymbol> TNfa;
+	MinimizationBrzozowski<TNfa, TDfa> mini;
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /       \   /
 	//   1 -3 - 6 - 9  - 12
 	//    \       \   \
-	//      4 - 7 - 10 - 13
+		//      4 - 7 - 10 - 13
 	TNfa dfa(3, 14);
 
 	dfa.SetInitial(1);
@@ -641,9 +641,9 @@ int test203()
 	dfa.SetTransition(3, 0, 6);
 	dfa.SetTransition(4, 0, 7);
 
-	dfa.SetTransition(5, 0, 8);		
-	dfa.SetTransition(5, 1, 9);		
-	dfa.SetTransition(5, 2, 9);		
+	dfa.SetTransition(5, 0, 8);
+	dfa.SetTransition(5, 1, 9);
+	dfa.SetTransition(5, 2, 9);
 
 	dfa.SetTransition(6, 1, 9);
 	dfa.SetTransition(6, 0, 10);
@@ -679,17 +679,17 @@ int test203()
 // Tests Incremental 300-399
 
 int test300()
-{	
+{
 	cout << "Esta prueba minimiza un automata sencillo usando Incremental y escribe el resultado en un archivo test6.dot" << endl;
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationIncremental<TDfa> mini;	
+	MinimizationIncremental<TDfa> mini;
 	TDfa dfa(2, 4);
 
 	//   / 2 \
-	// 0 - 1 - 3
+		// 0 - 1 - 3
 	dfa.SetInitial(0);
 	dfa.SetFinal(3);
 
@@ -705,7 +705,7 @@ int test300()
 	dfa.SetTransition(3, 0, 3);
 	dfa.SetTransition(3, 1, 3);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	auto dfa_min = mini.Minimize(dfa);
 
 	// asegura que la cantidad de estados al final es menor
@@ -723,8 +723,8 @@ int test301()
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	typedef Dfa<TState,TSymbol> TDfa;
-	MinimizationIncremental<TDfa> mini;	
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationIncremental<TDfa> mini;
 	//    / 1 - 3
 	//  0
 	//    \ 2 - 4
@@ -749,7 +749,7 @@ int test301()
 	dfa.SetTransition(4, 0, 4);
 	dfa.SetTransition(4, 1, 4);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	TDfa dfa_min = mini.Minimize(dfa);
 
 	// asegura que la cantidad de estados al final es menor
@@ -766,8 +766,8 @@ int test310()
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	typedef Dfa<TState,TSymbol> TDfa;
-	MinimizationIncremental<TDfa> mini;	
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationIncremental<TDfa> mini;
 	TDfa dfa(2, 10);
 
 	dfa.SetInitial(0);
@@ -778,28 +778,28 @@ int test310()
 	dfa.SetFinal(5);
 	dfa.SetFinal(6);
 
-	dfa.SetTransition(0,0,1);
-	dfa.SetTransition(0,1,2);
-	dfa.SetTransition(1,0,3);
-	dfa.SetTransition(1,1,4);
-	dfa.SetTransition(2,0,5);
-	dfa.SetTransition(2,1,4);
-	dfa.SetTransition(3,0,3);
-	dfa.SetTransition(3,1,1);
-	dfa.SetTransition(4,0,6);
-	dfa.SetTransition(4,1,2);
-	dfa.SetTransition(5,0,7);
-	dfa.SetTransition(5,1,2);
-	dfa.SetTransition(6,0,3);
-	dfa.SetTransition(6,1,8);
-	dfa.SetTransition(7,0,7);
-	dfa.SetTransition(7,1,7);
-	dfa.SetTransition(8,0,6);
-	dfa.SetTransition(8,1,9);
-	dfa.SetTransition(9,0,7);
-	dfa.SetTransition(9,1,9);
+	dfa.SetTransition(0, 0, 1);
+	dfa.SetTransition(0, 1, 2);
+	dfa.SetTransition(1, 0, 3);
+	dfa.SetTransition(1, 1, 4);
+	dfa.SetTransition(2, 0, 5);
+	dfa.SetTransition(2, 1, 4);
+	dfa.SetTransition(3, 0, 3);
+	dfa.SetTransition(3, 1, 1);
+	dfa.SetTransition(4, 0, 6);
+	dfa.SetTransition(4, 1, 2);
+	dfa.SetTransition(5, 0, 7);
+	dfa.SetTransition(5, 1, 2);
+	dfa.SetTransition(6, 0, 3);
+	dfa.SetTransition(6, 1, 8);
+	dfa.SetTransition(7, 0, 7);
+	dfa.SetTransition(7, 1, 7);
+	dfa.SetTransition(8, 0, 6);
+	dfa.SetTransition(8, 1, 9);
+	dfa.SetTransition(9, 0, 7);
+	dfa.SetTransition(9, 1, 9);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	auto dfa_min = mini.Minimize(dfa);
 
 	write_dot(dfa, "test_310.dot");
@@ -815,13 +815,13 @@ int test302()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationIncremental<TDfa> mini;	
+	MinimizationIncremental<TDfa> mini;
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /
 	//   1 -3 - 6 - 9  - 12
 	//    \
-	//      4 - 7 - 10 - 13
+		//      4 - 7 - 10 - 13
 	TDfa dfa(3, 14);
 
 	dfa.SetInitial(1);
@@ -845,7 +845,7 @@ int test302()
 	dfa.SetTransition(9, 1, 12);
 	dfa.SetTransition(10, 2, 13);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	auto dfa_min = mini.Minimize(dfa);
 
 	write_dot(dfa, "test_302.dot");
@@ -867,13 +867,13 @@ int test303()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationIncremental<TDfa> mini;	
+	MinimizationIncremental<TDfa> mini;
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /       \   /
 	//   1 -3 - 6 - 9  - 12
 	//    \       \   \
-	//      4 - 7 - 10 - 13
+		//      4 - 7 - 10 - 13
 	TDfa dfa(3, 14);
 
 	dfa.SetInitial(1);
@@ -889,9 +889,9 @@ int test303()
 	dfa.SetTransition(3, 0, 6);
 	dfa.SetTransition(4, 0, 7);
 
-	dfa.SetTransition(5, 0, 8);		
-	dfa.SetTransition(5, 1, 9);		
-	dfa.SetTransition(5, 2, 9);		
+	dfa.SetTransition(5, 0, 8);
+	dfa.SetTransition(5, 1, 9);
+	dfa.SetTransition(5, 2, 9);
 
 	dfa.SetTransition(6, 1, 9);
 	dfa.SetTransition(6, 0, 10);
@@ -913,7 +913,7 @@ int test303()
 	dfa.SetTransition(10, 1, 13);
 	dfa.SetTransition(10, 2, 13);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	auto dfa_min = mini.Minimize(dfa);
 
 	// asegura que la cantidad de estados al final es menor
@@ -928,17 +928,17 @@ int test303()
 // Test Hybrid 600-699
 
 int test600()
-{	
+{
 	cout << "Esta prueba minimiza un automata sencillo usando Hybrid y escribe el resultado en un archivo test6.dot" << endl;
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHybrid<TDfa> mini;	
+	MinimizationHybrid<TDfa> mini;
 	TDfa dfa(2, 4);
 
 	//   / 2 \
-	// 0 - 1 - 3
+		// 0 - 1 - 3
 	dfa.SetInitial(0);
 	dfa.SetFinal(3);
 
@@ -954,7 +954,7 @@ int test600()
 	dfa.SetTransition(3, 0, 3);
 	dfa.SetTransition(3, 1, 3);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	auto dfa_min = mini.Minimize(dfa);
 
 	// asegura que la cantidad de estados al final es menor
@@ -972,8 +972,8 @@ int test601()
 
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
-	typedef Dfa<TState,TSymbol> TDfa;
-	MinimizationHybrid<TDfa> mini;	
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;
 	//    / 1 - 3
 	//  0
 	//    \ 2 - 4
@@ -998,7 +998,7 @@ int test601()
 	dfa.SetTransition(4, 0, 4);
 	dfa.SetTransition(4, 1, 4);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	TDfa dfa_min = mini.Minimize(dfa);
 
 	// asegura que la cantidad de estados al final es menor
@@ -1014,8 +1014,8 @@ int test610()
 {
 	typedef uint16_t TState;
 	typedef uint16_t TSymbol;
-	typedef Dfa<TState,TSymbol> TDfa;
-	MinimizationHybrid<TDfa> mini;	
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;
 	TDfa dfa(2, 10);
 
 	dfa.SetInitial(0);
@@ -1026,28 +1026,28 @@ int test610()
 	dfa.SetFinal(5);
 	dfa.SetFinal(6);
 
-	dfa.SetTransition(0,0,1);
-	dfa.SetTransition(0,1,2);
-	dfa.SetTransition(1,0,3);
-	dfa.SetTransition(1,1,4);
-	dfa.SetTransition(2,0,5);
-	dfa.SetTransition(2,1,4);
-	dfa.SetTransition(3,0,3);
-	dfa.SetTransition(3,1,1);
-	dfa.SetTransition(4,0,6);
-	dfa.SetTransition(4,1,2);
-	dfa.SetTransition(5,0,7);
-	dfa.SetTransition(5,1,2);
-	dfa.SetTransition(6,0,3);
-	dfa.SetTransition(6,1,8);
-	dfa.SetTransition(7,0,7);
-	dfa.SetTransition(7,1,7);
-	dfa.SetTransition(8,0,6);
-	dfa.SetTransition(8,1,9);
-	dfa.SetTransition(9,0,7);
-	dfa.SetTransition(9,1,9);
+	dfa.SetTransition(0, 0, 1);
+	dfa.SetTransition(0, 1, 2);
+	dfa.SetTransition(1, 0, 3);
+	dfa.SetTransition(1, 1, 4);
+	dfa.SetTransition(2, 0, 5);
+	dfa.SetTransition(2, 1, 4);
+	dfa.SetTransition(3, 0, 3);
+	dfa.SetTransition(3, 1, 1);
+	dfa.SetTransition(4, 0, 6);
+	dfa.SetTransition(4, 1, 2);
+	dfa.SetTransition(5, 0, 7);
+	dfa.SetTransition(5, 1, 2);
+	dfa.SetTransition(6, 0, 3);
+	dfa.SetTransition(6, 1, 8);
+	dfa.SetTransition(7, 0, 7);
+	dfa.SetTransition(7, 1, 7);
+	dfa.SetTransition(8, 0, 6);
+	dfa.SetTransition(8, 1, 9);
+	dfa.SetTransition(9, 0, 7);
+	dfa.SetTransition(9, 1, 9);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	write_dot(dfa, "test_610.dot");
 	auto dfa_min = mini.Minimize(dfa);
 	write_dot(dfa_min, "test_610_min.dot");
@@ -1068,21 +1068,21 @@ int test611()
   <- 1 |10  3  4
   <- 2 | 5  4  7
   <- 3 | 3  1  7
-     4 | 6  2  7
+  4 | 6  2  7
   <- 5 | 7  2  7
   <- 6 |11  3  8
- 	 7 | 7  7  7
-	 8 | 6  9  7
-     9 | 7  9  7
-    10 |12 12 12
-	11 |13 13 13
-	12 | 1  1  1
-	13 | 6  6  6
-	*/
+  7 | 7  7  7
+  8 | 6  9  7
+  9 | 7  9  7
+  10 |12 12 12
+  11 |13 13 13
+  12 | 1  1  1
+  13 | 6  6  6
+  */
 	typedef uint16_t TState;
 	typedef uint16_t TSymbol;
-	typedef Dfa<TState,TSymbol> TDfa;
-	MinimizationHybrid<TDfa> mini;	
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;
 	TDfa dfa(3, 14);
 
 	dfa.SetInitial(0);
@@ -1093,50 +1093,50 @@ int test611()
 	dfa.SetFinal(5);
 	dfa.SetFinal(6);
 
-	dfa.SetTransition(0,0,1);
-	dfa.SetTransition(0,1,2);
-	dfa.SetTransition(0,2,7);
-	dfa.SetTransition(1,0,10);
-	dfa.SetTransition(1,1,3);
-	dfa.SetTransition(1,2,4);
-	dfa.SetTransition(2,0,5);
-	dfa.SetTransition(2,1,4);
-	dfa.SetTransition(2,2,7);
-	dfa.SetTransition(3,0,3);
-	dfa.SetTransition(3,1,1);
-	dfa.SetTransition(3,2,7);
-	dfa.SetTransition(4,0,6);
-	dfa.SetTransition(4,1,2);
-	dfa.SetTransition(4,2,7);
-	dfa.SetTransition(5,0,7);
-	dfa.SetTransition(5,1,2);
-	dfa.SetTransition(5,2,7);
-	dfa.SetTransition(6,0,11);
-	dfa.SetTransition(6,1,3);
-	dfa.SetTransition(6,2,8);
-	dfa.SetTransition(7,0,7);
-	dfa.SetTransition(7,1,7);
-	dfa.SetTransition(7,2,7);
-	dfa.SetTransition(8,0,6);
-	dfa.SetTransition(8,1,9);
-	dfa.SetTransition(8,2,7);
-	dfa.SetTransition(9,0,7);
-	dfa.SetTransition(9,1,9);
-	dfa.SetTransition(9,2,7);
-	dfa.SetTransition(10,0,12);
-	dfa.SetTransition(10,1,12);
-	dfa.SetTransition(10,2,12);
-	dfa.SetTransition(11,0,13);
-	dfa.SetTransition(11,1,13);
-	dfa.SetTransition(11,2,13);
-	dfa.SetTransition(12,0,1);
-	dfa.SetTransition(12,1,1);
-	dfa.SetTransition(12,2,1);
-	dfa.SetTransition(13,0,6);
-	dfa.SetTransition(13,1,6);
-	dfa.SetTransition(13,2,6);
+	dfa.SetTransition(0, 0, 1);
+	dfa.SetTransition(0, 1, 2);
+	dfa.SetTransition(0, 2, 7);
+	dfa.SetTransition(1, 0, 10);
+	dfa.SetTransition(1, 1, 3);
+	dfa.SetTransition(1, 2, 4);
+	dfa.SetTransition(2, 0, 5);
+	dfa.SetTransition(2, 1, 4);
+	dfa.SetTransition(2, 2, 7);
+	dfa.SetTransition(3, 0, 3);
+	dfa.SetTransition(3, 1, 1);
+	dfa.SetTransition(3, 2, 7);
+	dfa.SetTransition(4, 0, 6);
+	dfa.SetTransition(4, 1, 2);
+	dfa.SetTransition(4, 2, 7);
+	dfa.SetTransition(5, 0, 7);
+	dfa.SetTransition(5, 1, 2);
+	dfa.SetTransition(5, 2, 7);
+	dfa.SetTransition(6, 0, 11);
+	dfa.SetTransition(6, 1, 3);
+	dfa.SetTransition(6, 2, 8);
+	dfa.SetTransition(7, 0, 7);
+	dfa.SetTransition(7, 1, 7);
+	dfa.SetTransition(7, 2, 7);
+	dfa.SetTransition(8, 0, 6);
+	dfa.SetTransition(8, 1, 9);
+	dfa.SetTransition(8, 2, 7);
+	dfa.SetTransition(9, 0, 7);
+	dfa.SetTransition(9, 1, 9);
+	dfa.SetTransition(9, 2, 7);
+	dfa.SetTransition(10, 0, 12);
+	dfa.SetTransition(10, 1, 12);
+	dfa.SetTransition(10, 2, 12);
+	dfa.SetTransition(11, 0, 13);
+	dfa.SetTransition(11, 1, 13);
+	dfa.SetTransition(11, 2, 13);
+	dfa.SetTransition(12, 0, 1);
+	dfa.SetTransition(12, 1, 1);
+	dfa.SetTransition(12, 2, 1);
+	dfa.SetTransition(13, 0, 6);
+	dfa.SetTransition(13, 1, 6);
+	dfa.SetTransition(13, 2, 6);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	write_dot(dfa, "test_611.dot");
 	auto dfa_min = mini.Minimize(dfa);
 	write_dot(dfa_min, "test_611_min.dot");
@@ -1154,33 +1154,33 @@ int test612()
 {
 	/*
  -> 0 | 1  2
-	1 | 3  4
+ 1 | 3  4
  <- 2 | 4  3
-	3 | 1  3
-	4 | 4  1
-	*/
+ 3 | 1  3
+ 4 | 4  1
+ */
 	typedef uint16_t TState;
 	typedef uint16_t TSymbol;
-	typedef Dfa<TState,TSymbol> TDfa;
-	MinimizationHybrid<TDfa> mini;	
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;
 	TDfa dfa(2, 5);
 
 	dfa.SetInitial(0);
 
 	dfa.SetFinal(2);
 
-	dfa.SetTransition(0,0,1);
-	dfa.SetTransition(0,1,2);
-	dfa.SetTransition(1,0,3);
-	dfa.SetTransition(1,1,4);
-	dfa.SetTransition(2,0,4);
-	dfa.SetTransition(2,1,3);
-	dfa.SetTransition(3,0,1);
-	dfa.SetTransition(3,1,3);
-	dfa.SetTransition(4,0,4);
-	dfa.SetTransition(4,1,1);
+	dfa.SetTransition(0, 0, 1);
+	dfa.SetTransition(0, 1, 2);
+	dfa.SetTransition(1, 0, 3);
+	dfa.SetTransition(1, 1, 4);
+	dfa.SetTransition(2, 0, 4);
+	dfa.SetTransition(2, 1, 3);
+	dfa.SetTransition(3, 0, 1);
+	dfa.SetTransition(3, 1, 3);
+	dfa.SetTransition(4, 0, 4);
+	dfa.SetTransition(4, 1, 1);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	write_dot(dfa, "test_612.dot");
 	auto dfa_min = mini.Minimize(dfa);
 	write_dot(dfa_min, "test_612_min.dot");
@@ -1193,26 +1193,26 @@ int test612()
 	return 0;
 }
 
-   
+
 int test613()
 {
 	/*
 ->  0 |  1   2
-    1 |  3   4
+1 |  3   4
 <-  2 |  5   9
-    3 |  1   3
-    4 |  4   1
-    5 |  7   8 
-<-  6 |  8   7 
-    7 |  5   7
-    8 |  8   5
-    9 |  7   6
-	*/
+3 |  1   3
+4 |  4   1
+5 |  7   8
+<-  6 |  8   7
+7 |  5   7
+8 |  8   5
+9 |  7   6
+*/
 
 	typedef uint16_t TState;
 	typedef uint16_t TSymbol;
-	typedef Dfa<TState,TSymbol> TDfa;
-	MinimizationHybrid<TDfa> mini;	
+	typedef Dfa<TState, TSymbol> TDfa;
+	MinimizationHybrid<TDfa> mini;
 	TDfa dfa(2, 10);
 
 	dfa.SetInitial(0);
@@ -1220,28 +1220,28 @@ int test613()
 	dfa.SetFinal(2);
 	dfa.SetFinal(6);
 
-	dfa.SetTransition(0,0,1);
-	dfa.SetTransition(0,1,2);
-	dfa.SetTransition(1,0,3);
-	dfa.SetTransition(1,1,4);
-	dfa.SetTransition(2,0,5);
-	dfa.SetTransition(2,1,9);
-	dfa.SetTransition(3,0,1);
-	dfa.SetTransition(3,1,3);
-	dfa.SetTransition(4,0,4);
-	dfa.SetTransition(4,1,1);
-	dfa.SetTransition(5,0,7);
-	dfa.SetTransition(5,1,8);
-	dfa.SetTransition(6,0,8);
-	dfa.SetTransition(6,1,7);
-	dfa.SetTransition(7,0,5);
-	dfa.SetTransition(7,1,7);
-	dfa.SetTransition(8,0,8);
-	dfa.SetTransition(8,1,5);
-	dfa.SetTransition(9,0,7);
-	dfa.SetTransition(9,1,6);
+	dfa.SetTransition(0, 0, 1);
+	dfa.SetTransition(0, 1, 2);
+	dfa.SetTransition(1, 0, 3);
+	dfa.SetTransition(1, 1, 4);
+	dfa.SetTransition(2, 0, 5);
+	dfa.SetTransition(2, 1, 9);
+	dfa.SetTransition(3, 0, 1);
+	dfa.SetTransition(3, 1, 3);
+	dfa.SetTransition(4, 0, 4);
+	dfa.SetTransition(4, 1, 1);
+	dfa.SetTransition(5, 0, 7);
+	dfa.SetTransition(5, 1, 8);
+	dfa.SetTransition(6, 0, 8);
+	dfa.SetTransition(6, 1, 7);
+	dfa.SetTransition(7, 0, 5);
+	dfa.SetTransition(7, 1, 7);
+	dfa.SetTransition(8, 0, 8);
+	dfa.SetTransition(8, 1, 5);
+	dfa.SetTransition(9, 0, 7);
+	dfa.SetTransition(9, 1, 6);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	write_dot(dfa, "test_613.dot");
 	auto dfa_min = mini.Minimize(dfa);
 	write_dot(dfa_min, "test_613_min.dot");
@@ -1261,13 +1261,13 @@ int test602()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHybrid<TDfa> mini;	
+	MinimizationHybrid<TDfa> mini;
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /
 	//   1 -3 - 6 - 9  - 12
 	//    \
-	//      4 - 7 - 10 - 13
+		//      4 - 7 - 10 - 13
 	TDfa dfa(3, 14);
 
 	dfa.SetInitial(1);
@@ -1291,7 +1291,7 @@ int test602()
 	dfa.SetTransition(9, 1, 12);
 	dfa.SetTransition(10, 2, 13);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	auto dfa_min = mini.Minimize(dfa);
 
 	write_dot(dfa, "test_302.dot");
@@ -1313,13 +1313,13 @@ int test603()
 	typedef uint16_t TState;
 	typedef uint8_t TSymbol;
 	typedef Dfa<TState, TSymbol> TDfa;
-	MinimizationHybrid<TDfa> mini;	
+	MinimizationHybrid<TDfa> mini;
 	// uses zero as invisible null-sink state
 	//      2 - 5 - 8  - 11
 	//    /       \   /
 	//   1 -3 - 6 - 9  - 12
 	//    \       \   \
-	//      4 - 7 - 10 - 13
+		//      4 - 7 - 10 - 13
 	TDfa dfa(3, 14);
 
 	dfa.SetInitial(1);
@@ -1335,9 +1335,9 @@ int test603()
 	dfa.SetTransition(3, 0, 6);
 	dfa.SetTransition(4, 0, 7);
 
-	dfa.SetTransition(5, 0, 8);		
-	dfa.SetTransition(5, 1, 9);		
-	dfa.SetTransition(5, 2, 9);		
+	dfa.SetTransition(5, 0, 8);
+	dfa.SetTransition(5, 1, 9);
+	dfa.SetTransition(5, 2, 9);
 
 	dfa.SetTransition(6, 1, 9);
 	dfa.SetTransition(6, 0, 10);
@@ -1359,7 +1359,7 @@ int test603()
 	dfa.SetTransition(10, 1, 13);
 	dfa.SetTransition(10, 2, 13);
 
-	mini.ShowConfiguration=true;
+	mini.ShowConfiguration = true;
 	auto dfa_min = mini.Minimize(dfa);
 
 	// asegura que la cantidad de estados al final es menor
@@ -1389,13 +1389,13 @@ int test400()
 	report << "nfa_nQ,dfa_nQ,min_nQ,alpha,density,filename,t_wall,t_user,t_system" << endl;
 
 
-	for(int states=10; states<30; states*=2)
+	for (int states = 10; states < 30; states *= 2)
 	{
-		for(int symbols=2; symbols<9; symbols*=2)
-		{	
-			for(int redundancy=0; redundancy<100; redundancy++)
+		for (int symbols = 2; symbols < 9; symbols *= 2)
+		{
+			for (int redundancy = 0; redundancy < 100; redundancy++)
 			{
-				for(float density=0.005f; density<0.16f; density *= 2.0f) 
+				for (float density = 0.005f; density < 0.16f; density *= 2.0f)
 				{
 					auto filename1 = format("nfa\\nfa_n%1%_a%2%_d%3%_r%4%") % states % symbols % density % redundancy;
 					auto filename = filename1.str();
@@ -1418,7 +1418,7 @@ int test400()
 					mini.Minimize(dfa, part);
 					timer.stop();
 
-					auto fmt = format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%") 
+					auto fmt = format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%")
 						% states					// 1
 						% dfa.GetStates()			// 2
 						% part.GetSize()			// 3
@@ -1507,20 +1507,20 @@ int test401()
 		return -1;
 	}
 
-	if(show_help)
+	if (show_help)
 	{
 		cout << opt_desc << endl;
 		return 0;
 	}
-	if(enable_all) hopcroft_enable = incremental_enable = hybrid_enable = atomic_enable = true; 
-	else if(!hopcroft_enable && !incremental_enable && !hybrid_enable) throw invalid_option_value("None algorithm enabled");
+	if (enable_all) hopcroft_enable = incremental_enable = hybrid_enable = atomic_enable = true;
+	else if (!hopcroft_enable && !incremental_enable && !hybrid_enable) throw invalid_option_value("None algorithm enabled");
 
-	if(redundancy == 0) throw invalid_option_value("Invalid redundancy");
-	if(max_density > 1.0f) throw invalid_option_value("Invalid max density");
-	if(min_density < 0.0f) throw invalid_option_value("Invalid min density");	
-	if(step_density < 0.0f || step_density>1.0f) throw invalid_option_value("Invalid step density");
-	if(max_density < min_density) throw invalid_option_value("max density must be greater than min density");
-	if(hoproft_verbose || hybrid_verbose || incremental_verbose) cout << "WARNING: Verbosity affects time measurements" << endl;
+	if (redundancy == 0) throw invalid_option_value("Invalid redundancy");
+	if (max_density > 1.0f) throw invalid_option_value("Invalid max density");
+	if (min_density < 0.0f) throw invalid_option_value("Invalid min density");
+	if (step_density < 0.0f || step_density>1.0f) throw invalid_option_value("Invalid step density");
+	if (max_density < min_density) throw invalid_option_value("max density must be greater than min density");
+	if (hoproft_verbose || hybrid_verbose || incremental_verbose) cout << "WARNING: Verbosity affects time measurements" << endl;
 
 	Determinization<TDfa, TNfa> determ;
 	NfaGenerator<TNfa, mt19937> nfagen;
@@ -1544,28 +1544,28 @@ int test401()
 
 	mt19937 rgen(seed);
 	ofstream report(output_file);
-	if(!report.is_open()) throw invalid_argument("No se pudo abrir el archivo");
+	if (!report.is_open()) throw invalid_argument("No se pudo abrir el archivo");
 
 	report << "states,alpha,d,fd,states_dfa,t_h,c_h,t_i,c_i,t_hi,c_hi" << endl;
 
-	for(TSymbol alpha : alphas)
-		for(TState states : states_set)
-			for(float d=min_density; d<max_density; d+=step_density)
-				for(float finals_density : finals_densities)
-					for(int i=0; i<50; i++)
+	for (TSymbol alpha : alphas)
+		for (TState states : states_set)
+			for (float d = min_density; d < max_density; d += step_density)
+				for (float finals_density : finals_densities)
+					for (int i = 0; i < 50; i++)
 					{
 						float den = d;
-						cout << "states: "<< states << " alpha: " << alpha << " d:" << d << " i:" << i << " fd:" << finals_density << endl;
+						cout << "states: " << states << " alpha: " << alpha << " d:" << d << " i:" << i << " fd:" << finals_density << endl;
 						auto nfa = nfagen.Generate_v2(states, alpha, 1, static_cast<TState>(states*finals_density), &den, rgen);
 						auto dfa = determ.Determinize(nfa);
 
 						//write_text(dfa, "automata_test.txt");
 						//write_dot(dfa, "automata_test.dot");
 
-						nanosecond_type t_h=0, t_i=0, t_hy=0, t_at=0;
-						TState c_h=0, c_i=0, c_hy=0, c_at=0;
+						nanosecond_type t_h = 0, t_i = 0, t_hy = 0, t_at = 0;
+						TState c_h = 0, c_i = 0, c_hy = 0, c_at = 0;
 
-						if(hopcroft_enable)
+						if (hopcroft_enable)
 						{
 							timer.start();
 							min_h.Minimize(dfa, p_h);
@@ -1573,7 +1573,7 @@ int test401()
 							t_h = timer.elapsed().wall;
 							c_h = p_h.GetSize();
 						}
-						if(incremental_enable)
+						if (incremental_enable)
 						{
 							timer.start();
 							min_i.Minimize(dfa, p_i);
@@ -1581,7 +1581,7 @@ int test401()
 							t_i = timer.elapsed().wall;
 							c_i = p_i.GetSize();
 						}
-						if(hybrid_enable)
+						if (hybrid_enable)
 						{
 							timer.start();
 							min_hi.Minimize(dfa, p_hi);
@@ -1589,7 +1589,7 @@ int test401()
 							t_hy = timer.elapsed().wall;
 							c_hy = p_hi.GetSize();
 						}
-						if(atomic_enable)
+						if (atomic_enable)
 						{
 							timer.start();
 							auto d = min_at.Minimize(dfa);
@@ -1598,7 +1598,7 @@ int test401()
 							c_at = d.GetStates();
 						}
 						auto fmt = boost::format("%1%,%2%,%3%,%4%,%5%,%6%,%7%,%8%,%9%,%10%,%11%,%12%,%13%")
-							% states 
+							% states
 							% alpha
 							% den
 							% finals_density
@@ -1614,14 +1614,14 @@ int test401()
 							;
 						report << fmt.str() << endl;
 
-						if(hopcroft_enable && incremental_enable && (c_h != c_i))   throw invalid_argument("Hopcroft differs of Incremental");
-						if(hopcroft_enable && hybrid_enable &&      (c_h != c_hy))  throw invalid_argument("Hopcroft differs of Hybrid");
-						if(incremental_enable && hybrid_enable &&   (c_i != c_hy))  throw invalid_argument("Incremental differs of Hybrid");
-						if(atomic_enable && hopcroft_enable &&      (c_h != c_at))  throw invalid_argument("Atomic differs of Hopcroft");
-						if(atomic_enable && hybrid_enable &&        (c_hy != c_at)) throw invalid_argument("Atomic differs of Hybrid");
+						if (hopcroft_enable && incremental_enable && (c_h != c_i))   throw invalid_argument("Hopcroft differs of Incremental");
+						if (hopcroft_enable && hybrid_enable && (c_h != c_hy))  throw invalid_argument("Hopcroft differs of Hybrid");
+						if (incremental_enable && hybrid_enable && (c_i != c_hy))  throw invalid_argument("Incremental differs of Hybrid");
+						if (atomic_enable && hopcroft_enable && (c_h != c_at))  throw invalid_argument("Atomic differs of Hopcroft");
+						if (atomic_enable && hybrid_enable && (c_hy != c_at)) throw invalid_argument("Atomic differs of Hybrid");
 					}
 
-					return 0;
+	return 0;
 }
 
 // Test performance 500-599
@@ -1635,10 +1635,10 @@ int test500()
 	typedef Dfa<TState, TSymbol> TDfa;
 	typedef Nfa<TState, TSymbol> TNfa;
 	NfaGenerator<TNfa, mt19937> nfagen;
-	boost::timer::cpu_timer timer;	
+	boost::timer::cpu_timer timer;
 
 	long seed = 5000;
-	mt19937 rgen(seed);	
+	mt19937 rgen(seed);
 	//int states = 80;
 	int states = 5;
 	int symbols = 2;
@@ -1646,7 +1646,7 @@ int test500()
 	TNfa nfa = nfagen.Generate(states, symbols, 1, 1, density, rgen);
 
 	cout << "Generado NFA con " << (size_t)nfa.GetStates() << " estados, " << (size_t)nfa.GetAlphabetLength() << " simbolos, d=" << density << endl;
-	write_dot(nfa, "nfa\\t500_nfa_org.dot");	
+	write_dot(nfa, "nfa\\t500_nfa_org.dot");
 	write_text(nfa, "nfa\\t500_nfa_org.txt");
 
 	Determinization<TDfa, TNfa> determh;
@@ -1659,21 +1659,21 @@ int test500()
 	MinimizationHopcroft<TDfa>::NumericPartition hpartitions;
 	minh.ShowConfiguration = false;
 	timer.start();
-	minh.Minimize(dfa, hpartitions);	
+	minh.Minimize(dfa, hpartitions);
 	timer.stop();
 	cout << "Minimizado Hopcroft con " << hpartitions.GetSize() << " estados, " << (size_t)dfa.GetAlphabetLength() << " simbolos" << endl;
 	cout << "Minimizacion tomo " << timer.format(5) << endl;
 	//write_dot(dfa_minh, "nfa\\t500_dfa_min_h.dot");
 	//write_text(dfa_minh, "nfa\\t500_dfa_min_h.txt");
 
-	typedef Fsa<TState,TSymbol> TFsa;
+	typedef Fsa<TState, TSymbol> TFsa;
 	Determinization<TNfa, TNfa> determb;
 	auto nfab = determb.Determinize(nfa);
 	cout << "Determinizado con " << (size_t)nfab.GetStates() << " estados, " << (size_t)nfab.GetAlphabetLength() << " simbolos" << endl;
-	write_dot(nfab, "nfa\\t500_dfa.dot");	
+	write_dot(nfab, "nfa\\t500_dfa.dot");
 	write_text(nfab, "nfa\\t500_dfa_b.txt");
 
-	MinimizationBrzozowski<TNfa> minb;	
+	MinimizationBrzozowski<TNfa> minb;
 	MinimizationBrzozowski<TNfa>::TVectorDfaEdge edges;
 	MinimizationBrzozowski<TNfa>::TVectorDfaState fstates;
 	MinimizationBrzozowski<TNfa>::TState nstates;
@@ -1745,7 +1745,7 @@ int test503()
 	store(po, vm);
 	notify(vm);
 
-	if(show_help)
+	if (show_help)
 	{
 		cout << opt_desc << endl;
 		return 0;
@@ -1757,7 +1757,7 @@ int test503()
 	typedef Nfa<TState, TSymbol> TNfa;
 
 	ofstream report(output_filename);
-	if(!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
+	if (!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
 
 	path root_path(root_path_string);
 
@@ -1772,22 +1772,23 @@ int test503()
 	vector<path> v;
 	copy(directory_iterator(root_path), directory_iterator(), back_inserter(v));
 
-	sort(v.begin(), v.end(), [](const path& a, const path& b){ 
-		const string aa=a.string(), bb=b.string(); 
+	sort(v.begin(), v.end(), [](const path& a, const path& b){
+		const string aa = a.string(), bb = b.string();
 		return aa.size() < bb.size();
 	});
-	for(auto i=v.begin(); i!=v.end(); i++)
-	{		
+	for (auto i = v.begin(); i != v.end(); i++)
+	{
 		size_t automata_count = 0;
+		size_t fail_count = 0;
 
-		auto fnc = [&](const TDfa& dfa, const string& dfa_filename) 
+		auto fnc = [&](const TDfa& dfa, const string& dfa_filename)
 		{
 			MinimizationAlgorithm algo;
 			TState n = dfa.GetStates();
 			TSymbol k = dfa.GetAlphabetLength();
 			statesCount.clear();
 
-			if(dfa.GetFinals().IsEmpty()) 
+			if (dfa.GetFinals().IsEmpty())
 			{
 				cout << "Skip because ATOMIC can't handle DFA without finals" << endl;
 				return;
@@ -1795,7 +1796,7 @@ int test503()
 
 			// BRZOZOWSKI
 			algo = MinimizationAlgorithm::Brzozowski;
-			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
+			if (find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
 			{
 				throw invalid_argument("brozozowski not supported currently");
 				/*
@@ -1805,7 +1806,7 @@ int test503()
 				min1.Minimize(nfa, &min_states, vfinal, vedges);
 				timer.stop();
 				//cout << "Brzozowski " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%")
 				% "Brzozowski"
 				% n
 				% k
@@ -1821,8 +1822,8 @@ int test503()
 
 			// HOPCROFT
 			algo = MinimizationAlgorithm::Hopcroft;
-			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
-			{	
+			if (find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
+			{
 				MinimizationHopcroft<TDfa> min2;
 				MinimizationHopcroft<TDfa>::NumericPartition part_h;
 				min2.ShowConfiguration = false;
@@ -1831,22 +1832,22 @@ int test503()
 				min2.Minimize(dfa, part_h);
 				timer.stop();
 				//cout << "Hopcroft " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%")
 					% "Hopcroft"
 					% n
 					% k
 					% timer.elapsed().wall
 					% dfa_filename
 					% static_cast<size_t>(part_h.GetSize())
-					).str()	<< endl;
-				if(acumTime.find(algo)==acumTime.end()) acumTime[algo] = 0;
+					).str() << endl;
+				if (acumTime.find(algo) == acumTime.end()) acumTime[algo] = 0;
 				acumTime[algo] += timer.elapsed().wall;
 				statesCount[algo] = part_h.GetSize();
 			}
 
 			// INCREMENTAL
 			algo = MinimizationAlgorithm::Incremental;
-			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())	
+			if (find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
 			{
 				MinimizationIncremental<TDfa> min3;
 				MinimizationIncremental<TDfa>::NumericPartition part_i;
@@ -1856,7 +1857,7 @@ int test503()
 				min3.Minimize(dfa, part_i);
 				timer.stop();
 				//cout << "Incremental " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%")
 					% "Incremental"
 					% n
 					% k
@@ -1864,24 +1865,24 @@ int test503()
 					% dfa_filename
 					% static_cast<size_t>(part_i.GetSize())
 					).str() << endl;
-				if(acumTime.find(algo)==acumTime.end()) acumTime[algo] = 0;
+				if (acumTime.find(algo) == acumTime.end()) acumTime[algo] = 0;
 				acumTime[algo] += timer.elapsed().wall;
 				statesCount[algo] = part_i.GetSize();
 			}
 
 			// HYBRID
 			algo = MinimizationAlgorithm::Hybrid;
-			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
+			if (find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
 			{
 				MinimizationHybrid<TDfa> min4;
 				MinimizationHybrid<TDfa>::NumericPartition part_hi;
-				min4.ShowConfiguration = false;	
+				min4.ShowConfiguration = false;
 
 				timer.start();
 				min4.Minimize(dfa, part_hi);
 				timer.stop();
 				//cout << "Hybrid " << dfa_filename << ": " << timer.elapsed().wall << endl;
-				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%") 
+				report << (boost::format("%1%,%2%,%3%,%4%,%5%,%6%")
 					% "Hybrid"
 					% n
 					% k
@@ -1889,14 +1890,14 @@ int test503()
 					% dfa_filename
 					% static_cast<size_t>(part_hi.GetSize())
 					).str() << endl;
-				if(acumTime.find(algo)==acumTime.end()) acumTime[algo] = 0;
+				if (acumTime.find(algo) == acumTime.end()) acumTime[algo] = 0;
 				acumTime[algo] += timer.elapsed().wall;
 				statesCount[algo] = part_hi.GetSize();
 			}
 
 			// ATOMIC
-			algo = MinimizationAlgorithm::Atomic;			
-			if(find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
+			algo = MinimizationAlgorithm::Atomic;
+			if (find(algorithms.begin(), algorithms.end(), algo) != algorithms.end())
 			{
 				MinimizationAtomic<TDfa> min5;
 				min5.ShowConfiguration = false;
@@ -1904,20 +1905,20 @@ int test503()
 				timer.start();
 				auto mdfa = min5.Minimize(dfa);
 				timer.stop();
-				if(acumTime.find(algo)==acumTime.end()) acumTime[algo] = 0;
+				if (acumTime.find(algo) == acumTime.end()) acumTime[algo] = 0;
 				acumTime[algo] += timer.elapsed().wall;
 				statesCount[algo] = mdfa.GetStates();
 			}
 
 			bool fail = false;
-			for(auto j=statesCount.begin(); j!=statesCount.end(); j++)
+			for (auto j = statesCount.begin(); j != statesCount.end(); j++)
 			{
-				for(auto k=statesCount.begin(); k!=statesCount.end(); k++)
+				for (auto k = next(j); k != statesCount.end(); k++)
 				{
-					if(j->first == k->first) continue;
-					if(j->second != k->second)
+					assert(j->first != k->first);
+					if (j->second != k->second)
 					{
-						auto msg = format("ERROR: No coincide %1% (%2%) con %3% (%4%)") 
+						auto msg = format("ERROR: No coincide %1% (%2%) con %3% (%4%)")
 							% j->first
 							% j->second
 							% k->first
@@ -1927,53 +1928,55 @@ int test503()
 					}
 				}
 			}
-			if(fail) throw logic_error("No conicide el numero de estados en los automatas minimos");
-
-			automata_count++;					
+			//if (fail) throw logic_error("No conicide el numero de estados en los automatas minimos");
+			if (fail) fail_count++;
+			automata_count++;
 		};
 
-		if(almeida_format) 
+		if (almeida_format)
 		{
-			if(!is_regular_file(*i)) continue;
+			if (!is_regular_file(*i)) continue;
 			auto dfa_filename = i->string();
 			cout << "Reading " << dfa_filename << endl;
 
 			ifstream fsa_file(dfa_filename);
 			string line;
 			TState n; TSymbol k;
-			begin_read_text_almeida<TDfa>(fsa_file, dfa_filename, &n, &k);
-			while(!fsa_file.eof())
+			begin_read_text_almeida<TDfa>(fsa_file, dfa_filename, &n, &k);			
+			while (!fsa_file.eof())
 			{
+				// cout << "FSA #" << automata_count << endl;
 				getline(fsa_file, line);
-				if(line.empty() || line.front() == '(') continue;
+				if (line.empty() || line.front() == '(') continue;
 				stringstream line_stream(line);
-				auto dfa = read_text_almeida<TDfa>(line_stream, n, k);				
+				auto dfa = read_text_almeida<TDfa>(line_stream, n, k);
 				fnc(dfa, dfa_filename);				
-			}			
-		} 
-		else 
+			}
+		}
+		else
 		{
-			if(!is_directory(*i)) continue;
-			cout << "Entering " << *i << endl;			
-			for(auto j=directory_iterator(*i); j!=directory_iterator(); j++)
-			{				
-				if(!is_regular_file(*j)) continue;
+			if (!is_directory(*i)) continue;
+			cout << "Entering " << *i << endl;
+			for (auto j = directory_iterator(*i); j != directory_iterator(); j++)
+			{
+				if (!is_regular_file(*j)) continue;
 				const auto dfa_filename = j->path().string();
 				auto nfa = read_text_one_based<TNfa>(dfa_filename);
 				auto dfa = read_text_one_based<TDfa>(dfa_filename);
 				fnc(dfa, dfa_filename);
 			}
-		}	
+		}
 		// skip empty folders
-		if(automata_count == 0) continue;
-		for(auto j=acumTime.begin(); j!=acumTime.end(); j++)
+		if (automata_count == 0) continue;
+		for (auto j = acumTime.begin(); j != acumTime.end(); j++)
 		{
 			auto avg = j->second / automata_count;
 			cout << j->first << ": " << avg << endl;
 			cout << (boost::format("file %1% | time avg = %2%") % i->string() % avg).str() << endl;
 		}
+		cout << "Fail count " << fail_count << endl;
 	}
-
+	
 	return 0;
 }
 
@@ -2006,7 +2009,7 @@ int test502()
 	min_at.ShowConfiguration = true;
 
 	ofstream report("report_501.csv");
-	if(!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
+	if (!report.is_open()) throw invalid_argument("No se pudo abrir el reporte");
 
 	report << "alg,n,k,t,file" << endl;
 
@@ -2068,7 +2071,7 @@ int test504()
 	using namespace boost::filesystem;
 	using namespace boost::timer;
 
-	cpu_timer timer;	
+	cpu_timer timer;
 
 	typedef uint16_t TState;
 	typedef uint16_t TSymbol;
@@ -2081,7 +2084,7 @@ int test504()
 	report << "alg,n,k,t,file" << endl;
 
 	for (int j = 1; j <= 10; j++)
-		for (int i = 100; i <= 10000; i+=100)
+		for (int i = 100; i <= 10000; i += 100)
 		{
 			MinimizationHopcroft<TDfa> min_h;
 			min_h.ShowConfiguration = false;
@@ -2101,7 +2104,7 @@ int test504()
 			timer.start();
 			min_h.Minimize(dfa, part_h);
 			timer.stop();
-			cout << "Hopcroft: " << timer.elapsed().wall << " " << part_h.GetSize() << endl;;				
+			cout << "Hopcroft: " << timer.elapsed().wall << " " << part_h.GetSize() << endl;;
 
 			report << "hopcroft," << n << "," << k << "," << timer.elapsed().wall << "," << dfa_filename << endl;
 
@@ -2113,9 +2116,9 @@ int test504()
 			report << "hybrid," << n << "," << k << "," << timer.elapsed().wall << "," << dfa_filename << endl;
 		}
 
-		report.close();
+	report.close();
 
-		return 0;
+	return 0;
 }
 
 // Test Set 50-60
@@ -2167,8 +2170,8 @@ int test50()
 
 
 int main(int argc, char** argv)
-{	
-	if(argc < 2)
+{
+	if (argc < 2)
 	{
 		cout << "Specify the test number" << endl;
 		return -1;
@@ -2182,7 +2185,7 @@ int main(int argc, char** argv)
 	{
 #endif
 #define MACRO_TEST(N) case N: return test##N(); break
-		switch(i)
+		switch (i)
 		{
 			MACRO_TEST(50);
 

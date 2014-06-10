@@ -75,6 +75,7 @@ private:
 
 	TState Merge(NumericPartition& part, TState p, TState q) const
 	{
+		using namespace std;
 		TState cp = part.Find(p);
 		TState cq = part.Find(q);
 		TState t = cp < cq ? cp : cq;
@@ -86,6 +87,7 @@ private:
 			part.state_to_partition[*i] = t;
 		}
 		pt.splice(pt.begin(), ps);
+		if (ShowConfiguration) cout << "merged blocks for states " << p << " & " << q << endl;
 		return t;
 	}
 
@@ -95,7 +97,7 @@ private:
 	void Split(const TDfa& dfa, NumericPartition& part, TState splitter_partition_idx, TSymbol splitter_letter, typename std::vector<std::list<TState>>::iterator cur_part, typename std::list<TState>::iterator& i_p, typename std::list<TState>::iterator& i_q, bool* advanced) const
 	{
 		using namespace std;
-		
+
 		// calcula d_inverse para el conjunto de estados y letra indicado
 		BitSet<TState> pred_states(dfa.GetStates());
 		BitSet<TState> block_split(dfa.GetStates());
@@ -145,7 +147,7 @@ private:
 						}
 						else if (k == i_q)
 						{
-							i_q = j;	
+							i_q = j;
 							*advanced = true;
 						}
 						assert(i_p != k);
@@ -175,32 +177,33 @@ private:
 		const TDfa& dfa,
 		NumericPartition& pi, NumericPartition& ro,
 		BitSet<TPairIndex>& expl,
-		BitSet<TPairIndex>& tocheck, std::vector<TSplitter>& tocheck_stack,
-		std::vector<std::tuple<TState,TSymbol>>& splitter_stack)
+		BitSet<TPairIndex>& tocheck,
+		std::vector<TSplitter>& tocheck_stack,
+		std::vector<TSplitter>& splitter_stack)
 	{
 		assert(p < q);
 		using namespace std;
-		
+
 		TPairIndex root_pair = GetPairIndex(p, q);
 		expl.Add(root_pair);
 
 		bool already_seen = false;
 		bool found = false;
 		TSymbol a;
-		for (a = 0; a<dfa.GetAlphabetLength(); a++)
+		for (a = 0; a < dfa.GetAlphabetLength(); a++)
 		{
 			if (ShowConfiguration) cout << "Test equiv ((" << p << ", " << q << "), " << a << ")";
 
 			TState sp = dfa.GetSuccessor(p, a);
 			TState sq = dfa.GetSuccessor(q, a);
-			
-			if (ShowConfiguration) cout << " => (" << sp << ", " << sq << ")";			
+
+			if (ShowConfiguration) cout << " => (" << sp << ", " << sq << ")";
 			if (ShowConfiguration && sp == sq) cout << endl;
 
 			if (sp == sq) continue; // same state is same partition, no inequivalent evidence
 
 			tie(sp, sq) = NormalizedPair(sp, sq);
-			
+
 			TState pp = pi.Find(sp);
 			TState pq = pi.Find(sq);
 
@@ -208,9 +211,8 @@ private:
 
 			if (pp != pq) // different class!!, inequivalent states
 			{
-				TState minP = pi.GetPartition(pp).size() < pi.GetPartition(pq).size() ? pp : pq;
-				splitter_stack.push_back(make_tuple(minP, a));
-				if(ShowConfiguration) cout << "NO" << endl;
+				splitter_stack.push_back(make_tuple(sp, sq, a));
+				if (ShowConfiguration) cout << "NO, stack push (" << sp << ", " << sq << ", " << a << ")" << endl;
 				return 0;
 			}
 			else if (expl.Contains(GetPairIndex(sp, sq))) // need back reference?
@@ -230,8 +232,8 @@ private:
 				int r = AreEquivalent(sp, sq, dfa, pi, ro, expl, tocheck, tocheck_stack, splitter_stack);
 				if (r == 0)
 				{
-					TState minP = pi.GetPartition(pp).size() < pi.GetPartition(pq).size() ? pp : pq;
-					splitter_stack.push_back(make_tuple(minP, a));
+					splitter_stack.push_back(make_tuple(sp, sq, a));
+					if (ShowConfiguration) cout << "stack push (" << sp << ", " << sq << ", " << a << ")" << endl;
 					return 0;
 				}
 				else if (r == 1)
@@ -242,19 +244,19 @@ private:
 				{
 					if (!tocheck.TestAndAdd(GetPairIndex(sp, sq)))
 					{
-						if(ShowConfiguration) cout << "annotate (" << sp << ", " << sq << "), " << a << endl;
+						if (ShowConfiguration) cout << "annotate (" << sp << ", " << sq << "), " << a << endl;
 						tocheck_stack.push_back(make_tuple(sp, sq, a));
 					}
 					already_seen = true;
 				}
 			}
 		}
-		if (already_seen) 
-		{ 
-			if(ShowConfiguration) cout << "BACKREF" << endl;
-			return 2; 
+		if (already_seen)
+		{
+			if (ShowConfiguration) cout << "BACKREF" << endl;
+			return 2;
 		}
-		if(ShowConfiguration) cout << "YES, no counter evidence found" << endl;
+		if (ShowConfiguration) cout << "YES, no counter evidence found" << endl;
 		return 1;
 	}
 
@@ -353,8 +355,8 @@ public:
 		BitSet<TPairIndex> expl((states*states - states) / 2);
 		BitSet<TPairIndex> tocheck((states*states - states) / 2);
 		vector<TSplitter> tocheck_stack;
-		vector<tuple<TState, TSymbol>> splitter_stack;
-				
+		vector<TSplitter> splitter_stack;
+
 		for (auto cur_part = part.P.begin(); cur_part != next(part.P.begin(), part.new_index); cur_part++)
 		{
 			assert(cur_part->size() > 0);
@@ -363,7 +365,7 @@ public:
 			auto i_p = cur_part->begin();
 			auto i_q = next(i_p, 1);
 			while (i_p != cur_part->end() && i_q != cur_part->end())
-			{				
+			{
 				assert(distance(i_p, i_q) > 0);
 
 				TState p, q;
@@ -380,7 +382,7 @@ public:
 					{
 						cout << "pair: " << *i_p << ", " << *i_q << endl;
 						cout << "P=" << to_string(part) << endl;
-						cout << "rho=" << to_string(ro) << endl;
+						cout << "Rho=" << to_string(ro) << endl;
 					}
 
 					expl.Clear();
@@ -389,27 +391,30 @@ public:
 					splitter_stack.clear();
 
 					int isEquiv = AreEquivalent(p, q, dfa, part, ro, expl, tocheck, tocheck_stack, splitter_stack);
-					if (isEquiv)
+					if (isEquiv == 1)
 					{
 						// merge equivalent states
-						TState t = Merge(ro, p, q);
-					}					
+						Merge(ro, p, q);
+						if (ShowConfiguration) cout << "Ro=" << to_string(ro) << endl;
+					}
 					for (auto ssi = splitter_stack.begin(); ssi != splitter_stack.end(); ssi++)
 					{
-						TState p; TSymbol a;
-						tie(p, a) = *ssi;
-						Split(dfa, part, p, a, cur_part, i_p, i_q, &splitAdvancedIterators);
+						TState p, q; TSymbol a;
+						tie(p, q, a) = *ssi;
+
+						TState p1 = part.Find(p);
+						TState p2 = part.Find(q);
+
+						TState min_part = part.P[p1].size() < part.P[p2].size() ? p1 : p2;
+
+						Split(dfa, part, min_part, a, cur_part, i_p, i_q, &splitAdvancedIterators);
 						if (ShowConfiguration) cout << "P=" << to_string(part) << endl;
 					}
 					if (ShowConfiguration) cout << "Begin resolve pending refs" << endl;
-					while (!tocheck_stack.empty())
+					for (auto splitter : tocheck_stack)
 					{
-						TSplitter s = tocheck_stack.back();
-						tocheck_stack.pop_back();
-
-						TState s1 = get<0>(s);
-						TState s2 = get<1>(s);
-						TSymbol a = get<2>(s);
+						TState s1, s2; TSymbol a;
+						tie(s1, s2, a) = splitter;
 
 						TState p1 = part.Find(s1);
 						TState p2 = part.Find(s2);
@@ -417,6 +422,7 @@ public:
 						if (p1 == p2)
 						{
 							Merge(ro, s1, s2);
+							if (ShowConfiguration) cout << "Rho=" << to_string(ro) << endl;
 						}
 						else
 						{
@@ -438,7 +444,7 @@ public:
 					{
 						i_q++; // set q to next one
 					}
-				}				
+				}
 			}
 		}
 		if (ShowConfiguration)
