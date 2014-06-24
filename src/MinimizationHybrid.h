@@ -15,9 +15,11 @@ public:
 	typedef typename TDfa::TState TState;
 	typedef typename TDfa::TSymbol TSymbol;
 	typedef uint64_t TPairIndex;
+	typedef std::tuple<TState, TState> TStatePair;
 	typedef std::tuple<TState, TState, TSymbol> TSplitter;
 	typedef std::vector<TState> TStateToPartition;
 	typedef std::vector<std::list<TState>> TPartitionSet;
+	typedef std::vector<std::vector<TSplitter>> TDelta;
 
 	// TODO: More partition details isolated from algoritmhs
 	// in order to not expose internal members
@@ -170,94 +172,70 @@ private:
 		}
 	}
 
-	// 0: False
-	// 1: Not known
-	// 2: Pending back reference
-	int AreEquivalent(TState p, TState q,
+	// False
+	// True, return eq
+	bool AreEquivalent(TState p, TState q,
 		const TDfa& dfa,
-		NumericPartition& pi, NumericPartition& ro,
-		BitSet<TPairIndex>& expl,
-		BitSet<TPairIndex>& tocheck,
-		std::vector<TSplitter>& tocheck_stack,
-		std::vector<TSplitter>& splitter_stack)
+		const NumericPartition& pi, const NumericPartition& ro,
+		std::vector<TStatePair>& expl,
+		BitSet<TPairIndex>& states,
+		TDelta& delta,
+		TStatePair* out_pair)
 	{
 		assert(p < q);
 		using namespace std;
 
-		TPairIndex root_pair = GetPairIndex(p, q);
-		expl.Add(root_pair);
-
-		bool already_seen = false;
-		bool found = false;
-		TSymbol a;
-		for (a = 0; a < dfa.GetAlphabetLength(); a++)
+		states.Add(GetPairIndex(p, q));
+				
+		expl.clear();
+		expl.push_back(make_tuple(p, q));
+		
+		while (!expl.empty()) 
 		{
-			if (ShowConfiguration) cout << "Test equiv ((" << p << ", " << q << "), " << a << ")";
-
-			TState sp = dfa.GetSuccessor(p, a);
-			TState sq = dfa.GetSuccessor(q, a);
-
-			if (ShowConfiguration) cout << " => (" << sp << ", " << sq << ")";
-			if (ShowConfiguration && sp == sq) cout << endl;
-
-			if (sp == sq) continue; // same state is same partition, no inequivalent evidence
-
-			tie(sp, sq) = NormalizedPair(sp, sq);
-
-			TState pp = pi.Find(sp);
-			TState pq = pi.Find(sq);
-
-			if (ShowConfiguration) cout << " blocks: " << pp << ", " << pq << endl;
-
-			if (pp != pq) // different class!!, inequivalent states
+			TState p1, q1;
+			tie(p1, q1) = expl.back();
+			expl.pop_back();
+			
+			for (TSymbol a = 0; a < dfa.GetAlphabetLength(); a++)
 			{
-				splitter_stack.push_back(make_tuple(sp, sq, a));
-				if (ShowConfiguration) cout << "NO, stack push (" << sp << ", " << sq << ", " << a << ")" << endl;
-				return 0;
-			}
-			else if (expl.Contains(GetPairIndex(sp, sq))) // need back reference?
-			{
-				if (!tocheck.TestAndAdd(GetPairIndex(sp, sq)))
+				if (ShowConfiguration) cout << "Test equiv ((" << p << ", " << q << "), " << a << ")";
+
+				TState p2 = dfa.GetSuccessor(p1, a); TState q2 = dfa.GetSuccessor(q1, a);
+
+				if (ShowConfiguration) cout << " => (" << p2 << ", " << q2 << ")";
+
+				tie(p2, q2) = NormalizedPair(p2, q2);
+
+				TState ro_p = ro.Find(p2); TState ro_q = ro.Find(q2);
+
+				if (ShowConfiguration) cout << " rho blks: " << ro_p << ", " << ro_q << endl;
+
+				if (ro_p == ro_q) continue;
+
+				auto p2_q2 = GetPairIndex(p2, q2);
+				states.Add(p2_q2);
+
+				auto& col = delta[p2_q2];
+				bool found = false;
+				for (auto r : col)
 				{
-					tocheck_stack.push_back(make_tuple(sp, sq, a));
-					if (ShowConfiguration)
-					{
-						cout << "Already seen: (" << sp << ", " << sq << "), annotate (" << sp << ", " << sq << "), " << a << endl;
-					}
+					found = get<0>(r) == p1 && get<1>(r) == q1;
+					if (found) break;
 				}
-				already_seen = true;
-			}
-			else if (ro.Find(sp) != ro.Find(sq))
-			{
-				int r = AreEquivalent(sp, sq, dfa, pi, ro, expl, tocheck, tocheck_stack, splitter_stack);
-				if (r == 0)
+				if (!found) col.push_back(make_tuple(p1, q1, a));
+
+				if (pi.Find(p2) != pi.Find(q2)) 
 				{
-					splitter_stack.push_back(make_tuple(sp, sq, a));
-					if (ShowConfiguration) cout << "stack push (" << sp << ", " << sq << ", " << a << ")" << endl;
-					return 0;
+					*out_pair = make_tuple(p2, q2);
+					return false;
 				}
-				else if (r == 1)
+				if (ro.Find(p2) != ro.Find(q2))
 				{
-					Merge(ro, sp, sq);
-				}
-				else
-				{
-					if (!tocheck.TestAndAdd(GetPairIndex(sp, sq)))
-					{
-						if (ShowConfiguration) cout << "annotate (" << sp << ", " << sq << "), " << a << endl;
-						tocheck_stack.push_back(make_tuple(sp, sq, a));
-					}
-					already_seen = true;
+					expl.push_back(make_tuple(p2, q2)); // ojo, muchas veces?
 				}
 			}
 		}
-		if (already_seen)
-		{
-			if (ShowConfiguration) cout << "BACKREF" << endl;
-			return 2;
-		}
-		if (ShowConfiguration) cout << "YES, no counter evidence found" << endl;
-		return 1;
+		return true;
 	}
 
 public:
@@ -352,10 +330,12 @@ public:
 		// El numero de pares de estados sin repetir es el
 		// numero de componentes en una matriz triangular
 		// El area de un triangulo
-		BitSet<TPairIndex> expl((states*states - states) / 2);
 		BitSet<TPairIndex> tocheck((states*states - states) / 2);
-		vector<TSplitter> tocheck_stack;
-		vector<TSplitter> splitter_stack;
+		vector<TStatePair> expl;
+		vector<TStatePair> todolist;
+		expl.reserve((states*states - states) / 2);		
+		todolist.reserve((states*states - states) / 2);
+		TDelta delta((states*states - states) / 2, vector<TSplitter>());
 
 		for (auto cur_part = part.P.begin(); cur_part != next(part.P.begin(), part.new_index); cur_part++)
 		{
@@ -374,69 +354,57 @@ public:
 				assert(p < q);
 				assert(dfa.IsFinal(p) == dfa.IsFinal(q));
 				assert(part.Find(p) == part.Find(q));
-
+				
 				bool splitAdvancedIterators = false;
-				if (ro.Find(p) != ro.Find(q))
+				
+				if (ShowConfiguration)
 				{
-					if (ShowConfiguration)
+					cout << "pair: " << *i_p << ", " << *i_q << endl;
+					cout << "Pi=" << to_string(part) << endl;
+					cout << "Rho=" << to_string(ro) << endl;
+				}
+								
+				todolist.clear();
+				tocheck.Clear();
+				for (auto& v : delta) v.clear();
+
+				TStatePair neq_pair;
+				bool isEquiv = AreEquivalent(p, q, dfa, part, ro, expl, tocheck, delta, &neq_pair);
+				if (!isEquiv)
+				{
+					todolist.push_back(neq_pair);
+					while (!todolist.empty())
 					{
-						cout << "pair: " << *i_p << ", " << *i_q << endl;
-						cout << "P=" << to_string(part) << endl;
-						cout << "Rho=" << to_string(ro) << endl;
-					}
-
-					expl.Clear();
-					tocheck.Clear();
-					tocheck_stack.clear();
-					splitter_stack.clear();
-
-					int isEquiv = AreEquivalent(p, q, dfa, part, ro, expl, tocheck, tocheck_stack, splitter_stack);
-					if (isEquiv == 1)
-					{
-						// merge equivalent states
-						Merge(ro, p, q);
-						if (ShowConfiguration) cout << "Ro=" << to_string(ro) << endl;
-					}
-					for (auto ssi = splitter_stack.begin(); ssi != splitter_stack.end(); ssi++)
-					{
-						TState p, q; TSymbol a;
-						tie(p, q, a) = *ssi;
-
-						TState p1 = part.Find(p);
-						TState p2 = part.Find(q);
-
-						TState min_part = part.P[p1].size() < part.P[p2].size() ? p1 : p2;
-
-						Split(dfa, part, min_part, a, cur_part, i_p, i_q, &splitAdvancedIterators);
-						if (ShowConfiguration) cout << "P=" << to_string(part) << endl;
-					}
-					if (ShowConfiguration) cout << "Begin resolve pending refs" << endl;
-					for (auto splitter : tocheck_stack)
-					{
-						TState s1, s2; TSymbol a;
-						tie(s1, s2, a) = splitter;
-
-						TState p1 = part.Find(s1);
-						TState p2 = part.Find(s2);
-
-						if (p1 == p2)
+						TState p1, q1; tie(p1, q1) = todolist.back();
+						todolist.pop_back();
+						auto p1_q1_idx = GetPairIndex(p1, q1);
+						tocheck.Add(p1_q1_idx);
+						for (TSplitter s : delta[p1_q1_idx])
 						{
-							Merge(ro, s1, s2);
-							if (ShowConfiguration) cout << "Rho=" << to_string(ro) << endl;
-						}
-						else
-						{
-							TState min_part = part.P[p1].size() < part.P[p2].size() ? p1 : p2;
-							Split(dfa, part, min_part, a, cur_part, i_p, i_q, &splitAdvancedIterators);
-							if (ShowConfiguration) cout << "P=" << to_string(part) << endl;
+							TState p2, q2; TSymbol a;
+							tie(p2, q2, a) = s;
+							TPairIndex p2_q2_idx = GetPairIndex(p2, q2);
+							if (!tocheck.Contains(p2_q2_idx)) continue;
+							if (part.Find(p2) != part.Find(q2))
+							{
+								TState b_p2 = part.Find(p2); TState b_q2 = part.Find(q2);
+								TState min_part = part.GetPartition(b_p2).size() < part.GetPartition(b_q2).size() ? b_p2 : b_q2;
+								Split(dfa, part, min_part, a, cur_part, i_p, i_q, &splitAdvancedIterators);
+							}
+							todolist.push_back(make_tuple(p2, q2));
 						}
 					}
-					if (ShowConfiguration) cout << "Complete resolve pending refs" << endl;
+				}
+				for (auto it = tocheck.GetIterator(); !it.IsEnd(); it.MoveNext())
+				{
+					// merge equivalent states
+					TState p1, q1; tie(p1, q1) = GetPairFromIndex(it.GetCurrent());
+					TState b_p1 = ro.Find(p1); TState b_q1 = ro.Find(q1);
+					Merge(ro, b_p1, b_q1);
+					if (ShowConfiguration) cout << "Rho=" << to_string(ro) << endl;
 				}
 				// advance logic
-				if (!splitAdvancedIterators) {
-					i_q++;
-				}
+				if (!splitAdvancedIterators) i_q++;
 				if (i_q == cur_part->end()) // advance then is in the end?
 				{
 					i_q = ++i_p; // advance p

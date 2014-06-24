@@ -548,6 +548,7 @@ public:
 		assert(cnt < count());
 		element_type c = 0;
 		auto i = storage.begin();
+		if (cnt >= bits_per_block)
 		while(true)
 		{
 			auto p = bu::popcnt(*i);
